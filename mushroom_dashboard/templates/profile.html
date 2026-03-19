@@ -1,0 +1,1066 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <meta name="theme-color" content="#0c4b33">
+    <title>Mushroom IoT Dashboard - Profile</title>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'css/admin.css' %}">
+    <link rel="stylesheet" href="{% static 'css/responsive.css' %}">
+
+    <style>
+        /* --- Global Styles --- */
+        :root {
+            --dark-green: #0c4b33;
+            --mid-green: #1a5e45;
+            --page-bg: #f4f7f6;
+            --card-bg: #ffffff;
+            --text-dark: #333;
+            --text-light: #555;
+            --border-color: #eee;
+            --input-bg: #f9fafb;
+            --danger-red: #dc2626;
+            --info-blue: #3b82f6;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--page-bg);
+            margin: 0;
+            display: flex;
+            height: 100vh;
+            color: var(--text-dark);
+        }
+
+        /* --- Sidebar --- */
+        .sidebar {
+            width: 260px;
+            background-color: #0c4b33;
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            box-sizing: border-box;
+            height: 100vh;
+            position: fixed;
+            left: 0;
+            top: 0;
+            overflow-y: auto;
+        }
+
+        .sidebar-logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .sidebar-logo .logo {
+            background-color: #f9f9f9;
+            color: #0c4b33;
+            border-radius: 50%;
+            width: 80px;
+            height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 10px;
+            overflow: hidden;
+        }
+        
+        .sidebar-logo .logo img {
+            width: 60px;
+            height: 60px;
+            object-fit: contain;
+        }
+        
+        .sidebar-logo span {
+            font-weight: bold;
+            font-size: 1.1em;
+            letter-spacing: 1px;
+        }
+
+        .sidebar-nav {
+            flex-grow: 1;
+        }
+
+        .sidebar-nav a {
+            display: flex; 
+            align-items: center;
+            gap: 12px;
+            color: #e0e0e0;
+            text-decoration: none;
+            padding: 15px 10px;
+            margin-bottom: 5px;
+            border-radius: 8px;
+            font-size: 0.95em;
+        }
+        
+        .sidebar-nav a .icon {
+            width: 20px; 
+            text-align: center;
+        }
+
+        .sidebar-nav a.active,
+        .sidebar-nav a:hover {
+            background-color: var(--mid-green);
+            color: #ffffff;
+            font-weight: 500;
+        }
+
+        .sidebar-status {
+            background-color: #1a5e45;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            transition: background-color 0.3s ease;
+        }
+        
+        .sidebar-status.warning {
+            background-color: #b45309;
+        }
+        
+        .sidebar-status.error {
+            background-color: #991b1b;
+        }
+
+        .sidebar-status .status-title {
+            font-weight: bold;
+            font-size: 1em;
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .sidebar-status .status-desc {
+            font-size: 0.8em;
+            color: #c0c0c0;
+        }
+
+        /* --- Main Content --- */
+        .main-content {
+            flex-grow: 1;
+            margin-left: 260px;
+            padding: 30px;
+            overflow-y: auto;
+        }
+
+        .main-header {
+            margin-bottom: 20px;
+        }
+
+        .main-header h1 {
+            font-size: 2.5em;
+            font-weight: 700;
+            margin: 0;
+        }
+        
+        .card {
+            background-color: var(--card-bg);
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            margin-bottom: 20px;
+            position: relative;
+        }
+        
+        .card-title {
+            font-size: 1.3em;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        
+        .card-subtitle {
+            font-size: 0.9em;
+            color: var(--text-light);
+            margin-bottom: 25px;
+        }
+        
+        .card-highlight-blue {
+            border: 2px solid var(--info-blue);
+        }
+        
+        .card-highlight-red {
+            border: 2px solid var(--danger-red);
+        }
+        
+        /* --- Form Styles --- */
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px 30px;
+        }
+        
+        .form-grid-col-3 {
+             display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px 30px;
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .form-label {
+            font-size: 0.9em;
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 8px;
+        }
+        
+        .form-input {
+            background-color: var(--input-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px 15px;
+            font-size: 0.95em;
+            color: var(--text-dark);
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: var(--info-blue);
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+        }
+        
+        /* --- Buttons --- */
+        .btn {
+            padding: 10px 18px;
+            font-size: 0.9em;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-green {
+            background-color: var(--mid-green);
+            color: white;
+            position: absolute;
+            top: 25px;
+            right: 25px;
+        }
+        
+        .btn-green:hover {
+            background-color: var(--dark-green);
+        }
+        
+        .btn-secondary {
+            background-color: #e5e7eb;
+            color: var(--text-dark);
+        }
+        
+        .btn-danger {
+            background-color: var(--danger-red);
+            color: white;
+        }
+
+        /* --- Personal Info Card --- */
+        .personal-info-layout {
+            display: flex;
+            gap: 30px;
+        }
+        
+        .personal-info-form {
+            flex-grow: 1;
+        }
+        
+        .personal-info-photo {
+            flex-basis: 250px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .avatar-upload {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        
+        .avatar-placeholder {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background-color: var(--mid-green);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5em;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+        
+        .avatar-text .label {
+            font-size: 0.9em;
+            font-weight: 600;
+            color: var(--info-blue);
+            cursor: pointer;
+        }
+        
+        .avatar-text .desc {
+            font-size: 0.8em;
+            color: var(--text-light);
+            line-height: 1.4;
+        }
+        
+        /* --- System Info --- */
+        .info-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.95em;
+        }
+        
+        .info-item:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+        
+        .info-item .label {
+            color: var(--text-light);
+        }
+        
+        .info-item .value {
+            font-weight: 600;
+        }
+        
+        /* --- Danger Zone --- */
+        .danger-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 15px;
+            margin-bottom: 15px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .danger-item:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+            margin-bottom: 0;
+        }
+        
+        .danger-item .label {
+            font-weight: 600;
+        }
+        
+        .danger-item .desc {
+             font-size: 0.9em;
+            color: var(--text-light);
+        }
+        
+    /* --- Logout Modal --- */
+    .logout-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(5px);
+        z-index: 9999;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .logout-modal.show {
+        display: flex;
+    }
+
+    .logout-modal-content {
+        background: white;
+        border-radius: 20px;
+        padding: 2.5rem;
+        max-width: 400px;
+        width: 90%;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        animation: modalSlideIn 0.3s ease;
+    }
+
+    @keyframes modalSlideIn {
+        from { transform: scale(0.7); opacity: 0; }
+        to { transform: scale(1); opacity: 1; }
+    }
+
+    .logout-modal-icon {
+        width: 60px;
+        height: 60px;
+        background: #fee2e2;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1.5rem;
+    }
+
+    .logout-modal-icon i {
+        font-size: 1.8rem;
+        color: #dc2626;
+    }
+
+    .logout-modal-title {
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: #333;
+        text-align: center;
+        margin-bottom: 0.5rem;
+    }
+
+    .logout-modal-message {
+        text-align: center;
+        color: #666;
+        margin-bottom: 2rem;
+        font-size: 0.95rem;
+    }
+
+    .logout-modal-buttons {
+        display: flex;
+        gap: 1rem;
+    }
+
+    .logout-modal-btn {
+        flex: 1;
+        padding: 0.9rem 1.5rem;
+        border: none;
+        border-radius: 12px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.3s;
+        font-size: 0.95rem;
+    }
+
+    .logout-modal-btn-cancel {
+        background: #f1f5f9;
+        color: #475569;
+    }
+
+    .logout-modal-btn-cancel:hover {
+        background: #e2e8f0;
+    }
+
+    .logout-modal-btn-confirm {
+        background: #dc2626;
+        color: white;
+    }
+
+    .logout-modal-btn-confirm:hover {
+        background: #b91c1c;
+    }
+
+        /* --- Mobile Responsive Enhancements --- */
+        @media (max-width: 1024px) {
+            .control-grid, .charts-grid { grid-template-columns: 1fr; }
+        }
+        
+        @media (max-width: 768px) {
+            body { display: block; height: auto; }
+            .sidebar { 
+                transform: translateX(-100%); 
+                width: 280px; 
+                z-index: 9999;
+                padding-top: 70px;
+                padding-bottom: 30px;
+                overflow-y: auto;
+                max-height: 100vh;
+            }
+            .sidebar.active { transform: translateX(0); }
+            .sidebar-nav { padding-bottom: 80px; }
+            .sidebar-nav a[id="logout-link"] {
+                margin-top: 15px;
+                background: rgba(255, 255, 255, 0.1);
+                border: 1px solid rgba(255, 255, 255, 0.2);
+            }
+            .main-content { margin-left: 0; padding: 80px 15px 20px 15px; min-height: 100vh; }
+            .main-header h1 { font-size: 1.75rem; }
+            .card-grid { grid-template-columns: 1fr; }
+            .control-grid { grid-template-columns: 1fr; }
+            .form-grid, .form-grid-col-3 { grid-template-columns: 1fr; }
+        }
+        
+        @media (max-width: 480px) {
+            .main-content { padding: 70px 10px 15px 10px; }
+            .main-header h1 { font-size: 1.5rem; }
+            .card { padding: 18px; }
+        }
+        
+        /* --- Profile Page Mobile Fixes --- */
+        @media (max-width: 768px) {
+            /* Fix Save Changes button on mobile */
+            .btn-green {
+                position: relative;
+                top: auto;
+                right: auto;
+                width: 100%;
+                margin-bottom: 15px;
+                display: block;
+            }
+            
+            /* Stack personal info layout vertically */
+            .personal-info-layout {
+                flex-direction: column;
+                gap: 20px;
+            }
+            
+            .personal-info-photo {
+                flex-basis: auto;
+                order: -1; /* Move photo above form */
+            }
+            
+            .avatar-upload {
+                justify-content: center;
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .avatar-placeholder {
+                width: 100px;
+                height: 100px;
+                font-size: 2em;
+            }
+            
+            /* Fix info items layout */
+            .info-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 5px;
+            }
+            
+            .info-item .label {
+                font-size: 0.85em;
+            }
+            
+            .info-item .value {
+                font-size: 1em;
+            }
+            
+            /* Fix form inputs */
+            .form-input {
+                font-size: 16px; /* Prevent zoom on iOS */
+            }
+            
+            /* Card title and subtitle */
+            .card-title {
+                font-size: 1.1em;
+            }
+            
+            .card-subtitle {
+                font-size: 0.85em;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .avatar-placeholder {
+                width: 80px;
+                height: 80px;
+                font-size: 1.5em;
+            }
+            
+            .form-label {
+                font-size: 0.85em;
+            }
+            
+            .form-input {
+                padding: 10px 12px;
+            }
+            
+            .card {
+                padding: 15px;
+                border-radius: 12px;
+            }
+            
+            .btn {
+                padding: 12px 16px;
+                font-size: 0.95em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Mobile Menu Toggle Button -->
+    <button class="mobile-menu-toggle" id="mobileMenuToggle" aria-label="Toggle navigation menu">
+        <i class="fa-solid fa-bars" id="menuIcon"></i>
+    </button>
+    
+    <!-- Mobile Overlay -->
+    <div class="mobile-overlay" id="mobileOverlay" style="pointer-events: none;"></div>
+
+    <!-- Logout Confirmation Modal -->
+    <div class="logout-modal" id="logoutModal">
+        <div class="logout-modal-content">
+            <div class="logout-modal-icon">
+                <i class="fa-solid fa-right-from-bracket"></i>
+            </div>
+            <h3 class="logout-modal-title">Confirm Logout</h3>
+            <p class="logout-modal-message">Are you sure you want to logout from your account?</p>
+            <div class="logout-modal-buttons">
+                <button class="logout-modal-btn logout-modal-btn-cancel" id="cancelLogout">Cancel</button>
+                <button class="logout-modal-btn logout-modal-btn-confirm" id="confirmLogout">Logout</button>
+            </div>
+        </div>
+    </div>
+
+    <aside class="sidebar">
+        <!-- Sidebar Toggle Button -->
+        <button class="sidebar-toggle" id="sidebarToggle" title="Toggle Sidebar">
+            <i class="fa-solid fa-chevron-left"></i>
+        </button>
+
+        <div class="sidebar-logo">
+            <div class="logo">
+                <img src="{% static 'images/Screenshot_2025-11-01_124726-removebg-preview.png' %}" alt="Mushroom Logo">
+            </div>
+            <span>KABUTOMATE</span>
+        </div>
+
+        <nav class="sidebar-nav">
+            <a href="{% url 'dashboard' %}" class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" data-tooltip="Dashboard">
+                <i class="fa-solid fa-gauge-high icon"></i> <span>Dashboard</span>
+            </a>
+            <a href="{% url 'environment' %}" class="{% if request.resolver_match.url_name == 'environment' %}active{% endif %}" data-tooltip="Environmental Control"> 
+                <i class="fa-solid fa-leaf icon"></i> <span>Environmental Control</span>
+            </a>
+            <a href="{% url 'production' %}" class="{% if request.resolver_match.url_name == 'production' %}active{% endif %}" data-tooltip="Production Records">
+                <i class="fa-solid fa-clipboard-list icon"></i> <span>Production Records</span>
+            </a>
+            <a href="{% url 'inventory' %}" class="{% if request.resolver_match.url_name == 'inventory' %}active{% endif %}" data-tooltip="Inventory and Sales">
+                <i class="fa-solid fa-boxes-stacked icon"></i> <span>Inventory and Sales</span>
+            </a>
+            <a href="{% url 'cooked_products' %}" class="{% if request.resolver_match.url_name == 'cooked_products' %}active{% endif %}" data-tooltip="Cooked Products">
+                <i class="fa-solid fa-utensils icon"></i> <span>Cooked Products</span>
+            </a>
+            <a href="{% url 'pos_system' %}" class="{% if request.resolver_match.url_name == 'pos_system' %}active{% endif %}" data-tooltip="Point of Sale">
+                <i class="fa-solid fa-cash-register icon"></i> <span>Point of Sale</span>
+            </a>
+            <a href="{% url 'manage_orders' %}" class="{% if request.resolver_match.url_name == 'manage_orders' %}active{% endif %}" data-tooltip="Manage Orders">
+                <i class="fa-solid fa-list-check icon"></i> <span>Manage Orders</span>
+            </a>
+            <a href="{% url 'analytics' %}" class="{% if request.resolver_match.url_name == 'analytics' %}active{% endif %}" data-tooltip="Analytics">
+                <i class="fa-solid fa-chart-line icon"></i> <span>Analytics</span>
+            </a>
+            <a href="{% url 'weather' %}" class="{% if request.resolver_match.url_name == 'weather' %}active{% endif %}" data-tooltip="Weather">
+                <i class="fa-solid fa-cloud-sun icon"></i> <span>Weather</span>
+            </a>
+            <a href="{% url 'notifications' %}" class="{% if request.resolver_match.url_name == 'notifications' %}active{% endif %}" data-tooltip="Notifications">
+                <i class="fa-solid fa-bell icon"></i> <span>Notifications</span>
+            </a>
+            <a href="{% url 'store_settings' %}" class="{% if request.resolver_match.url_name == 'store_settings' %}active{% endif %}" data-tooltip="Store Settings">
+                <i class="fa-solid fa-store icon"></i> <span>Store Settings</span>
+            </a>
+            <a href="{% url 'sales_report' %}" class="{% if request.resolver_match.url_name == 'sales_report' %}active{% endif %}" data-tooltip="Sales Report">
+                <i class="fa-solid fa-file-invoice-dollar icon"></i> <span>Sales Report</span>
+            </a>
+            <a href="{% url 'profile' %}" class="{% if request.resolver_match.url_name == 'profile' %}active{% endif %}" data-tooltip="Profile">
+                <i class="fa-solid fa-user icon"></i> <span>Profile</span>
+            </a>
+            <a href="#" id="logout-link" data-tooltip="Logout">
+                <i class="fa-solid fa-right-from-bracket icon"></i> <span>Logout</span>
+            </a>
+        </nav>
+    </aside>
+
+    <main class="main-content">
+        <header class="main-header">
+            <h1>Profile Settings</h1>
+        </header>
+
+        <form id="profile-form">
+            <div class="card card-highlight-blue">
+                <button type="submit" class="btn btn-green">Save Changes</button>
+                <div class="card-title">Personal Information</div>
+                <div class="card-subtitle">Update your personal details and contact information</div>
+                
+                <div class="personal-info-layout">
+                    <div class="personal-info-form">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="full-name" class="form-label">Full Name</label>
+                                <input type="text" id="full-name" class="form-input" value="Loading...">
+                            </div>
+                            <div class="form-group">
+                                <label for="email" class="form-label">Email Address</label>
+                                <input type="email" id="email" class="form-input" value="Loading...">
+                            </div>
+                            <div class="form-group">
+                                <label for="phone" class="form-label">Phone Number</label>
+                                <input type="tel" id="phone" class="form-input" value="09923220426" disabled>
+                            </div>
+                            <div class="form-group">
+                                <label for="farm-name" class="form-label">Farm Name</label>
+                                <input type="text" id="farm-name" class="form-input" value="Agri Gold" disabled>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="personal-info-photo">
+                        <div class="avatar-upload">
+                            <div id="avatar-placeholder" class="avatar-placeholder">...</div>
+                            <div class="avatar-text">
+                                <label for="photo-upload" class="label">Change Photo</label>
+                                <div class="desc">JPG, PNG or GIF. Max size 2MB</div>
+                                <input type="file" id="photo-upload" style="display: none;">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+        
+        <form id="password-form">
+            <div class="card">
+                <button type="submit" class="btn btn-green">Update Password</button>
+                <div class="card-title">Change Password</div>
+                <div class="card-subtitle">Update your password to keep your account secure</div>
+                
+                <div class="form-grid-col-3">
+                     <div class="form-group">
+                        <label for="old_password" class="form-label">Current Password</label>
+                        <input type="password" id="old_password" name="old_password" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="new_password1" class="form-label">New Password</label>
+                        <input type="password" id="new_password1" name="new_password1" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="new_password2" class="form-label">Confirm New Password</label>
+                        <input type="password" id="new_password2" name="new_password2" class="form-input" required>
+                    </div>
+                </div>
+            </div>
+        </form>
+        
+        <div class="card">
+            <div class="card-title">System Information</div>
+            <div class="card-subtitle"></div> <div class="info-list">
+                 <div class="info-item">
+                    <span class="label">Username</span>
+                    <span id="info-username" class="value">...</span>
+                </div>
+                 <div class="info-item">
+                    <span class="label">Member Since</span>
+                    <span class="value">October 2025</span>
+                </div>
+                 <div class="info-item">
+                    <span class="label">Connected Sensors</span>
+                    <span class="value">8 Devices</span>
+                </div>
+                 <div class="info-item">
+                    <span class="label">Data Storage Used</span>
+                    <span class="value">2.4 GB / 10 GB</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card card-highlight-red">
+            <div class="card-title">Danger Zone</div>
+            <div class="card-subtitle">Irreversible actions that affect your account</div>
+            
+            <div class="danger-list">
+                <div class="danger-item">
+                    <div>
+                        <div class="label">Export All Data</div>
+                        <div class="desc">Download all your farm data and records</div>
+                    </div>
+                    <button class="btn btn-secondary">Export</button>
+                </div>
+                <div class="danger-item">
+                    <div>
+                        <div class="label">Delete Account</div>
+                        <div class="desc">Permanently delete your account and all data</div>
+                    </div>
+                    <button class="btn btn-danger">Delete</button>
+                </div>
+            </div>
+        </div>
+
+    </main>
+    
+    <script>
+    async function updateSidebarStatus() {
+        try {
+            const response = await fetch('/api/dashboard-summary/');
+            const summary = await response.json();
+            const sidebarStatus = document.getElementById('sidebar-status');
+            const statusIcon = document.getElementById('status-icon');
+            const statusTitleText = document.getElementById('status-title-text');
+            const statusDesc = document.getElementById('status-desc');
+            sidebarStatus.classList.remove('warning', 'error');
+            if (summary.system_status === 'active') {
+                statusIcon.className = 'fa-solid fa-circle-check';
+                statusTitleText.textContent = 'System Active';
+            } else if (summary.system_status === 'warning') {
+                sidebarStatus.classList.add('warning');
+                statusIcon.className = 'fa-solid fa-triangle-exclamation';
+                statusTitleText.textContent = 'System Warning';
+            } else if (summary.system_status === 'error') {
+                sidebarStatus.classList.add('error');
+                statusIcon.className = 'fa-solid fa-circle-xmark';
+                statusTitleText.textContent = 'System Error';
+            }
+            statusDesc.textContent = summary.status_message;
+        } catch (error) {
+            console.error('Failed to update sidebar status:', error);
+        }
+    }
+    
+    document.addEventListener('DOMContentLoaded', () => {
+        
+        // --- Get Elements ---
+        const profileForm = document.getElementById('profile-form');
+        const passwordForm = document.getElementById('password-form');
+        const inputFullName = document.getElementById('full-name');
+        const inputEmail = document.getElementById('email');
+        const infoUsername = document.getElementById('info-username');
+        const avatarPlaceholder = document.getElementById('avatar-placeholder');
+
+        // Get CSRF token
+        const csrfToken = document.cookie
+            .split('; ')
+            .find(row => row.startsWith('csrftoken='))
+            ?.split('=')[1];
+
+        // --- 1. Load Profile Data ---
+        async function loadProfile() {
+            try {
+                const response = await fetch('/api/profile/');
+                const data = await response.json();
+                
+                inputFullName.value = data.full_name;
+                inputEmail.value = data.email;
+                infoUsername.textContent = data.username;
+                
+                // Create avatar initials
+                const initials = data.full_name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+                avatarPlaceholder.textContent = initials || data.username[0].toUpperCase();
+                
+            } catch (error) {
+                console.error('Failed to load profile:', error);
+            }
+        }
+        
+        // --- 2. Handle Profile Update ---
+        profileForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            
+            const data = {
+                full_name: inputFullName.value,
+                email: inputEmail.value
+            };
+            
+            try {
+                const response = await fetch('/api/profile/', {
+                    method: 'PUT',
+                    headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrfToken},
+                    body: JSON.stringify(data)
+                });
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('Profile updated successfully!');
+                    loadProfile(); // Reload data to show changes
+                } else {
+                    alert('Error: ' + (result.error || 'Could not update profile.'));
+                }
+            } catch (error) {
+                console.error('Failed to update profile:', error);
+            }
+        });
+
+        // --- 3. Handle Password Change ---
+        passwordForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            
+            const formData = new FormData(passwordForm);
+            const data = {
+                old_password: formData.get('old_password'),
+                new_password1: formData.get('new_password1'),
+                new_password2: formData.get('new_password2')
+            };
+            
+            try {
+                const response = await fetch('/api/change-password/', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrfToken},
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('Password changed successfully!');
+                    passwordForm.reset();
+                } else {
+                    // Handle complex form errors from Django
+                    let errorMsg = "Failed to change password.\n";
+                    if (result.errors) {
+                        for (const field in result.errors) {
+                            errorMsg += `${field}: ${result.errors[field][0].message}\n`;
+                        }
+                    } else if (result.error) {
+                        errorMsg = result.error;
+                    }
+                    alert(errorMsg);
+                }
+            } catch (error) {
+                console.error('Failed to change password:', error);
+            }
+        });
+
+        // --- Initial Load ---
+        loadProfile();
+        updateSidebarStatus();
+        setInterval(updateSidebarStatus, 60000);
+
+        // --- Logout Modal ---
+        const logoutModal = document.getElementById('logoutModal');
+        const logoutLink = document.getElementById('logout-link');
+        const cancelLogout = document.getElementById('cancelLogout');
+        const confirmLogout = document.getElementById('confirmLogout');
+
+        logoutLink.addEventListener('click', function(e) {
+            e.preventDefault();
+            logoutModal.classList.add('show');
+        });
+
+        cancelLogout.addEventListener('click', function() {
+            logoutModal.classList.remove('show');
+        });
+
+        logoutModal.addEventListener('click', function(e) {
+            if (e.target === logoutModal) {
+                logoutModal.classList.remove('show');
+            }
+        });
+
+        confirmLogout.addEventListener('click', function() {
+            const csrfToken = document.cookie
+                .split('; ')
+                .find(row => row.startsWith('csrftoken='))
+                ?.split('=')[1];
+            
+            fetch('{% url "logout" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.href = data.redirect_url;
+                }
+            })
+            .catch(error => {
+                console.error('Logout error:', error);
+                window.location.href = '{% url "logout" %}';
+            });
+        });
+
+            // --- Mobile Menu Toggle ---
+            const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+            const mobileOverlay = document.getElementById('mobileOverlay');
+            const sidebar = document.querySelector('.sidebar');
+            const menuIcon = document.getElementById('menuIcon');
+            
+            function closeMobileMenu() {
+                sidebar.classList.remove('active');
+                mobileOverlay.classList.remove('active');
+                mobileOverlay.style.pointerEvents = 'none';
+                menuIcon.classList.remove('fa-times');
+                menuIcon.classList.add('fa-bars');
+                document.body.style.overflow = '';
+            }
+            
+            function toggleMobileMenu(e) {
+                if (e) e.stopPropagation();
+                sidebar.classList.toggle('active');
+                mobileOverlay.classList.toggle('active');
+                
+                if (sidebar.classList.contains('active')) {
+                    mobileOverlay.style.pointerEvents = 'auto';
+                    menuIcon.classList.remove('fa-bars');
+                    menuIcon.classList.add('fa-times');
+                    document.body.style.overflow = 'hidden';
+                } else {
+                    mobileOverlay.style.pointerEvents = 'none';
+                    menuIcon.classList.remove('fa-times');
+                    menuIcon.classList.add('fa-bars');
+                    document.body.style.overflow = '';
+                }
+            }
+            
+            if (mobileMenuToggle) {
+                mobileMenuToggle.addEventListener('click', toggleMobileMenu);
+            }
+            if (mobileOverlay) {
+                mobileOverlay.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    closeMobileMenu();
+                });
+            }
+            
+            // Close menu when a nav link is clicked on mobile
+            const navLinks = document.querySelectorAll('.sidebar-nav a');
+            navLinks.forEach(link => {
+                link.addEventListener('click', function() {
+                    if (window.innerWidth <= 768 && sidebar.classList.contains('active')) {
+                        closeMobileMenu();
+                    }
+                });
+            });
+            
+            // Handle window resize
+            window.addEventListener('resize', function() {
+                if (window.innerWidth > 768) {
+                    sidebar.classList.remove('active');
+                    mobileOverlay.classList.remove('active');
+                    mobileOverlay.style.pointerEvents = 'none';
+                    menuIcon.classList.remove('fa-times');
+                    menuIcon.classList.add('fa-bars');
+                    document.body.style.overflow = '';
+                }
+            });
+
+            // --- Sidebar Collapse Toggle (Desktop) ---
+            const sidebarToggle = document.getElementById('sidebarToggle');
+            const mainContent = document.querySelector('.main-content');
+            
+            // Check for saved sidebar state
+            const sidebarCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+            if (sidebarCollapsed && window.innerWidth > 768) {
+                sidebar.classList.add('collapsed');
+                document.body.classList.add('sidebar-collapsed');
+            }
+            
+            if (sidebarToggle) {
+                sidebarToggle.addEventListener('click', function() {
+                    if (window.innerWidth > 768) {
+                        sidebar.classList.toggle('collapsed');
+                        document.body.classList.toggle('sidebar-collapsed');
+                        
+                        // Save state to localStorage
+                        const isCollapsed = sidebar.classList.contains('collapsed');
+                        localStorage.setItem('sidebarCollapsed', isCollapsed);
+                    }
+                });
+            }
+    });
+    </script>
+
+    <script src="{% static 'js/sidebar-tooltip.js' %}"></script>
+</body>
+</html>

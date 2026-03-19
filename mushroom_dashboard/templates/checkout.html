@@ -1,0 +1,1025 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <meta name="theme-color" content="#0c4b33">
+    <title>Checkout - KABUTOMATE</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="{% static 'css/responsive.css' %}">
+    <style>
+        :root {
+            --primary: #0c4b33;
+            --primary-light: #1a5e45;
+            --accent: #d4f26b;
+            --text-muted: #64748b;
+            --glass: rgba(255, 255, 255, 0.95);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: #f8fafc;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(12, 75, 51, 0.05) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(212, 242, 107, 0.05) 0px, transparent 50%);
+            min-height: 100vh;
+            color: #1e293b;
+        }
+
+        /* --- Navbar --- */
+        .navbar {
+            background: var(--glass);
+            backdrop-filter: blur(10px);
+            padding: 1rem 5%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .logo-section { display: flex; align-items: center; gap: 1rem; }
+        .logo-circle {
+            width: 40px; height: 40px;
+            background: var(--primary);
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        .brand-name {
+            font-size: 1.3rem; font-weight: 800;
+            color: var(--primary); letter-spacing: -0.5px;
+        }
+
+        /* --- Container & Header --- */
+        .container {
+            max-width: 1100px;
+            margin: 2.5rem auto;
+            padding: 0 1.5rem;
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 600;
+            margin-bottom: 2rem;
+            transition: 0.2s;
+        }
+        .back-link:hover { transform: translateX(-5px); }
+
+        .page-header h1 {
+            font-size: 2.2rem;
+            font-weight: 900;
+            color: var(--primary);
+            margin-bottom: 2rem;
+            letter-spacing: -1px;
+        }
+
+        /* --- Checkout Grid --- */
+        .checkout-grid {
+            display: grid;
+            grid-template-columns: 1fr 380px;
+            gap: 2rem;
+            align-items: start;
+        }
+
+        .checkout-card {
+            background: white;
+            border-radius: 24px;
+            padding: 2.5rem;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.03);
+            border: 1px solid rgba(0,0,0,0.02);
+        }
+
+        .section-title {
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: var(--primary);
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        /* --- Form Styling --- */
+        .form-group { margin-bottom: 1.5rem; }
+        
+        label {
+            display: block;
+            font-size: 0.9rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: var(--primary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        input, textarea {
+            width: 100%;
+            padding: 0.85rem 1rem;
+            border: 2px solid #f1f5f9;
+            background: #f8fafc;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-family: inherit;
+            transition: all 0.3s;
+        }
+
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: white;
+            box-shadow: 0 0 0 4px rgba(12, 75, 51, 0.05);
+        }
+
+        input[readonly], textarea[readonly] {
+            background: #e2e8f0;
+            cursor: not-allowed;
+            color: #475569;
+        }
+
+        input[readonly]:focus, textarea[readonly]:focus {
+            border-color: #cbd5e1;
+            box-shadow: none;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.2rem;
+        }
+
+        /* --- Order Summary (Sidebar) --- */
+        .summary-sidebar {
+            background: white;
+            border-radius: 24px;
+            padding: 2rem;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.03);
+            border: 1px solid rgba(0,0,0,0.02);
+            position: sticky;
+            top: 100px;
+        }
+
+        .summary-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 1rem 0;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .item-details .name { font-weight: 700; color: var(--primary); }
+        .item-details .meta { font-size: 0.85rem; color: var(--text-muted); }
+
+        .total-box {
+            margin-top: 1.5rem;
+            padding: 1.5rem 0;
+            border-top: 2px dashed #f1f5f9;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .total-box span { font-size: 1.8rem; font-weight: 900; color: var(--primary); }
+
+        /* --- Action Button --- */
+        .place-order-btn {
+            width: 100%;
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 1.2rem;
+            border-radius: 16px;
+            font-size: 1.1rem;
+            font-weight: 800;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-top: 1.5rem;
+            box-shadow: 0 10px 20px rgba(12, 75, 51, 0.15);
+        }
+
+        .place-order-btn:hover {
+            background: var(--primary-light);
+            transform: translateY(-2px);
+            box-shadow: 0 15px 30px rgba(12, 75, 51, 0.2);
+        }
+
+        /* Payment Method Selection */
+        .payment-methods {
+            margin-top: 1.5rem;
+        }
+        
+        .payment-methods-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 0.75rem;
+        }
+        
+        .payment-option {
+            display: flex;
+            align-items: center;
+            padding: 1rem;
+            background: #f8fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 0.5rem;
+        }
+        
+        .payment-option:hover {
+            border-color: var(--primary);
+            background: #f0fdf4;
+        }
+        
+        .payment-option.selected {
+            border-color: var(--primary);
+            background: #f0fdf4;
+            box-shadow: 0 0 0 3px rgba(12, 75, 51, 0.1);
+        }
+        
+        .payment-option input[type="radio"] {
+            display: none;
+        }
+        
+        .payment-radio {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #cbd5e1;
+            border-radius: 50%;
+            margin-right: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        
+        .payment-option.selected .payment-radio {
+            border-color: var(--primary);
+        }
+        
+        .payment-radio::after {
+            content: '';
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--primary);
+            transform: scale(0);
+            transition: transform 0.2s;
+        }
+        
+        .payment-option.selected .payment-radio::after {
+            transform: scale(1);
+        }
+        
+        .payment-icon {
+            width: 40px;
+            height: 40px;
+            background: white;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        
+        .payment-icon i {
+            font-size: 1.2rem;
+        }
+        
+        .payment-icon.cod i { color: #059669; }
+        .payment-icon.gcash { background: #007bff; }
+        .payment-icon.gcash i { color: white; }
+        
+        .payment-details {
+            flex: 1;
+        }
+        
+        .payment-name {
+            font-weight: 600;
+            color: var(--text-dark);
+            font-size: 0.95rem;
+        }
+        
+        .payment-description {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+        
+        .sandbox-badge {
+            background: #fef3c7;
+            color: #92400e;
+            font-size: 0.65rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+
+        @media (max-width: 850px) {
+            .checkout-grid { grid-template-columns: 1fr; }
+            .summary-sidebar { position: static; order: -1; margin-bottom: 1.5rem; }
+        }
+        
+        @media (max-width: 768px) {
+            .navbar {
+                padding: 0.75rem 4%;
+            }
+            
+            .container {
+                margin: 1.5rem auto;
+                padding: 0 1rem;
+            }
+            
+            .page-header h1 {
+                font-size: 1.75rem;
+            }
+            
+            .checkout-card,
+            .summary-sidebar {
+                padding: 1.5rem;
+                border-radius: 18px;
+            }
+            
+            .section-title {
+                font-size: 1.2rem;
+            }
+            
+            .form-row {
+                grid-template-columns: 1fr;
+                gap: 0;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .brand-name {
+                font-size: 1.2rem;
+            }
+            
+            .back-link {
+                font-size: 0.9rem;
+            }
+            
+            .page-header h1 {
+                font-size: 1.5rem;
+            }
+            
+            .checkout-card,
+            .summary-sidebar {
+                padding: 1.25rem;
+            }
+            
+            .section-title {
+                font-size: 1.1rem;
+                margin-bottom: 1.5rem;
+            }
+            
+            .total-box span {
+                font-size: 1.5rem;
+            }
+            
+            .place-order-btn {
+                padding: 1rem;
+                font-size: 1rem;
+            }
+        }
+        
+        /* Map styles */
+        #deliveryMap {
+            height: 300px;
+            width: 100%;
+            border-radius: 12px;
+            border: 2px solid #f1f5f9;
+            margin-bottom: 15px;
+        }
+        
+        .map-instructions {
+            background: #e0f2fe;
+            padding: 10px 14px;
+            border-radius: 8px;
+            color: #0369a1;
+            font-size: 0.85em;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .shipping-info {
+            background: #f0fdf4;
+            padding: 15px;
+            border-radius: 12px;
+            border: 1px solid #bbf7d0;
+            margin-top: 15px;
+        }
+        
+        .shipping-info.error {
+            background: #fef2f2;
+            border-color: #fecaca;
+            color: #991b1b;
+        }
+        
+        .shipping-info .label {
+            font-size: 0.85em;
+            color: #64748b;
+            margin-bottom: 5px;
+        }
+        
+        .shipping-info .value {
+            font-size: 1.2em;
+            font-weight: 700;
+            color: var(--primary);
+        }
+        
+        .shipping-info.error .value {
+            color: #991b1b;
+        }
+        
+        .distance-badge {
+            display: inline-block;
+            background: var(--primary);
+            color: white;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            margin-left: 10px;
+        }
+        
+        /* GPS Button Styles */
+        .gps-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 10px;
+            font-weight: 700;
+            cursor: pointer;
+            font-size: 0.9rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s;
+        }
+        
+        .gps-btn:hover {
+            background: var(--primary-light);
+            transform: translateY(-2px);
+        }
+        
+        .gps-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .gps-btn-secondary {
+            background: #64748b;
+        }
+        
+        .gps-btn-secondary:hover {
+            background: #475569;
+        }
+        
+        .gps-status {
+            font-size: 0.85rem;
+            padding: 8px 12px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+        
+        .gps-status.success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+        
+        .gps-status.error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+        
+        .gps-status.loading {
+            background: #e0f2fe;
+            color: #0369a1;
+            border: 1px solid #bae6fd;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="logo-section">
+            <div class="logo-circle">
+                <img src="{% static 'images/Screenshot_2025-11-01_124726-removebg-preview.png' %}" style="width: 25px;" alt="Logo">
+            </div>
+            <span class="brand-name">KABUTOMATE</span>
+        </div>
+    </nav>
+
+    <div class="container">
+        <a href="{% url 'view_cart' %}" class="back-link">
+            <i class="fa-solid fa-chevron-left"></i>
+            Review Cart
+        </a>
+
+        <div class="page-header">
+            <h1>Complete Your Order</h1>
+        </div>
+
+        <form method="POST" action="{% url 'checkout' %}" id="checkout-form">
+            {% csrf_token %}
+        <div class="checkout-grid">
+            <div class="checkout-card">
+                <h2 class="section-title">
+                    <i class="fa-solid fa-truck-fast"></i>
+                    Shipping Details
+                </h2>
+                
+                    <div class="form-group">
+                        <label>Full Name</label>
+                        <input type="text" name="customer_name" value="{{ user_data.customer_name }}" placeholder="Juan Dela Cruz" {% if user.is_authenticated %}readonly{% endif %} required>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Email Address</label>
+                            <input type="email" name="customer_email" value="{{ user_data.customer_email }}" placeholder="juan@example.com" {% if user.is_authenticated %}readonly{% endif %} required>
+                        </div>
+                        <div class="form-group">
+                            <label>Phone Number</label>
+                            <input type="tel" name="customer_phone" value="{{ user_data.customer_phone }}" placeholder="0912 345 6789" {% if user.is_authenticated %}readonly{% endif %} required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Delivery Address</label>
+                        <textarea name="shipping_address" rows="3" placeholder="Street Name, Barangay, Landmark" {% if user.is_authenticated %}readonly{% endif %} required>{{ user_data.shipping_address }}</textarea>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>City / Municipality</label>
+                            <input type="text" name="shipping_city" value="{{ user_data.shipping_city }}" {% if user.is_authenticated %}readonly{% endif %} required>
+                        </div>
+                        <div class="form-group">
+                            <label>Postal Code</label>
+                            <input type="text" name="shipping_postal_code" value="{{ user_data.shipping_postal_code }}" {% if user.is_authenticated %}readonly{% endif %} required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Delivery Instructions (Optional)</label>
+                        <textarea name="customer_notes" rows="2" placeholder="e.g. Leave at the front gate"></textarea>
+                    </div>
+                    
+                    <!-- Delivery Location Map -->
+                    <h2 class="section-title" style="margin-top: 2rem;">
+                        <i class="fa-solid fa-map-location-dot"></i>
+                        Delivery Location
+                    </h2>
+                    
+                    <div class="map-instructions">
+                        <i class="fa-solid fa-info-circle"></i>
+                        <span>Click on the map to pin your exact delivery location for accurate shipping calculation</span>
+                    </div>
+                    
+                    <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
+                        <button type="button" id="use-location-btn" class="gps-btn" onclick="useMyLocation()">
+                            <i class="fa-solid fa-location-crosshairs"></i> Use My Current Location
+                        </button>
+                        <button type="button" id="geocode-address-btn" class="gps-btn gps-btn-secondary" onclick="geocodeMyAddress()">
+                            <i class="fa-solid fa-search-location"></i> Find Address on Map
+                        </button>
+                    </div>
+                    
+                    <div id="deliveryMap"></div>
+                    
+                    <input type="hidden" id="customer_latitude" name="customer_latitude" value="{{ customer_lat|default:'' }}">
+                    <input type="hidden" id="customer_longitude" name="customer_longitude" value="{{ customer_lng|default:'' }}">
+                    
+                    <div id="shipping-info" class="shipping-info" style="display: none;">
+                        <div class="label">Estimated Shipping Fee</div>
+                        <div class="value">
+                            <span id="shipping-fee">₱0.00</span>
+                            <span id="distance-badge" class="distance-badge"></span>
+                        </div>
+                    </div>
+            </div>
+
+            <div class="summary-sidebar">
+                <h2 style="font-size: 1.2rem; font-weight: 800; margin-bottom: 1.5rem; color: var(--primary);">Order Summary</h2>
+                
+                <div class="summary-items-list">
+                    {% for item in cart_items %}
+                    <div class="summary-item">
+                        <div class="item-details">
+                            <div class="name">{{ item.product.name }}</div>
+                            <div class="meta">{{ item.quantity_kg }}kg × ₱{{ item.product.price_per_kg }}</div>
+                        </div>
+                        <div style="font-weight: 700;">₱{{ item.subtotal }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                <div class="summary-line" style="display: flex; justify-content: space-between; padding: 0.8rem 0; border-bottom: 1px solid #f1f5f9;">
+                    <span style="color: var(--text-muted);">Subtotal</span>
+                    <span style="font-weight: 600;">₱{{ total }}</span>
+                </div>
+                
+                <div class="summary-line" id="shipping-summary" style="display: flex; justify-content: space-between; padding: 0.8rem 0; border-bottom: 1px solid #f1f5f9;">
+                    <span style="color: var(--text-muted);">Shipping</span>
+                    <span id="shipping-fee-summary" style="font-weight: 600; color: var(--primary);">Set location</span>
+                </div>
+
+                <div class="total-box">
+                    <div style="font-weight: 700; color: var(--text-muted);">Total to Pay</div>
+                    <span id="grand-total">₱{{ total }}</span>
+                </div>
+
+                <!-- Payment Method Selection -->
+                <div class="payment-methods">
+                    <div class="payment-methods-title">
+                        <i class="fa-solid fa-credit-card"></i> Select Payment Method
+                    </div>
+                    
+                    <label class="payment-option selected" onclick="selectPaymentMethod(this, 'COD')">
+                        <input type="radio" name="payment_method" value="COD" checked>
+                        <div class="payment-radio"></div>
+                        <div class="payment-icon cod">
+                            <i class="fa-solid fa-hand-holding-dollar"></i>
+                        </div>
+                        <div class="payment-details">
+                            <div class="payment-name">Cash on Delivery</div>
+                            <div class="payment-description">Pay when you receive your order</div>
+                        </div>
+                    </label>
+                    
+                    <label class="payment-option" onclick="selectPaymentMethod(this, 'GCASH')">
+                        <input type="radio" name="payment_method" value="GCASH">
+                        <div class="payment-radio"></div>
+                        <div class="payment-icon gcash">
+                            <i class="fa-solid fa-wallet"></i>
+                        </div>
+                        <div class="payment-details">
+                            <div class="payment-name">
+                                GCash
+                                <span class="sandbox-badge">SANDBOX</span>
+                            </div>
+                            <div class="payment-description">Pay instantly via GCash e-wallet</div>
+                        </div>
+                    </label>
+                </div>
+
+                <button type="submit" class="place-order-btn" id="confirm-order-btn">
+                    <span id="btn-text">Confirm Order</span>
+                    <i class="fa-solid fa-arrow-right"></i>
+                </button>
+
+                <p style="text-align: center; font-size: 0.75rem; color: var(--text-muted); margin-top: 1.5rem;">
+                    <i class="fa-solid fa-shield-halved"></i> 
+                    Secure transaction powered by KABUTOMATE
+                </p>
+            </div>
+        </div>
+        </form>
+    </div>
+    
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // Store and customer coordinates
+        const storeLat = {{ store_lat|default:"null" }};
+        const storeLng = {{ store_lng|default:"null" }};
+        let customerLat = {{ customer_lat|default:"null" }};
+        let customerLng = {{ customer_lng|default:"null" }};
+        const subtotal = {{ total }};
+        
+        // Default to Philippines center if no coordinates
+        const defaultLat = customerLat || storeLat || 14.5995;
+        const defaultLng = customerLng || storeLng || 120.9842;
+        
+        // Initialize map
+        const map = L.map('deliveryMap').setView([defaultLat, defaultLng], customerLat ? 15 : 10);
+        
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+        
+        // Custom icons
+        const customerIcon = L.divIcon({
+            className: 'custom-marker',
+            html: '<div style="background: #ef4444; color: white; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); border: 3px solid white;"><i class="fa-solid fa-location-dot"></i></div>',
+            iconSize: [36, 36],
+            iconAnchor: [18, 36]
+        });
+        
+        const storeIcon = L.divIcon({
+            className: 'custom-marker',
+            html: '<div style="background: #0c4b33; color: white; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); border: 3px solid white;"><i class="fa-solid fa-store"></i></div>',
+            iconSize: [36, 36],
+            iconAnchor: [18, 36]
+        });
+        
+        // Add store marker if coordinates exist
+        if (storeLat && storeLng) {
+            L.marker([storeLat, storeLng], {icon: storeIcon}).addTo(map)
+                .bindPopup('<b>KABUTOMATE Store</b>');
+        }
+        
+        let customerMarker = null;
+        
+        // Add initial customer marker if coordinates exist
+        if (customerLat && customerLng) {
+            customerMarker = L.marker([customerLat, customerLng], {icon: customerIcon, draggable: true}).addTo(map);
+            customerMarker.on('dragend', onMarkerDrag);
+            calculateShipping(customerLat, customerLng);
+        }
+        
+        // Click to set delivery location
+        map.on('click', function(e) {
+            const lat = e.latlng.lat;
+            const lng = e.latlng.lng;
+            
+            if (customerMarker) {
+                customerMarker.setLatLng(e.latlng);
+            } else {
+                customerMarker = L.marker([lat, lng], {icon: customerIcon, draggable: true}).addTo(map);
+                customerMarker.on('dragend', onMarkerDrag);
+            }
+            
+            updateCustomerCoordinates(lat, lng);
+            calculateShipping(lat, lng);
+        });
+        
+        function onMarkerDrag(e) {
+            const lat = e.target.getLatLng().lat;
+            const lng = e.target.getLatLng().lng;
+            updateCustomerCoordinates(lat, lng);
+            calculateShipping(lat, lng);
+        }
+        
+        function updateCustomerCoordinates(lat, lng) {
+            document.getElementById('customer_latitude').value = lat.toFixed(6);
+            document.getElementById('customer_longitude').value = lng.toFixed(6);
+        }
+        
+        async function calculateShipping(lat, lng) {
+            const csrfToken = document.cookie
+                .split('; ')
+                .find(row => row.startsWith('csrftoken='))
+                ?.split('=')[1];
+            
+            try {
+                const response = await fetch('/api/calculate-shipping/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({
+                        latitude: lat,
+                        longitude: lng,
+                        order_total: subtotal
+                    })
+                });
+                
+                const data = await response.json();
+                const shippingInfo = document.getElementById('shipping-info');
+                const shippingFee = document.getElementById('shipping-fee');
+                const distanceBadge = document.getElementById('distance-badge');
+                const shippingFeeSummary = document.getElementById('shipping-fee-summary');
+                const grandTotal = document.getElementById('grand-total');
+                const confirmBtn = document.getElementById('confirm-order-btn');
+                
+                shippingInfo.style.display = 'block';
+                
+                if (data.success) {
+                    shippingInfo.classList.remove('error');
+                    shippingFee.textContent = '₱' + data.shipping_fee.toFixed(2);
+                    
+                    if (data.distance_km !== null) {
+                        distanceBadge.textContent = data.distance_km + ' km';
+                        distanceBadge.style.display = 'inline-block';
+                    } else {
+                        distanceBadge.style.display = 'none';
+                    }
+                    
+                    if (data.shipping_fee === 0) {
+                        shippingFeeSummary.textContent = 'FREE';
+                        shippingFeeSummary.style.color = '#10b981';
+                    } else {
+                        shippingFeeSummary.textContent = '₱' + data.shipping_fee.toFixed(2);
+                        shippingFeeSummary.style.color = '';
+                    }
+                    
+                    const total = subtotal + data.shipping_fee;
+                    grandTotal.textContent = '₱' + total.toFixed(2);
+                    confirmBtn.disabled = false;
+                } else {
+                    shippingInfo.classList.add('error');
+                    shippingFee.textContent = data.error;
+                    distanceBadge.textContent = data.distance_km ? data.distance_km.toFixed(1) + ' km' : '';
+                    shippingFeeSummary.textContent = 'Not available';
+                    shippingFeeSummary.style.color = '#991b1b';
+                    grandTotal.textContent = '₱{{ total }}';
+                    confirmBtn.disabled = true;
+                }
+            } catch (error) {
+                console.error('Shipping calculation error:', error);
+            }
+        }
+        
+        // Use device GPS location
+        function useMyLocation() {
+            const btn = document.getElementById('use-location-btn');
+            const originalText = btn.innerHTML;
+            
+            if (!navigator.geolocation) {
+                showGpsStatus('error', 'Geolocation is not supported by your browser');
+                return;
+            }
+            
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Getting location...';
+            showGpsStatus('loading', 'Accessing your location...');
+            
+            navigator.geolocation.getCurrentPosition(
+                function(position) {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+                    
+                    // Add/move marker
+                    if (customerMarker) {
+                        customerMarker.setLatLng([lat, lng]);
+                    } else {
+                        customerMarker = L.marker([lat, lng], {icon: customerIcon, draggable: true}).addTo(map);
+                        customerMarker.on('dragend', onMarkerDrag);
+                    }
+                    
+                    // Center map on location
+                    map.setView([lat, lng], 17);
+                    
+                    // Update hidden fields and calculate shipping
+                    updateCustomerCoordinates(lat, lng);
+                    calculateShipping(lat, lng);
+                    
+                    btn.disabled = false;
+                    btn.innerHTML = originalText;
+                    showGpsStatus('success', `Location found! Accuracy: ~${Math.round(position.coords.accuracy)}m`);
+                },
+                function(error) {
+                    btn.disabled = false;
+                    btn.innerHTML = originalText;
+                    
+                    let errorMessage = 'Unable to get your location.';
+                    switch(error.code) {
+                        case error.PERMISSION_DENIED:
+                            errorMessage = 'Location access denied. Please allow location access in your browser.';
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            errorMessage = 'Location unavailable. Please try again or pin manually.';
+                            break;
+                        case error.TIMEOUT:
+                            errorMessage = 'Location request timed out. Please try again.';
+                            break;
+                    }
+                    showGpsStatus('error', errorMessage);
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 0
+                }
+            );
+        }
+        
+        // Geocode the address entered in the form
+        async function geocodeMyAddress() {
+            const btn = document.getElementById('geocode-address-btn');
+            const originalText = btn.innerHTML;
+            
+            const address = document.querySelector('textarea[name="shipping_address"]').value;
+            const city = document.querySelector('input[name="shipping_city"]').value;
+            const postalCode = document.querySelector('input[name="shipping_postal_code"]').value;
+            
+            if (!address || !city) {
+                showGpsStatus('error', 'Please enter your address and city first');
+                return;
+            }
+            
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Finding...';
+            showGpsStatus('loading', 'Searching for your address...');
+            
+            // Try multiple search queries
+            const queries = [
+                `${address}, ${city}, ${postalCode}, Philippines`,
+                `${address}, ${city}, Philippines`,
+                `${city}, ${postalCode}, Philippines`,
+                `${city}, Philippines`
+            ];
+            
+            let found = false;
+            
+            for (const query of queries) {
+                try {
+                    const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1&countrycodes=ph`, {
+                        headers: { 'User-Agent': 'KABUTOMATE-Shop/1.0' }
+                    });
+                    const data = await response.json();
+                    
+                    if (data && data.length > 0) {
+                        const lat = parseFloat(data[0].lat);
+                        const lng = parseFloat(data[0].lon);
+                        
+                        // Add/move marker
+                        if (customerMarker) {
+                            customerMarker.setLatLng([lat, lng]);
+                        } else {
+                            customerMarker = L.marker([lat, lng], {icon: customerIcon, draggable: true}).addTo(map);
+                            customerMarker.on('dragend', onMarkerDrag);
+                        }
+                        
+                        // Center map
+                        map.setView([lat, lng], 16);
+                        
+                        // Update and calculate
+                        updateCustomerCoordinates(lat, lng);
+                        calculateShipping(lat, lng);
+                        
+                        found = true;
+                        showGpsStatus('success', 'Address found! You can drag the marker to adjust the exact location.');
+                        break;
+                    }
+                } catch (error) {
+                    console.warn('Geocoding attempt failed:', error);
+                }
+            }
+            
+            if (!found) {
+                showGpsStatus('error', 'Could not find address. Please pin your location manually on the map.');
+            }
+            
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+        
+        // Show GPS status message
+        function showGpsStatus(type, message) {
+            // Remove existing status
+            const existing = document.querySelector('.gps-status');
+            if (existing) existing.remove();
+            
+            const statusDiv = document.createElement('div');
+            statusDiv.className = `gps-status ${type}`;
+            statusDiv.innerHTML = `<i class="fa-solid fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'spinner fa-spin'}"></i> ${message}`;
+            
+            const mapContainer = document.getElementById('deliveryMap');
+            mapContainer.parentNode.insertBefore(statusDiv, mapContainer);
+            
+            // Auto-remove after 5 seconds (except for loading)
+            if (type !== 'loading') {
+                setTimeout(() => {
+                    statusDiv.remove();
+                }, 5000);
+            }
+        }
+        
+        // Payment Method Selection
+        function selectPaymentMethod(element, method) {
+            // Remove selected class from all options
+            document.querySelectorAll('.payment-option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+            
+            // Add selected class to clicked option
+            element.classList.add('selected');
+            
+            // Check the radio button
+            element.querySelector('input[type="radio"]').checked = true;
+            
+            // Update button text based on payment method
+            const btnText = document.getElementById('btn-text');
+            if (method === 'GCASH') {
+                btnText.textContent = 'Pay with GCash';
+            } else {
+                btnText.textContent = 'Confirm Order';
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,518 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <meta name="theme-color" content="#0c4b33">
+    <title>Order Confirmed - KABUTOMATE</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'css/responsive.css' %}">
+    <style>
+        :root {
+            --primary: #0c4b33;
+            --primary-light: #1a5e45;
+            --accent: #d4f26b;
+            --success: #10b981;
+            --glass: rgba(255, 255, 255, 0.95);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: #f8fafc;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(12, 75, 51, 0.05) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(212, 242, 107, 0.05) 0px, transparent 50%);
+            min-height: 100vh;
+            color: #1e293b;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- Navbar --- */
+        .navbar {
+            background: var(--glass);
+            backdrop-filter: blur(10px);
+            padding: 1rem 5%;
+            display: flex;
+            justify-content: center;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+
+        .logo-section { display: flex; align-items: center; gap: 1rem; }
+        .logo-circle {
+            width: 40px; height: 40px;
+            background: var(--primary);
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .brand-name {
+            font-size: 1.3rem; font-weight: 800;
+            color: var(--primary); letter-spacing: -0.5px;
+        }
+
+        /* --- Main Content --- */
+        .container {
+            max-width: 700px;
+            margin: 3rem auto;
+            padding: 0 1.5rem;
+        }
+
+        .confirmation-card {
+            background: white;
+            border-radius: 30px;
+            padding: 3rem;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.05);
+            text-align: center;
+            border: 1px solid rgba(0,0,0,0.02);
+        }
+
+        .success-check {
+            width: 90px; height: 90px;
+            background: var(--success);
+            color: white;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 3rem;
+            margin: 0 auto 2rem;
+            box-shadow: 0 10px 25px rgba(16, 185, 129, 0.3);
+            animation: bounceIn 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+
+        @keyframes bounceIn {
+            0% { transform: scale(0); opacity: 0; }
+            60% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(1); }
+        }
+
+        h1 { font-size: 2.2rem; font-weight: 900; color: var(--primary); margin-bottom: 10px; }
+        .subtitle { color: #64748b; font-size: 1.1rem; margin-bottom: 2rem; }
+
+        .order-badge {
+            background: #f1f5f9;
+            color: var(--primary);
+            padding: 10px 20px;
+            border-radius: 50px;
+            font-weight: 800;
+            display: inline-block;
+            margin-bottom: 3rem;
+        }
+
+        .receipt-section { text-align: left; margin-bottom: 2.5rem; }
+
+        .section-title {
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 800;
+            color: #94a3b8;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid #f1f5f9;
+            padding-bottom: 8px;
+        }
+
+        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+        .info-block label { display: block; font-size: 0.8rem; color: #94a3b8; font-weight: 700; margin-bottom: 4px; }
+        .info-block p { font-weight: 600; font-size: 0.95rem; }
+
+        .item-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px dashed #e2e8f0;
+        }
+        .item-row:last-child { border-bottom: none; }
+        .item-name { font-weight: 700; color: var(--primary); }
+        .item-meta { font-size: 0.85rem; color: #64748b; }
+
+        .total-display {
+            background: var(--primary);
+            color: white;
+            border-radius: 16px;
+            padding: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 1rem;
+        }
+        .total-display span:last-child { font-size: 1.8rem; font-weight: 900; color: var(--accent); }
+
+        .next-steps {
+            background: #f8fafc;
+            border-radius: 20px;
+            padding: 1.5rem;
+            text-align: left;
+            margin-top: 2rem;
+        }
+        .step { display: flex; gap: 12px; margin-bottom: 12px; font-size: 0.9rem; color: #475569; }
+        .step i { color: var(--success); margin-top: 3px; }
+
+        /* --- Actions --- */
+        .button-group {
+            margin-top: 3rem;
+        }
+
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 1.2rem;
+            border-radius: 16px;
+            font-weight: 800;
+            text-decoration: none;
+            transition: 0.3s;
+            text-align: center;
+            font-size: 1.1rem;
+        }
+
+        .btn-primary { 
+            background: var(--primary); 
+            color: white;
+            box-shadow: 0 10px 20px rgba(12, 75, 51, 0.15);
+        }
+
+        .btn-primary:hover { 
+            background: var(--primary-light);
+            transform: translateY(-3px); 
+            box-shadow: 0 15px 30px rgba(12, 75, 51, 0.2); 
+        }
+        
+        .btn-danger {
+            background: #dc2626;
+            color: white;
+            box-shadow: 0 10px 20px rgba(220, 38, 38, 0.15);
+        }
+        
+        .btn-danger:hover {
+            background: #b91c1c;
+            transform: translateY(-3px);
+            box-shadow: 0 15px 30px rgba(220, 38, 38, 0.2);
+        }
+        
+        .btn-outline {
+            background: transparent;
+            color: #dc2626;
+            border: 2px solid #dc2626;
+            box-shadow: none;
+        }
+        
+        .btn-outline:hover {
+            background: #fee2e2;
+            transform: translateY(-3px);
+        }
+        
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 700;
+        }
+        
+        .status-pending { background: #fef3c7; color: #92400e; }
+        .status-processing { background: #dbeafe; color: #1e40af; }
+        .status-shipped { background: #e0e7ff; color: #4338ca; }
+        .status-delivered { background: #d1fae5; color: #065f46; }
+        .status-cancelled { background: #fee2e2; color: #991b1b; }
+        
+        .refund-notice {
+            margin-top: 1.5rem;
+            padding: 1rem;
+            background: #ecfdf5;
+            border: 2px solid #10b981;
+            border-radius: 12px;
+            color: #065f46;
+        }
+        
+        .cancel-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .cancel-modal.active {
+            display: flex;
+        }
+        
+        .cancel-modal-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 20px;
+            max-width: 450px;
+            width: 90%;
+            text-align: center;
+        }
+        
+        .cancel-modal-content h3 {
+            color: #dc2626;
+            margin-bottom: 1rem;
+        }
+        
+        .cancel-modal-content p {
+            color: #64748b;
+            margin-bottom: 1.5rem;
+        }
+        
+        .modal-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+        }
+        
+        .modal-buttons .btn {
+            padding: 0.8rem 1.5rem;
+            font-size: 0.95rem;
+        }
+
+        @media (max-width: 600px) {
+            .info-grid { grid-template-columns: 1fr; }
+            .confirmation-card { padding: 2rem 1.5rem; border-radius: 20px; }
+            h1 { font-size: 1.75rem; }
+            .subtitle { font-size: 1rem; }
+            .success-check { width: 70px; height: 70px; font-size: 2.5rem; }
+            .total-display span:last-child { font-size: 1.5rem; }
+            .container { margin: 1.5rem auto; padding: 0 1rem; }
+        }
+        
+        @media (max-width: 480px) {
+            .navbar { padding: 0.75rem 4%; }
+            .brand-name { font-size: 1.1rem; }
+            .confirmation-card { padding: 1.5rem 1rem; }
+            h1 { font-size: 1.5rem; }
+            .section-title { font-size: 0.8rem; }
+            .next-steps { padding: 1rem; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="logo-section">
+            <div class="logo-circle">
+                <img src="{% static 'images/Screenshot_2025-11-01_124726-removebg-preview.png' %}" style="width: 25px;" alt="Logo">
+            </div>
+            <span class="brand-name">KABUTOMATE</span>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="confirmation-card">
+            {% if order.status == 'CANCELLED' %}
+            <div class="success-check" style="background: linear-gradient(135deg, #ef4444, #dc2626);">
+                <i class="fa-solid fa-ban"></i>
+            </div>
+            <h1 style="color: #dc2626;">Order Cancelled</h1>
+            <p class="subtitle">This order has been cancelled.</p>
+            {% else %}
+            <div class="success-check">
+                <i class="fa-solid fa-check"></i>
+            </div>
+            <h1>Order Received!</h1>
+            <p class="subtitle">Your farm-fresh mushrooms are being prepared for delivery.</p>
+            {% endif %}
+            
+            <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-bottom: 1rem;">
+                <div class="order-badge">Order ID: #{{ order.order_number }}</div>
+                <span class="status-badge status-{{ order.status|lower }}">
+                    {% if order.status == 'PENDING' %}<i class="fa-solid fa-clock"></i>
+                    {% elif order.status == 'PROCESSING' %}<i class="fa-solid fa-cog fa-spin"></i>
+                    {% elif order.status == 'SHIPPED' %}<i class="fa-solid fa-truck"></i>
+                    {% elif order.status == 'DELIVERED' %}<i class="fa-solid fa-check-circle"></i>
+                    {% elif order.status == 'CANCELLED' %}<i class="fa-solid fa-times-circle"></i>
+                    {% endif %}
+                    {{ order.get_status_display }}
+                </span>
+            </div>
+
+            <div class="receipt-section">
+                <div class="section-title">Delivery Information</div>
+                <div class="info-grid">
+                    <div class="info-block">
+                        <label>Recipient</label>
+                        <p>{{ order.customer_name }}</p>
+                    </div>
+                    <div class="info-block">
+                        <label>Phone</label>
+                        <p>{{ order.customer_phone }}</p>
+                    </div>
+                    <div class="info-block" style="grid-column: span 2;">
+                        <label>Shipping Address</label>
+                        <p>{{ order.shipping_address }}, {{ order.shipping_city }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="receipt-section">
+                <div class="section-title">Items Ordered</div>
+                {% for item in order.items.all %}
+                <div class="item-row">
+                    <div>
+                        <div class="item-name">{{ item.product.name }}</div>
+                        <div class="item-meta">{{ item.quantity_kg }}kg × ₱{{ item.price_per_kg }}</div>
+                    </div>
+                    <div style="font-weight: 800;">₱{{ item.subtotal }}</div>
+                </div>
+                {% endfor %}
+
+                <div class="total-display">
+                    <span style="font-weight: 800; text-transform: uppercase; letter-spacing: 1px;">
+                        Total ({{ order.get_payment_method_display }})
+                    </span>
+                    <span>₱{{ order.total_amount }}</span>
+                </div>
+                
+                {% if order.payment_method == 'GCASH' %}
+                <div style="margin-top: 1rem; padding: 1rem; border-radius: 12px; 
+                    {% if order.payment_status == 'PAID' %}background: #d1fae5; border: 2px solid #10b981;
+                    {% elif order.payment_status == 'PENDING' %}background: #fef3c7; border: 2px solid #f59e0b;
+                    {% elif order.payment_status == 'FAILED' %}background: #fee2e2; border: 2px solid #ef4444;
+                    {% else %}background: #f1f5f9; border: 2px solid #94a3b8;{% endif %}">
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                        <i class="fa-solid fa-wallet" style="font-size: 1.2rem; 
+                            {% if order.payment_status == 'PAID' %}color: #10b981;
+                            {% elif order.payment_status == 'PENDING' %}color: #f59e0b;
+                            {% elif order.payment_status == 'FAILED' %}color: #ef4444;
+                            {% else %}color: #64748b;{% endif %}"></i>
+                        <span style="font-weight: 700; 
+                            {% if order.payment_status == 'PAID' %}color: #065f46;
+                            {% elif order.payment_status == 'PENDING' %}color: #92400e;
+                            {% elif order.payment_status == 'FAILED' %}color: #991b1b;
+                            {% else %}color: #475569;{% endif %}">
+                            GCash Payment: {{ order.get_payment_status_display }}
+                        </span>
+                    </div>
+                    {% if order.payment_status == 'PAID' %}
+                    <p style="font-size: 0.85rem; color: #065f46; margin: 0;">
+                        <i class="fa-solid fa-check-circle"></i> 
+                        Payment received successfully{% if order.transaction_id %} (Ref: {{ order.transaction_id }}){% endif %}
+                    </p>
+                    {% elif order.payment_status == 'PENDING' %}
+                    <p style="font-size: 0.85rem; color: #92400e; margin: 0;">
+                        <i class="fa-solid fa-clock"></i> 
+                        Your payment is being processed. We'll update you once confirmed.
+                    </p>
+                    {% elif order.payment_status == 'FAILED' %}
+                    <p style="font-size: 0.85rem; color: #991b1b; margin-bottom: 10px;">
+                        <i class="fa-solid fa-exclamation-circle"></i> 
+                        Payment failed. Please try again.
+                    </p>
+                    <a href="{% url 'retry_payment' order.order_number %}" 
+                       style="display: inline-block; background: #007bff; color: white; padding: 10px 20px; 
+                              border-radius: 8px; text-decoration: none; font-weight: 700; font-size: 0.85rem;">
+                        <i class="fa-solid fa-redo"></i> Retry Payment
+                    </a>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="next-steps">
+                <div style="font-weight: 800; margin-bottom: 1rem; font-size: 0.85rem; color: var(--primary);">ESTIMATED TIMELINE</div>
+                <div class="step">
+                    <i class="fa-solid fa-circle-check"></i>
+                    <span>Order confirmation sent to <b>{{ order.customer_email }}</b></span>
+                </div>
+                <div class="step">
+                    <i class="fa-solid fa-circle-check"></i>
+                    <span>Our staff will verify and pack your order shortly.</span>
+                </div>
+                {% if order.payment_method == 'COD' %}
+                <div class="step">
+                    <i class="fa-solid fa-circle-check"></i>
+                    <span>Prepare ₱{{ order.total_amount }} for the rider upon delivery.</span>
+                </div>
+                {% elif order.payment_method == 'GCASH' and order.payment_status == 'PAID' %}
+                <div class="step">
+                    <i class="fa-solid fa-circle-check"></i>
+                    <span>Payment received! Your order will be shipped soon.</span>
+                </div>
+                {% elif order.payment_method == 'GCASH' and order.payment_status == 'PENDING' %}
+                <div class="step">
+                    <i class="fa-solid fa-hourglass-half"></i>
+                    <span>Awaiting payment confirmation from GCash.</span>
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="button-group">
+                <a href="{% url 'shop' %}" class="btn btn-primary">
+                    <i class="fa-solid fa-basket-shopping" style="margin-right: 10px;"></i>
+                    Return to Shop
+                </a>
+                {% if order.status == 'PENDING' %}
+                <button type="button" class="btn btn-outline" onclick="showCancelModal()">
+                    <i class="fa-solid fa-times-circle" style="margin-right: 10px;"></i>
+                    Cancel Order
+                </button>
+                {% endif %}
+            </div>
+            
+            {% if order.status == 'CANCELLED' %}
+            <div style="margin-top: 1.5rem; padding: 1.5rem; background: #fee2e2; border: 2px solid #dc2626; border-radius: 16px; text-align: center;">
+                <div style="display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 10px;">
+                    <i class="fa-solid fa-ban" style="font-size: 1.5rem; color: #dc2626;"></i>
+                    <span style="font-size: 1.2rem; font-weight: 800; color: #991b1b;">Order Cancelled</span>
+                </div>
+                {% if order.payment_status == 'REFUNDED' %}
+                <p style="margin: 0; color: #991b1b; font-size: 0.9rem;">
+                    <i class="fa-solid fa-check-circle"></i> 
+                    Your GCash payment has been refunded. Please allow 3-5 business days for the refund to appear.
+                </p>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    {% if order.status == 'PENDING' %}
+    <!-- Cancel Order Modal -->
+    <div class="cancel-modal" id="cancelModal">
+        <div class="cancel-modal-content">
+            <i class="fa-solid fa-exclamation-triangle" style="font-size: 3rem; color: #f59e0b; margin-bottom: 1rem;"></i>
+            <h3>Cancel This Order?</h3>
+            <p>
+                Are you sure you want to cancel order <strong>#{{ order.order_number }}</strong>?
+                {% if order.payment_method == 'GCASH' and order.payment_status == 'PAID' %}
+                <br><br>
+                <span style="color: #10b981;"><i class="fa-solid fa-info-circle"></i> Your GCash payment of <strong>₱{{ order.total_amount }}</strong> will be refunded.</span>
+                {% endif %}
+            </p>
+            <div class="modal-buttons">
+                <button type="button" class="btn btn-outline" style="color: #64748b; border-color: #64748b;" onclick="hideCancelModal()">
+                    No, Keep Order
+                </button>
+                <a href="{% url 'cancel_order' order.order_number %}" class="btn btn-danger">
+                    <i class="fa-solid fa-times"></i> Yes, Cancel Order
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        function showCancelModal() {
+            document.getElementById('cancelModal').classList.add('active');
+        }
+        
+        function hideCancelModal() {
+            document.getElementById('cancelModal').classList.remove('active');
+        }
+        
+        // Close modal when clicking outside
+        document.getElementById('cancelModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                hideCancelModal();
+            }
+        });
+    </script>
+    {% endif %}
+</body>
+</html>

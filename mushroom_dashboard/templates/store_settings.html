@@ -1,0 +1,944 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <meta name="theme-color" content="#0c4b33">
+    <title>Store Settings - KABUTOMATE</title>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'css/admin.css' %}">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="{% static 'css/responsive.css' %}">
+
+    <style>
+        :root {
+            --dark-green: #0c4b33;
+            --mid-green: #1a5e45;
+            --page-bg: #f4f7f6;
+            --card-bg: #ffffff;
+            --text-dark: #333;
+            --text-light: #555;
+            --border-color: #eee;
+            --input-bg: #f9fafb;
+            --info-blue: #3b82f6;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--page-bg);
+            margin: 0;
+            display: flex;
+            height: 100vh;
+            color: var(--text-dark);
+        }
+
+        .sidebar {
+            width: 260px;
+            background-color: #0c4b33;
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            box-sizing: border-box;
+            height: 100vh;
+            position: fixed;
+            left: 0;
+            top: 0;
+            overflow-y: auto;
+        }
+
+        .sidebar-logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .sidebar-logo .logo {
+            background-color: #f9f9f9;
+            border-radius: 50%;
+            width: 80px;
+            height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 10px;
+            overflow: hidden;
+        }
+        
+        .sidebar-logo .logo img {
+            width: 60px;
+            height: 60px;
+            object-fit: contain;
+        }
+        
+        .sidebar-logo span {
+            font-weight: bold;
+            font-size: 1.1em;
+            letter-spacing: 1px;
+        }
+
+        .sidebar-nav { flex-grow: 1; }
+
+        .sidebar-nav a {
+            display: flex; 
+            align-items: center;
+            gap: 12px;
+            color: #e0e0e0;
+            text-decoration: none;
+            padding: 15px 10px;
+            margin-bottom: 5px;
+            border-radius: 8px;
+            font-size: 0.95em;
+        }
+        
+        .sidebar-nav a .icon { width: 20px; text-align: center; }
+
+        .sidebar-nav a.active,
+        .sidebar-nav a:hover {
+            background-color: var(--mid-green);
+            color: #ffffff;
+            font-weight: 500;
+        }
+
+        .main-content {
+            flex-grow: 1;
+            margin-left: 260px;
+            padding: 30px;
+            overflow-y: auto;
+        }
+
+        .main-header {
+            margin-bottom: 20px;
+        }
+
+        .main-header h1 {
+            font-size: 2.5em;
+            font-weight: 700;
+            margin: 0;
+        }
+        
+        .card {
+            background-color: var(--card-bg);
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            margin-bottom: 20px;
+        }
+        
+        .card-title {
+            font-size: 1.3em;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        
+        .card-subtitle {
+            font-size: 0.9em;
+            color: var(--text-light);
+            margin-bottom: 25px;
+        }
+        
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px 30px;
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .form-group.full-width {
+            grid-column: span 2;
+        }
+        
+        .form-label {
+            font-size: 0.9em;
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 8px;
+        }
+        
+        .form-input {
+            background-color: var(--input-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px 15px;
+            font-size: 0.95em;
+            color: var(--text-dark);
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: var(--info-blue);
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+        }
+        
+        #map {
+            height: 400px;
+            width: 100%;
+            border-radius: 12px;
+            border: 2px solid var(--border-color);
+            margin-bottom: 15px;
+        }
+        
+        .map-instructions {
+            background: #e0f2fe;
+            padding: 12px 15px;
+            border-radius: 8px;
+            color: #0369a1;
+            font-size: 0.9em;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .coordinates-display {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .coord-box {
+            background: #f0fdf4;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #bbf7d0;
+        }
+        
+        .coord-label {
+            font-size: 0.8em;
+            color: var(--text-light);
+            margin-bottom: 5px;
+        }
+        
+        .coord-value {
+            font-size: 1.1em;
+            font-weight: 700;
+            color: var(--dark-green);
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            font-size: 0.95em;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-primary {
+            background-color: var(--dark-green);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: var(--mid-green);
+        }
+        
+        .btn-secondary {
+            background-color: #e5e7eb;
+            color: var(--text-dark);
+        }
+        
+        .save-section {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+        }
+        
+        .alert {
+            padding: 12px 18px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .alert-success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+        
+        .alert-error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+
+        /* --- Logout Modal --- */
+        .logout-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .logout-modal.show {
+            display: flex;
+        }
+
+        .logout-modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: 2.5rem;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: modalSlideIn 0.3s ease;
+        }
+
+        @keyframes modalSlideIn {
+            from { transform: scale(0.7); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .logout-modal-icon {
+            width: 60px;
+            height: 60px;
+            background: #fee2e2;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.5rem;
+        }
+
+        .logout-modal-icon i {
+            font-size: 1.8rem;
+            color: #dc2626;
+        }
+
+        .logout-modal-title {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: #333;
+            text-align: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .logout-modal-message {
+            text-align: center;
+            color: #666;
+            margin-bottom: 2rem;
+            font-size: 0.95rem;
+        }
+
+        .logout-modal-buttons {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .logout-modal-btn {
+            flex: 1;
+            padding: 0.9rem 1.5rem;
+            border: none;
+            border-radius: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.95rem;
+        }
+
+        .logout-modal-btn-cancel {
+            background: #f1f5f9;
+            color: #475569;
+        }
+
+        .logout-modal-btn-cancel:hover {
+            background: #e2e8f0;
+        }
+
+        .logout-modal-btn-confirm {
+            background: #dc2626;
+            color: white;
+        }
+
+        .logout-modal-btn-confirm:hover {
+            background: #b91c1c;
+        }
+
+        /* --- Hamburger Menu Toggle Button --- */
+        .hamburger-toggle {
+            display: none;
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            z-index: 10001;
+            background: var(--dark-green);
+            color: white;
+            border: none;
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 1.3rem;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .hamburger-toggle:hover {
+            background: var(--mid-green);
+            transform: scale(1.05);
+        }
+        
+        .hamburger-toggle.active {
+            background: #dc2626;
+        }
+        
+        /* --- Mobile Overlay --- */
+        .mobile-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(3px);
+            z-index: 9999;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .mobile-overlay.active {
+            opacity: 1;
+        }
+
+        @media (max-width: 768px) {
+            body { display: block; }
+            
+            .hamburger-toggle {
+                display: flex;
+            }
+            
+            .mobile-overlay {
+                display: block;
+                pointer-events: none;
+            }
+            
+            .mobile-overlay.active {
+                pointer-events: auto;
+            }
+            
+            .sidebar { 
+                transform: translateX(-100%); 
+                padding-top: 70px;
+                padding-bottom: 30px;
+                overflow-y: auto;
+                max-height: 100vh;
+                transition: transform 0.3s ease;
+                z-index: 10000;
+            }
+            .sidebar.active { transform: translateX(0); }
+            .sidebar-nav { padding-bottom: 80px; }
+            .sidebar-nav a[id="logout-link"] {
+                margin-top: 15px;
+                background: rgba(255, 255, 255, 0.1);
+                border: 1px solid rgba(255, 255, 255, 0.2);
+            }
+            .main-content { margin-left: 0; padding: 80px 20px 20px 20px; }
+            .form-grid { grid-template-columns: 1fr; }
+            .form-group.full-width { grid-column: span 1; }
+            .coordinates-display { grid-template-columns: 1fr; }
+            
+            /* Make buttons touch-friendly on mobile */
+            .btn {
+                min-height: 48px;
+                touch-action: manipulation;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .main-content { 
+                padding: 70px 15px 20px 15px; 
+            }
+            
+            .main-header h1 {
+                font-size: 1.8rem;
+            }
+            
+            .card {
+                padding: 18px;
+            }
+            
+            .save-section {
+                flex-direction: column;
+            }
+            
+            .save-section .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Hamburger Menu Toggle Button -->
+    <button class="hamburger-toggle" id="hamburgerToggle" aria-label="Toggle navigation menu">
+        <i class="fa-solid fa-bars" id="hamburgerIcon"></i>
+    </button>
+    
+    <!-- Mobile Overlay -->
+    <div class="mobile-overlay" id="mobileOverlay"></div>
+
+    <!-- Logout Confirmation Modal -->
+    <div class="logout-modal" id="logoutModal">
+        <div class="logout-modal-content">
+            <div class="logout-modal-icon">
+                <i class="fa-solid fa-right-from-bracket"></i>
+            </div>
+            <h3 class="logout-modal-title">Confirm Logout</h3>
+            <p class="logout-modal-message">Are you sure you want to logout from your account?</p>
+            <div class="logout-modal-buttons">
+                <button class="logout-modal-btn logout-modal-btn-cancel" id="cancelLogout">Cancel</button>
+                <button class="logout-modal-btn logout-modal-btn-confirm" id="confirmLogout">Logout</button>
+            </div>
+        </div>
+    </div>
+
+    <aside class="sidebar">
+        <!-- Sidebar Toggle Button -->
+        <button class="sidebar-toggle" id="sidebarToggle" title="Toggle Sidebar">
+            <i class="fa-solid fa-chevron-left"></i>
+        </button>
+
+        <div class="sidebar-logo">
+            <div class="logo">
+                <img src="{% static 'images/Screenshot_2025-11-01_124726-removebg-preview.png' %}" alt="Mushroom Logo">
+            </div>
+            <span>KABUTOMATE</span>
+        </div>
+
+        <nav class="sidebar-nav">
+            <a href="{% url 'dashboard' %}" class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" data-tooltip="Dashboard">
+                <i class="fa-solid fa-gauge-high icon"></i> <span>Dashboard</span>
+            </a>
+            <a href="{% url 'environment' %}" class="{% if request.resolver_match.url_name == 'environment' %}active{% endif %}" data-tooltip="Environmental Control"> 
+                <i class="fa-solid fa-leaf icon"></i> <span>Environmental Control</span>
+            </a>
+            <a href="{% url 'production' %}" class="{% if request.resolver_match.url_name == 'production' %}active{% endif %}" data-tooltip="Production Records">
+                <i class="fa-solid fa-clipboard-list icon"></i> <span>Production Records</span>
+            </a>
+            <a href="{% url 'inventory' %}" class="{% if request.resolver_match.url_name == 'inventory' %}active{% endif %}" data-tooltip="Inventory and Sales">
+                <i class="fa-solid fa-boxes-stacked icon"></i> <span>Inventory and Sales</span>
+            </a>
+            <a href="{% url 'cooked_products' %}" class="{% if request.resolver_match.url_name == 'cooked_products' %}active{% endif %}" data-tooltip="Cooked Products">
+                <i class="fa-solid fa-utensils icon"></i> <span>Cooked Products</span>
+            </a>
+            <a href="{% url 'pos_system' %}" class="{% if request.resolver_match.url_name == 'pos_system' %}active{% endif %}" data-tooltip="Point of Sale">
+                <i class="fa-solid fa-cash-register icon"></i> <span>Point of Sale</span>
+            </a>
+            <a href="{% url 'manage_orders' %}" class="{% if request.resolver_match.url_name == 'manage_orders' %}active{% endif %}" data-tooltip="Manage Orders">
+                <i class="fa-solid fa-list-check icon"></i> <span>Manage Orders</span>
+            </a>
+            <a href="{% url 'analytics' %}" class="{% if request.resolver_match.url_name == 'analytics' %}active{% endif %}" data-tooltip="Analytics">
+                <i class="fa-solid fa-chart-line icon"></i> <span>Analytics</span>
+            </a>
+            <a href="{% url 'weather' %}" class="{% if request.resolver_match.url_name == 'weather' %}active{% endif %}" data-tooltip="Weather">
+                <i class="fa-solid fa-cloud-sun icon"></i> <span>Weather</span>
+            </a>
+            <a href="{% url 'notifications' %}" class="{% if request.resolver_match.url_name == 'notifications' %}active{% endif %}" data-tooltip="Notifications">
+                <i class="fa-solid fa-bell icon"></i> <span>Notifications</span>
+            </a>
+            <a href="{% url 'store_settings' %}" class="{% if request.resolver_match.url_name == 'store_settings' %}active{% endif %}" data-tooltip="Store Settings">
+                <i class="fa-solid fa-store icon"></i> <span>Store Settings</span>
+            </a>
+            <a href="{% url 'sales_report' %}" class="{% if request.resolver_match.url_name == 'sales_report' %}active{% endif %}" data-tooltip="Sales Report">
+                <i class="fa-solid fa-file-invoice-dollar icon"></i> <span>Sales Report</span>
+            </a>
+            <a href="{% url 'profile' %}" class="{% if request.resolver_match.url_name == 'profile' %}active{% endif %}" data-tooltip="Profile">
+                <i class="fa-solid fa-user icon"></i> <span>Profile</span>
+            </a>
+            <a href="#" id="logout-link" data-tooltip="Logout">
+                <i class="fa-solid fa-right-from-bracket icon"></i> <span>Logout</span>
+            </a>
+        </nav>
+    </aside>
+
+    <main class="main-content">
+        <header class="main-header">
+            <h1>Store Settings</h1>
+        </header>
+        
+        <div id="alert-success" class="alert alert-success">
+            <i class="fa-solid fa-check-circle"></i> <span id="success-message">Settings saved successfully!</span>
+        </div>
+        
+        <div id="alert-error" class="alert alert-error">
+            <i class="fa-solid fa-exclamation-circle"></i> <span id="error-message">An error occurred.</span>
+        </div>
+
+        <form id="settings-form">
+            <div class="card">
+                <div class="card-title"><i class="fa-solid fa-location-dot"></i> Store Location</div>
+                <div class="card-subtitle">Set your store location on the map for distance-based shipping calculations</div>
+                
+                <div class="map-instructions">
+                    <i class="fa-solid fa-info-circle"></i>
+                    <span>Click on the map to set your store location, or drag the marker to adjust</span>
+                </div>
+                
+                <div id="map"></div>
+                
+                <div class="coordinates-display">
+                    <div class="coord-box">
+                        <div class="coord-label">Latitude</div>
+                        <div class="coord-value" id="display-lat">{{ store_settings.store_latitude|default:"Not set" }}</div>
+                    </div>
+                    <div class="coord-box">
+                        <div class="coord-label">Longitude</div>
+                        <div class="coord-value" id="display-lng">{{ store_settings.store_longitude|default:"Not set" }}</div>
+                    </div>
+                </div>
+                
+                <input type="hidden" id="store_latitude" name="store_latitude" value="{{ store_settings.store_latitude|default:'' }}">
+                <input type="hidden" id="store_longitude" name="store_longitude" value="{{ store_settings.store_longitude|default:'' }}">
+                
+                <div class="form-grid" style="margin-top: 25px;">
+                    <div class="form-group full-width">
+                        <label for="store_name" class="form-label">Store Name</label>
+                        <input type="text" id="store_name" class="form-input" value="{{ store_settings.store_name }}">
+                    </div>
+                    <div class="form-group full-width">
+                        <label for="store_address" class="form-label">Store Address</label>
+                        <textarea id="store_address" class="form-input" rows="2">{{ store_settings.store_address }}</textarea>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-title"><i class="fa-solid fa-truck"></i> Shipping Fee Settings</div>
+                <div class="card-subtitle">Configure how shipping fees are calculated based on distance</div>
+                
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="minimum_base_fee" class="form-label">Minimum Base Fee (₱)</label>
+                        <input type="number" id="minimum_base_fee" class="form-input" step="0.01" min="0" value="{{ store_settings.minimum_base_fee }}">
+                        <small class="form-hint">Minimum delivery fee (e.g., ₱20 for first 3 km)</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="minimum_base_distance_km" class="form-label">Base Distance (km)</label>
+                        <input type="number" id="minimum_base_distance_km" class="form-input" step="0.1" min="0" value="{{ store_settings.minimum_base_distance_km }}">
+                        <small class="form-hint">Distance covered by minimum fee (e.g., 3 km)</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="fee_per_km" class="form-label">Fee Per Km Beyond Base (₱)</label>
+                        <input type="number" id="fee_per_km" class="form-input" step="0.01" min="0" value="{{ store_settings.fee_per_km }}">
+                        <small class="form-hint">Extra charge per km after base distance</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="max_delivery_distance_km" class="form-label">Max Delivery Distance (km)</label>
+                        <input type="number" id="max_delivery_distance_km" class="form-input" step="0.1" min="0" value="{{ store_settings.max_delivery_distance_km }}">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-title"><i class="fa-solid fa-receipt"></i> Order Settings</div>
+                <div class="card-subtitle">Configure order requirements and thresholds</div>
+                
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="minimum_order_amount" class="form-label">Minimum Order Amount (₱)</label>
+                        <input type="number" id="minimum_order_amount" class="form-input" step="0.01" min="0" value="{{ store_settings.minimum_order_amount }}">
+                        <small class="form-hint">Customers must order at least this amount</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="free_shipping_threshold" class="form-label">Free Shipping Threshold (₱)</label>
+                        <input type="number" id="free_shipping_threshold" class="form-input" step="0.01" min="0" value="{{ store_settings.free_shipping_threshold }}">
+                        <small class="form-hint">Orders above this amount get free delivery</small>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="save-section">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fa-solid fa-save"></i> Save Settings
+                </button>
+                <button type="button" class="btn btn-secondary" onclick="resetForm()">
+                    <i class="fa-solid fa-rotate-left"></i> Reset
+                </button>
+            </div>
+        </form>
+    </main>
+
+    <script id="store-config" type="application/json">
+        {
+            "latitude": {{ store_settings.store_latitude|default:"14.5995" }},
+            "longitude": {{ store_settings.store_longitude|default:"120.9842" }},
+            "hasCoords": {{ store_settings.store_latitude|yesno:"true,false" }}
+        }
+    </script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script></script>
+    <script>
+        // Initialize map
+        const storeConfig = JSON.parse(document.getElementById('store-config').textContent);
+        const initialLat = storeConfig.latitude;
+        const initialLng = storeConfig.longitude;
+        const hasInitialCoords = storeConfig.hasCoords;
+        
+        const map = L.map('map').setView([initialLat, initialLng], hasInitialCoords ? 15 : 10);
+        
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+        
+        // Custom marker icon
+        const storeIcon = L.divIcon({
+            className: 'custom-marker',
+            html: '<div style="background: #0c4b33; color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.3);"><i class="fa-solid fa-store"></i></div>',
+            iconSize: [40, 40],
+            iconAnchor: [20, 40]
+        });
+        
+        let marker = null;
+        
+        // Add initial marker if coordinates exist
+        if (hasInitialCoords) {
+            marker = L.marker([initialLat, initialLng], {icon: storeIcon, draggable: true}).addTo(map);
+            marker.on('dragend', updateCoordinates);
+        }
+        
+        // Click to add/move marker
+        map.on('click', function(e) {
+            const lat = e.latlng.lat;
+            const lng = e.latlng.lng;
+            
+            if (marker) {
+                marker.setLatLng(e.latlng);
+            } else {
+                marker = L.marker([lat, lng], {icon: storeIcon, draggable: true}).addTo(map);
+                marker.on('dragend', updateCoordinates);
+            }
+            
+            updateCoordinateDisplay(lat, lng);
+        });
+        
+        function updateCoordinates(e) {
+            const lat = e.target.getLatLng().lat;
+            const lng = e.target.getLatLng().lng;
+            updateCoordinateDisplay(lat, lng);
+        }
+        
+        function updateCoordinateDisplay(lat, lng) {
+            document.getElementById('store_latitude').value = lat.toFixed(6);
+            document.getElementById('store_longitude').value = lng.toFixed(6);
+            document.getElementById('display-lat').textContent = lat.toFixed(6);
+            document.getElementById('display-lng').textContent = lng.toFixed(6);
+        }
+        
+        // Form submission
+        document.getElementById('settings-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const data = {
+                store_name: document.getElementById('store_name').value,
+                store_address: document.getElementById('store_address').value,
+                store_latitude: document.getElementById('store_latitude').value || null,
+                store_longitude: document.getElementById('store_longitude').value || null,
+                minimum_base_fee: parseFloat(document.getElementById('minimum_base_fee').value) || 0,
+                minimum_base_distance_km: parseFloat(document.getElementById('minimum_base_distance_km').value) || 0,
+                fee_per_km: parseFloat(document.getElementById('fee_per_km').value) || 0,
+                free_shipping_threshold: parseFloat(document.getElementById('free_shipping_threshold').value) || 0,
+                max_delivery_distance_km: parseFloat(document.getElementById('max_delivery_distance_km').value) || 0,
+                minimum_order_amount: parseFloat(document.getElementById('minimum_order_amount').value) || 0
+            };
+            
+            // Get CSRF token
+            const csrfToken = document.cookie
+                .split('; ')
+                .find(row => row.startsWith('csrftoken='))
+                ?.split('=')[1];
+            
+            try {
+                const response = await fetch('/api/store-settings/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showAlert('success', result.message);
+                } else {
+                    showAlert('error', result.error || 'Failed to save settings');
+                }
+            } catch (error) {
+                showAlert('error', 'An error occurred: ' + error.message);
+            }
+        });
+        
+        function showAlert(type, message) {
+            const alertEl = document.getElementById('alert-' + type);
+            const messageEl = document.getElementById(type + '-message');
+            
+            // Hide all alerts first
+            document.querySelectorAll('.alert').forEach(a => a.style.display = 'none');
+            
+            messageEl.textContent = message;
+            alertEl.style.display = 'flex';
+            
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+                alertEl.style.display = 'none';
+            }, 5000);
+        }
+        
+        function resetForm() {
+            location.reload();
+        }
+        
+        // --- Logout Modal ---
+        const logoutModal = document.getElementById('logoutModal');
+        const logoutLink = document.getElementById('logout-link');
+        const cancelLogout = document.getElementById('cancelLogout');
+        const confirmLogout = document.getElementById('confirmLogout');
+
+        logoutLink.addEventListener('click', function(e) {
+            e.preventDefault();
+            logoutModal.classList.add('show');
+        });
+
+        cancelLogout.addEventListener('click', function() {
+            logoutModal.classList.remove('show');
+        });
+
+        logoutModal.addEventListener('click', function(e) {
+            if (e.target === logoutModal) {
+                logoutModal.classList.remove('show');
+            }
+        });
+
+        confirmLogout.addEventListener('click', function() {
+            const csrfToken = document.cookie
+                .split('; ')
+                .find(row => row.startsWith('csrftoken='))
+                ?.split('=')[1];
+            
+            fetch('{% url "logout" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.href = data.redirect_url;
+                }
+            })
+            .catch(error => {
+                console.error('Logout error:', error);
+                window.location.href = '{% url "logout" %}';
+            });
+        });
+        
+        // --- Hamburger Menu Toggle ---
+        const hamburgerToggle = document.getElementById('hamburgerToggle');
+        const hamburgerIcon = document.getElementById('hamburgerIcon');
+        const sidebar = document.querySelector('.sidebar');
+        const mobileOverlay = document.getElementById('mobileOverlay');
+        
+        function closeMobileMenu() {
+            if (sidebar) sidebar.classList.remove('active');
+            if (mobileOverlay) mobileOverlay.classList.remove('active');
+            if (hamburgerToggle) hamburgerToggle.classList.remove('active');
+            if (hamburgerIcon) {
+                hamburgerIcon.classList.remove('fa-times');
+                hamburgerIcon.classList.add('fa-bars');
+            }
+            document.body.style.overflow = '';
+        }
+        
+        function toggleMobileMenu(e) {
+            if (e) e.stopPropagation();
+            
+            const isActive = sidebar.classList.contains('active');
+            
+            if (isActive) {
+                closeMobileMenu();
+            } else {
+                sidebar.classList.add('active');
+                mobileOverlay.classList.add('active');
+                hamburgerToggle.classList.add('active');
+                hamburgerIcon.classList.remove('fa-bars');
+                hamburgerIcon.classList.add('fa-times');
+                document.body.style.overflow = 'hidden';
+            }
+        }
+        
+        if (hamburgerToggle) {
+            hamburgerToggle.addEventListener('click', toggleMobileMenu);
+        }
+        
+        if (mobileOverlay) {
+            mobileOverlay.addEventListener('click', closeMobileMenu);
+        }
+        
+        // Close menu when clicking on nav links on mobile
+        const sidebarNav = document.querySelector('.sidebar-nav');
+        if (sidebarNav) {
+            sidebarNav.querySelectorAll('a').forEach(link => {
+                link.addEventListener('click', function() {
+                    if (window.innerWidth <= 768) {
+                        // Don't close for logout link (modal will open)
+                        if (this.id !== 'logout-link') {
+                            closeMobileMenu();
+                        }
+                    }
+                });
+            });
+        }
+        
+        // Handle window resize
+        window.addEventListener('resize', function() {
+            if (window.innerWidth > 768) {
+                closeMobileMenu();
+            }
+        });
+
+        // --- Sidebar Collapse Toggle (Desktop) ---
+        const sidebarToggle = document.getElementById('sidebarToggle');
+        const mainContent = document.querySelector('.main-content');
+        
+        // Check for saved sidebar state
+        const sidebarCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+        if (sidebarCollapsed && window.innerWidth > 768) {
+            sidebar.classList.add('collapsed');
+            document.body.classList.add('sidebar-collapsed');
+        }
+        
+        if (sidebarToggle) {
+            sidebarToggle.addEventListener('click', function() {
+                if (window.innerWidth > 768) {
+                    sidebar.classList.toggle('collapsed');
+                    document.body.classList.toggle('sidebar-collapsed');
+                    
+                    // Save state to localStorage
+                    const isCollapsed = sidebar.classList.contains('collapsed');
+                    localStorage.setItem('sidebarCollapsed', isCollapsed);
+                }
+            });
+        }
+    </script>
+    <script src="{% static 'js/sidebar-tooltip.js' %}"></script>
+</body>
+</html>

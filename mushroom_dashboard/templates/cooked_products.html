@@ -1,0 +1,1343 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <meta name="theme-color" content="#0c4b33">
+    <title>Mushroom IoT Dashboard - Cooked Products</title>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'css/admin.css' %}">
+    <link rel="stylesheet" href="{% static 'css/responsive.css' %}">
+    
+    <style>
+        /* --- Global Styles --- */
+        :root {
+            --dark-green: #0c4b33;
+            --mid-green: #1a5e45;
+            --page-bg: #f4f7f6;
+            --card-bg: #ffffff;
+            --text-dark: #333;
+            --text-light: #555;
+            --border-color: #eee;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--page-bg);
+            margin: 0;
+            display: flex;
+            height: 100vh;
+            color: var(--text-dark);
+        }
+
+        /* --- Sidebar --- */
+        .sidebar {
+            width: 260px;
+            background-color: var(--dark-green);
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            box-sizing: border-box;
+            height: 100vh;
+            position: fixed;
+            left: 0;
+            top: 0;
+            overflow-y: auto;
+        }
+
+        .sidebar-logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .sidebar-logo .logo {
+            background-color: #f9f9f9;
+            color: #0c4b33;
+            border-radius: 50%;
+            width: 80px;
+            height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 10px;
+            overflow: hidden;
+        }
+        
+        .sidebar-logo .logo img {
+            width: 60px;
+            height: 60px;
+            object-fit: contain;
+        }
+        
+        .sidebar-logo span {
+            font-weight: bold;
+            font-size: 1.1em;
+            letter-spacing: 1px;
+        }
+
+        .sidebar-nav {
+            flex-grow: 1;
+        }
+
+        .sidebar-nav a {
+            display: flex; 
+            align-items: center;
+            gap: 12px;
+            color: #e0e0e0;
+            text-decoration: none;
+            padding: 15px 10px;
+            margin-bottom: 5px;
+            border-radius: 8px;
+            font-size: 0.95em;
+        }
+        
+        .sidebar-nav a .icon {
+            width: 20px; 
+            text-align: center;
+        }
+
+        .sidebar-nav a.active,
+        .sidebar-nav a:hover {
+            background-color: var(--mid-green);
+            color: #ffffff;
+            font-weight: 500;
+        }
+
+        .sidebar-status {
+            background-color: #1a5e45;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            transition: background-color 0.3s ease;
+        }
+        
+        .sidebar-status.warning {
+            background-color: #b45309;
+        }
+        
+        .sidebar-status.error {
+            background-color: #991b1b;
+        }
+
+        .sidebar-status .status-title {
+            font-weight: bold;
+            font-size: 1em;
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .sidebar-status .status-desc {
+            font-size: 0.8em;
+            color: #c0c0c0;
+        }
+
+        /* --- Main Content --- */
+        .main-content {
+            flex-grow: 1;
+            margin-left: 260px;
+            padding: 30px;
+            overflow-y: auto;
+        }
+
+        .main-header {
+            margin-bottom: 20px;
+        }
+
+        .main-header h1 {
+            font-size: 2.5em;
+            font-weight: 700;
+            margin: 0;
+        }
+        
+        .main-header .subtitle {
+            color: #666;
+            font-size: 1rem;
+            margin-top: 5px;
+        }
+        
+        /* --- Metric Cards --- */
+         .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+        
+        /* Special Card Styles */
+        .card-highlight-orange {
+            border: 2px solid #f97316;
+        }
+        .card-bg-gray {
+            background-color: #f9fafb;
+        }
+        .card-bg-green {
+            background-color: #f0fdf4;
+        }
+        
+        .card .card-title {
+            font-size: 0.9em;
+            color: #555;
+            margin-bottom: 10px;
+            font-weight: 500;
+        }
+        
+        .card-value.small {
+             font-size: 2.8em;
+             font-weight: 700;
+        }
+        
+        .card-value.small .unit {
+            font-size: 0.5em;
+            font-weight: 600;
+            color: #555;
+            margin-left: 4px;
+        }
+        
+        /* --- List Cards --- */
+        .list-card {
+            margin-bottom: 20px;
+            background: white;
+            border-radius: 24px;
+            overflow: hidden;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.02);
+            border: 1px solid rgba(0,0,0,0.03);
+        }
+        
+        .list-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.5rem;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        
+        .list-card-header h2 {
+            font-size: 1.25rem;
+            font-weight: 800;
+            margin: 0;
+            color: var(--dark-green);
+        }
+        
+        .btn-add {
+            background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.25rem;
+            font-size: 0.85rem;
+            font-weight: 700;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn-add:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(249, 115, 22, 0.3);
+        }
+        
+        /* Table scroll wrapper */
+        .table-scroll-wrapper {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* --- Table Styles --- */
+        .table-grid {
+            display: grid;
+            gap: 0;
+            align-items: center;
+            min-width: 650px;
+        }
+        
+        .table-header {
+            background: #f8fafc;
+            padding: 1.2rem 1.5rem;
+            font-size: 0.75rem;
+            font-weight: 800;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .table-row {
+            padding: 1.2rem 1.5rem;
+            font-size: 0.95em;
+            font-weight: 600;
+            border-bottom: 1px solid #f1f5f9;
+            transition: background 0.2s;
+        }
+        
+        .table-row:hover {
+            background: #fafafa;
+        }
+        
+        .table-row:last-child {
+            border-bottom: none;
+        }
+        
+        /* --- Status Badges --- */
+        .status-badge {
+            display: inline-block;
+            padding: 6px 14px;
+            border-radius: 50px;
+            font-size: 0.75rem;
+            font-weight: 800;
+        }
+        
+        .status-green {
+            color: #15803d;
+            background-color: #f0fdf4;
+        }
+        
+        .status-yellow {
+            color: #b45309;
+            background-color: #fffbeb;
+        }
+        
+        .status-gray {
+            color: #64748b;
+            background-color: #f1f5f9;
+        }
+
+        .table-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .table-actions a,
+        .table-actions button {
+            background: #f1f5f9;
+            color: var(--dark-green);
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: 700;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+        
+        .table-actions a:hover,
+        .table-actions button:hover {
+            background: var(--dark-green);
+            color: white;
+        }
+        
+        .btn-publish, .btn-unpublish {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.4rem 0.8rem;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            margin: 0 4px;
+        }
+        
+        .btn-publish {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+        }
+        
+        .btn-publish:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+            color: white;
+        }
+        
+        .btn-unpublish {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: white;
+        }
+        
+        .btn-unpublish:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+            color: white;
+        }
+        
+        /* Product image in table */
+        .product-image-cell {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .product-image-cell img {
+            width: 50px;
+            height: 50px;
+            object-fit: cover;
+            border-radius: 8px;
+        }
+        
+        .product-image-cell .no-image {
+            width: 50px;
+            height: 50px;
+            background: #f1f5f9;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #94a3b8;
+        }
+
+        /* --- Modal Styles --- */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 30px;
+            border: 1px solid #888;
+            border-radius: 12px;
+            width: 80%;
+            max-width: 500px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .modal-header h2 {
+            margin: 0;
+            font-size: 1.5em;
+        }
+
+        .close-btn {
+            color: #aaa;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close-btn:hover,
+        .close-btn:focus {
+            color: #000;
+        }
+        
+        /* Form styles */
+        .modal-form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+        .form-group label {
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+        }
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            padding: 12px 15px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 1em;
+            background-color: #fff;
+            font-family: inherit;
+        }
+        
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+        
+        .form-group input[type="file"] {
+            padding: 8px;
+            border: 2px dashed #ddd;
+            background-color: #f9fafb;
+        }
+        
+        .form-group input[type="file"]:hover {
+            border-color: #f97316;
+            background-color: #fff7ed;
+        }
+        
+        .btn-submit {
+            background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: all 0.3s;
+        }
+        .btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);
+        }
+
+        /* --- Logout Modal --- */
+        .logout-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .logout-modal.show {
+            display: flex;
+        }
+
+        .logout-modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: 2.5rem;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: modalSlideIn 0.3s ease;
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .logout-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #fef2f2, #fee2e2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.5rem;
+        }
+
+        .logout-icon i {
+            font-size: 2rem;
+            color: #dc2626;
+        }
+
+        .logout-modal h3 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin: 0 0 0.5rem;
+            text-align: center;
+        }
+
+        .logout-modal p {
+            color: #64748b;
+            text-align: center;
+            margin: 0 0 1.5rem;
+        }
+
+        .logout-buttons {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .logout-btn-cancel,
+        .logout-btn-confirm {
+            flex: 1;
+            padding: 0.875rem 1.5rem;
+            border-radius: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+        }
+
+        .logout-btn-cancel {
+            background: #f1f5f9;
+            color: #475569;
+        }
+
+        .logout-btn-cancel:hover {
+            background: #e2e8f0;
+        }
+
+        .logout-btn-confirm {
+            background: linear-gradient(135deg, #dc2626, #b91c1c);
+            color: white;
+        }
+
+        .logout-btn-confirm:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(220, 38, 38, 0.4);
+        }
+        
+        /* Pagination */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            padding: 1.5rem;
+            border-top: 1px solid #f1f5f9;
+        }
+        
+        .pagination-btn {
+            background: #f1f5f9;
+            color: var(--dark-green);
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .pagination-btn:hover:not(:disabled) {
+            background: var(--dark-green);
+            color: white;
+        }
+        
+        .pagination-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .pagination-info {
+            font-weight: 600;
+            color: #64748b;
+        }
+
+        /* Hamburger Menu Styles */
+        .menu-toggle {
+            display: none;
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            z-index: 1001;
+            background: var(--dark-green);
+            border: none;
+            color: white;
+            width: 45px;
+            height: 45px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1.2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+        }
+
+        @media (max-width: 768px) {
+            .menu-toggle {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .sidebar {
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+                z-index: 1000;
+            }
+
+            .sidebar.active {
+                transform: translateX(0);
+            }
+
+            .sidebar-overlay.active {
+                display: block;
+            }
+
+            .main-content {
+                margin-left: 0;
+                padding: 80px 15px 15px;
+            }
+
+            .main-header h1 {
+                font-size: 1.8em;
+            }
+
+            .card-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .list-card-header {
+                flex-direction: column;
+                gap: 10px;
+                align-items: flex-start;
+            }
+
+            .btn-add {
+                width: 100%;
+                text-align: center;
+            }
+
+            .table-grid {
+                min-width: 500px;
+            }
+            
+            .table-actions {
+                flex-direction: column;
+                gap: 5px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .card-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .card-value.small {
+                font-size: 2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Hamburger Menu Button -->
+    <button class="menu-toggle" id="menuToggle">
+        <i class="fa-solid fa-bars"></i>
+    </button>
+
+    <!-- Sidebar Overlay -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <!-- Add Product Modal -->
+    <div id="addProductModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fa-solid fa-plus"></i> Add Cooked Product</h2>
+                <span class="close-btn">&times;</span>
+            </div>
+            <form id="addProductForm" class="modal-form" enctype="multipart/form-data">
+                <input type="hidden" name="product_type" value="cooked">
+                <div class="form-group">
+                    <label for="add-name">Product Name *</label>
+                    <input type="text" id="add-name" name="name" placeholder="e.g., Mushroom Sisig, Crispy Mushroom Chips" required>
+                </div>
+                <div class="form-group">
+                    <label for="add-price_per_kg">Price (₱) *</label>
+                    <input type="number" id="add-price_per_kg" name="price_per_kg" step="0.01" min="0" placeholder="e.g., 150.00" required>
+                </div>
+                <div class="form-group">
+                    <label for="add-stock_kg">Stock Quantity *</label>
+                    <input type="number" id="add-stock_kg" name="stock_kg" step="0.01" min="0" placeholder="e.g., 50" required>
+                </div>
+                <div class="form-group">
+                    <label for="add-description">Description</label>
+                    <textarea id="add-description" name="description" placeholder="Describe the cooked product..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="add-product_image">Product Image</label>
+                    <input type="file" id="add-product_image" name="product_image" accept="image/*">
+                </div>
+                <button type="submit" class="btn-submit">Add Product</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Product Modal -->
+    <div id="editProductModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fa-solid fa-pencil"></i> Edit Cooked Product</h2>
+                <span class="close-btn">&times;</span>
+            </div>
+            <form id="editProductForm" class="modal-form" enctype="multipart/form-data">
+                <input type="hidden" name="product_type" value="cooked">
+                <div class="form-group">
+                    <label for="edit-name">Product Name *</label>
+                    <input type="text" id="edit-name" name="name" required>
+                </div>
+                <div class="form-group">
+                    <label for="edit-price_per_kg">Price (₱) *</label>
+                    <input type="number" id="edit-price_per_kg" name="price_per_kg" step="0.01" min="0" required>
+                </div>
+                <div class="form-group">
+                    <label for="edit-stock_kg">Stock Quantity *</label>
+                    <input type="number" id="edit-stock_kg" name="stock_kg" step="0.01" min="0" required>
+                </div>
+                <div class="form-group">
+                    <label for="edit-description">Description</label>
+                    <textarea id="edit-description" name="description"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Current Image</label>
+                    <div id="current-image-preview"></div>
+                </div>
+                <div class="form-group">
+                    <label for="edit-product_image">New Product Image (optional)</label>
+                    <input type="file" id="edit-product_image" name="product_image" accept="image/*">
+                </div>
+                <button type="submit" class="btn-submit">Save Changes</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Logout Confirmation Modal -->
+    <div class="logout-modal" id="logoutModal">
+        <div class="logout-modal-content">
+            <div class="logout-icon">
+                <i class="fa-solid fa-right-from-bracket"></i>
+            </div>
+            <h3>Logout</h3>
+            <p>Are you sure you want to logout from your account?</p>
+            <div class="logout-buttons">
+                <button class="logout-btn-cancel" onclick="closeLogoutModal()">Cancel</button>
+                <a href="/logout/" class="logout-btn-confirm" style="text-decoration: none; text-align: center;">Logout</a>
+            </div>
+        </div>
+    </div>
+
+    <aside class="sidebar" id="sidebar">
+        <!-- Sidebar Toggle Button -->
+        <button class="sidebar-toggle" id="sidebarToggle" title="Toggle Sidebar">
+            <i class="fa-solid fa-chevron-left"></i>
+        </button>
+
+        <div class="sidebar-logo">
+            <div class="logo">
+                <img src="{% static 'images/Screenshot_2025-11-01_124726-removebg-preview.png' %}" alt="Mushroom Logo">
+            </div>
+            <span>KABUTOMATE</span>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="{% url 'dashboard' %}" class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" data-tooltip="Dashboard">
+                <i class="fa-solid fa-gauge-high icon"></i> <span>Dashboard</span>
+            </a>
+            <a href="{% url 'environment' %}" class="{% if request.resolver_match.url_name == 'environment' %}active{% endif %}" data-tooltip="Environmental Control">
+                <i class="fa-solid fa-leaf icon"></i> <span>Environmental Control</span>
+            </a>
+            <a href="{% url 'production' %}" class="{% if request.resolver_match.url_name == 'production' %}active{% endif %}" data-tooltip="Production Records">
+                <i class="fa-solid fa-clipboard-list icon"></i> <span>Production Records</span>
+            </a>
+            <a href="{% url 'inventory' %}" class="{% if request.resolver_match.url_name == 'inventory' %}active{% endif %}" data-tooltip="Inventory and Sales">
+                <i class="fa-solid fa-boxes-stacked icon"></i> <span>Inventory and Sales</span>
+            </a>
+            <a href="{% url 'cooked_products' %}" class="{% if request.resolver_match.url_name == 'cooked_products' %}active{% endif %}" data-tooltip="Cooked Products">
+                <i class="fa-solid fa-utensils icon"></i> <span>Cooked Products</span>
+            </a>
+            <a href="{% url 'pos_system' %}" class="{% if request.resolver_match.url_name == 'pos_system' %}active{% endif %}" data-tooltip="Point of Sale">
+                <i class="fa-solid fa-cash-register icon"></i> <span>Point of Sale</span>
+            </a>
+            <a href="{% url 'manage_orders' %}" class="{% if request.resolver_match.url_name == 'manage_orders' %}active{% endif %}" data-tooltip="Manage Orders">
+                <i class="fa-solid fa-list-check icon"></i> <span>Manage Orders</span>
+            </a>
+            <a href="{% url 'analytics' %}" class="{% if request.resolver_match.url_name == 'analytics' %}active{% endif %}" data-tooltip="Analytics">
+                <i class="fa-solid fa-chart-line icon"></i> <span>Analytics</span>
+            </a>
+            <a href="{% url 'weather' %}" class="{% if request.resolver_match.url_name == 'weather' %}active{% endif %}" data-tooltip="Weather">
+                <i class="fa-solid fa-cloud-sun icon"></i> <span>Weather</span>
+            </a>
+            <a href="{% url 'notifications' %}" class="{% if request.resolver_match.url_name == 'notifications' %}active{% endif %}" data-tooltip="Notifications">
+                <i class="fa-solid fa-bell icon"></i> <span>Notifications</span>
+            </a>
+            <a href="{% url 'store_settings' %}" class="{% if request.resolver_match.url_name == 'store_settings' %}active{% endif %}" data-tooltip="Store Settings">
+                <i class="fa-solid fa-store icon"></i> <span>Store Settings</span>
+            </a>
+            <a href="{% url 'sales_report' %}" class="{% if request.resolver_match.url_name == 'sales_report' %}active{% endif %}" data-tooltip="Sales Report">
+                <i class="fa-solid fa-file-invoice-dollar icon"></i> <span>Sales Report</span>
+            </a>
+            <a href="{% url 'profile' %}" class="{% if request.resolver_match.url_name == 'profile' %}active{% endif %}" data-tooltip="Profile">
+                <i class="fa-solid fa-user icon"></i> <span>Profile</span>
+            </a>
+            <a href="#" id="logout-link" onclick="showLogoutModal(); return false;" data-tooltip="Logout">
+                <i class="fa-solid fa-right-from-bracket icon"></i> <span>Logout</span>
+            </a>
+        </nav>
+    </aside>
+
+    <main class="main-content">
+        <div class="main-header">
+            <h1>Cooked Products</h1>
+            <p class="subtitle">Manage ready-to-eat mushroom products for your shop</p>
+        </div>
+        
+        <div class="card-grid">
+            <div class="card card-highlight-orange">
+                <div class="card-title">Total Products</div>
+                <div id="summary-total-products" class="card-value small">...</div>
+            </div>
+            <div class="card card-bg-gray">
+                <div class="card-title">Published</div>
+                <div id="summary-published" class="card-value small">...</div>
+            </div>
+            <div class="card card-bg-green">
+                <div class="card-title">In Stock</div>
+                <div id="summary-in-stock" class="card-value small">...</div>
+            </div>
+        </div>
+        
+        <div class="list-card">
+            <div class="list-card-header">
+                <h2><i class="fa-solid fa-utensils"></i> Ready-to-Eat Products</h2>
+                <button id="addProductBtn" class="btn-add">
+                    <i class="fa-solid fa-plus"></i> Add Cooked Product
+                </button>
+            </div>
+            <div class="table-scroll-wrapper">
+            <div id="products-table-grid" class="table-grid" style="grid-template-columns: 2fr 1fr 1fr 1fr 1.5fr;">
+                <div class="table-header">Product</div>
+                <div class="table-header">Price</div>
+                <div class="table-header">Stock</div>
+                <div class="table-header">Status</div>
+                <div class="table-header">Actions</div>
+                
+                <div class="table-row">Loading...</div>
+                <div class="table-row"></div>
+                <div class="table-row"></div>
+                <div class="table-row"></div>
+                <div class="table-row"></div>
+            </div>
+            </div>
+            <div id="products-pagination" class="pagination">
+                <button class="pagination-btn" id="prev-btn" onclick="changeProductsPage(-1)">
+                    <i class="fa-solid fa-chevron-left"></i> Previous
+                </button>
+                <span class="pagination-info" id="page-info">Page 1 of 1</span>
+                <button class="pagination-btn" id="next-btn" onclick="changeProductsPage(1)">
+                    Next <i class="fa-solid fa-chevron-right"></i>
+                </button>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        // Logout Modal Functions
+        function showLogoutModal() {
+            document.getElementById('logoutModal').classList.add('show');
+        }
+        
+        function closeLogoutModal() {
+            document.getElementById('logoutModal').classList.remove('show');
+        }
+
+        // Mobile Menu
+        document.getElementById('menuToggle').addEventListener('click', function() {
+            document.getElementById('sidebar').classList.toggle('active');
+            document.getElementById('sidebarOverlay').classList.toggle('active');
+        });
+
+        document.getElementById('sidebarOverlay').addEventListener('click', function() {
+            document.getElementById('sidebar').classList.remove('active');
+            document.getElementById('sidebarOverlay').classList.remove('active');
+        });
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            
+            // --- Global Elements ---
+            const productsTableGrid = document.getElementById('products-table-grid');
+            
+            // Modals & Forms
+            const addModal = document.getElementById('addProductModal');
+            const addProductForm = document.getElementById('addProductForm');
+            const editModal = document.getElementById('editProductModal');
+            const editProductForm = document.getElementById('editProductForm');
+            
+            // Buttons
+            const addProductBtn = document.getElementById('addProductBtn');
+
+            // Summary Cards
+            const summaryTotalProducts = document.getElementById('summary-total-products');
+            const summaryPublished = document.getElementById('summary-published');
+            const summaryInStock = document.getElementById('summary-in-stock');
+            
+            // Global store for products
+            let currentProducts = [];
+            
+            // Pagination state
+            let allProductItems = [];
+            let currentPage = 1;
+            const itemsPerPage = 10;
+            
+            // Get CSRF token
+            const csrfToken = document.cookie
+                .split('; ')
+                .find(row => row.startsWith('csrftoken='))
+                ?.split('=')[1];
+
+            // --- 1. Data Loading Functions ---
+            
+            function loadSummaryCards() {
+                // Calculate from product data
+                const total = allProductItems.length;
+                const published = allProductItems.filter(p => p.is_active).length;
+                const inStock = allProductItems.filter(p => parseFloat(p.stock_kg) > 0).length;
+                
+                summaryTotalProducts.textContent = total;
+                summaryPublished.textContent = published;
+                summaryInStock.textContent = inStock;
+            }
+
+            async function loadProducts() {
+                try {
+                    const response = await fetch('/api/inventory/?product_type=cooked');
+                    allProductItems = await response.json();
+                    currentProducts = allProductItems;
+                    currentPage = 1;
+                    
+                    loadSummaryCards();
+                    renderProductsPage();
+
+                } catch (error) {
+                    console.error("Failed to load products:", error);
+                }
+            }
+            
+            function renderProductsPage() {
+                // Clear Table (keep 5 headers)
+                while (productsTableGrid.children.length > 5) {
+                    productsTableGrid.removeChild(productsTableGrid.lastChild);
+                }
+                
+                // Calculate pagination
+                const totalPages = Math.ceil(allProductItems.length / itemsPerPage);
+                const startIndex = (currentPage - 1) * itemsPerPage;
+                const endIndex = Math.min(startIndex + itemsPerPage, allProductItems.length);
+                const itemsToShow = allProductItems.slice(startIndex, endIndex);
+
+                if (allProductItems.length === 0) {
+                    // Show empty state
+                    for (let i = 0; i < 5; i++) {
+                        const emptyRow = document.createElement('div');
+                        emptyRow.className = 'table-row';
+                        if (i === 0) {
+                            emptyRow.innerHTML = '<span style="color: #94a3b8;">No cooked products yet. Add your first product!</span>';
+                        }
+                        productsTableGrid.appendChild(emptyRow);
+                    }
+                } else {
+                    // Populate Table
+                    itemsToShow.forEach(product => {
+                        const nameRow = document.createElement('div');
+                        nameRow.className = 'table-row product-image-cell';
+                        if (product.image_url) {
+                            nameRow.innerHTML = `
+                                <img src="${product.image_url}" alt="${product.name}">
+                                <span>${product.name}</span>
+                            `;
+                        } else {
+                            nameRow.innerHTML = `
+                                <div class="no-image"><i class="fa-solid fa-image"></i></div>
+                                <span>${product.name}</span>
+                            `;
+                        }
+                        productsTableGrid.appendChild(nameRow);
+
+                        const priceRow = document.createElement('div');
+                        priceRow.className = 'table-row';
+                        priceRow.textContent = `₱${parseFloat(product.price_per_kg).toFixed(2)}`;
+                        productsTableGrid.appendChild(priceRow);
+
+                        const stockRow = document.createElement('div');
+                        stockRow.className = 'table-row';
+                        stockRow.textContent = product.stock_kg;
+                        productsTableGrid.appendChild(stockRow);
+
+                        const statusRow = document.createElement('div');
+                        statusRow.className = 'table-row';
+                        if (parseFloat(product.stock_kg) <= 0) {
+                            statusRow.innerHTML = `<span class="status-badge status-gray">Out of Stock</span>`;
+                        } else if (parseFloat(product.stock_kg) < 10) {
+                            statusRow.innerHTML = `<span class="status-badge status-yellow">Low Stock</span>`;
+                        } else {
+                            statusRow.innerHTML = `<span class="status-badge status-green">In Stock</span>`;
+                        }
+                        productsTableGrid.appendChild(statusRow);
+
+                        const actionsRow = document.createElement('div');
+                        actionsRow.className = 'table-row table-actions';
+                        
+                        // Determine publish/unpublish button
+                        const publishButton = product.is_active 
+                            ? `<a class="btn-unpublish" data-id="${product.id}" title="Unpublish from Shop"><i class="fa-solid fa-eye-slash"></i> Unpublish</a>`
+                            : `<a class="btn-publish" data-id="${product.id}" title="Publish to Shop"><i class="fa-solid fa-store"></i> Publish</a>`;
+                        
+                        actionsRow.innerHTML = `
+                            ${publishButton}
+                            <a class="btn-edit" data-id="${product.id}" title="Edit"><i class="fa-solid fa-pencil"></i></a>
+                            <a class="btn-delete" data-id="${product.id}" title="Delete"><i class="fa-solid fa-trash"></i></a>
+                        `;
+                        productsTableGrid.appendChild(actionsRow);
+                    });
+                }
+                
+                // Attach publish/unpublish event listeners
+                attachPublishListeners();
+                
+                // Update pagination UI
+                document.getElementById('page-info').textContent = `Page ${currentPage} of ${totalPages || 1}`;
+                document.getElementById('prev-btn').disabled = currentPage <= 1;
+                document.getElementById('next-btn').disabled = currentPage >= totalPages;
+            }
+            
+            // Global functions for pagination buttons
+            window.changeProductsPage = function(direction) {
+                const totalPages = Math.ceil(allProductItems.length / itemsPerPage);
+                const newPage = currentPage + direction;
+                if (newPage >= 1 && newPage <= totalPages) {
+                    currentPage = newPage;
+                    renderProductsPage();
+                }
+            };
+            
+            // Function to handle publish/unpublish
+            function attachPublishListeners() {
+                // Publish buttons
+                document.querySelectorAll('.btn-publish').forEach(btn => {
+                    btn.addEventListener('click', async function() {
+                        const productId = this.dataset.id;
+                        if (confirm('Publish this product to the shop?')) {
+                            await toggleProductPublish(productId, true);
+                        }
+                    });
+                });
+                
+                // Unpublish buttons
+                document.querySelectorAll('.btn-unpublish').forEach(btn => {
+                    btn.addEventListener('click', async function() {
+                        const productId = this.dataset.id;
+                        if (confirm('Remove this product from the shop?')) {
+                            await toggleProductPublish(productId, false);
+                        }
+                    });
+                });
+            }
+            
+            async function toggleProductPublish(productId, isActive) {
+                try {
+                    const response = await fetch(`/api/product/${productId}/toggle-publish/`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrfToken
+                        },
+                        body: JSON.stringify({ is_active: isActive })
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        alert(result.message);
+                        loadProducts();
+                    } else {
+                        alert('Failed to update product: ' + (result.error || result.message));
+                    }
+                } catch (error) {
+                    console.error('Error toggling publish status:', error);
+                    alert('An error occurred. Please try again.');
+                }
+            }
+            
+            // --- Helper to reload all data ---
+            function reloadAllData() {
+                loadProducts();
+            }
+
+            // --- 2. Event Listeners for Modals ---
+            function setupModalListeners(modalId) {
+                const modal = document.getElementById(modalId);
+                const closeBtn = modal.querySelector('.close-btn');
+                
+                closeBtn.onclick = () => {
+                    modal.style.display = 'none';
+                }
+            }
+            setupModalListeners('addProductModal');
+            setupModalListeners('editProductModal');
+
+            // Show "Add Product" modal
+            addProductBtn.onclick = () => {
+                addModal.style.display = 'block';
+            }
+            
+            // Hide modal when clicking outside of it
+            window.onclick = (event) => {
+                if (event.target == addModal) addModal.style.display = 'none';
+                if (event.target == editModal) editModal.style.display = 'none';
+            }
+            
+            // --- 3. Handle "Add New Product" Form ---
+            addProductForm.addEventListener('submit', async (event) => {
+                event.preventDefault();
+                const formData = new FormData(addProductForm);
+                
+                try {
+                    const response = await fetch('/api/inventory/', {
+                        method: 'POST',
+                        headers: {'X-CSRFToken': csrfToken},
+                        body: formData
+                    });
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        addModal.style.display = 'none';
+                        addProductForm.reset();
+                        reloadAllData();
+                        alert('Cooked product added successfully!');
+                    } else {
+                        alert('Error: ' + result.error);
+                    }
+                } catch (error) {
+                    console.error('Failed to submit form:', error);
+                }
+            });
+
+            // --- 4. Handle "Edit" and "Delete" Clicks ---
+            productsTableGrid.addEventListener('click', async (event) => {
+                const editBtn = event.target.closest('.btn-edit');
+                const deleteBtn = event.target.closest('.btn-delete');
+                
+                // --- Handle DELETE ---
+                if (deleteBtn) {
+                    const productId = deleteBtn.dataset.id;
+                    if (confirm(`Are you sure you want to delete this product?`)) {
+                        try {
+                            await fetch(`/api/inventory/${productId}/`, {
+                                method: 'DELETE',
+                                headers: { 'X-CSRFToken': csrfToken }
+                            });
+                            reloadAllData();
+                        } catch (error) {
+                            console.error('Failed to delete:', error);
+                        }
+                    }
+                }
+                
+                // --- Handle EDIT ---
+                if (editBtn) {
+                    const productId = editBtn.dataset.id;
+                    const product = currentProducts.find(p => p.id == productId);
+                    
+                    if (product) {
+                        // Populate the edit form
+                        document.getElementById('edit-name').value = product.name;
+                        document.getElementById('edit-stock_kg').value = product.stock_kg;
+                        document.getElementById('edit-price_per_kg').value = product.price_per_kg || 0;
+                        document.getElementById('edit-description').value = product.description || '';
+                        editProductForm.dataset.id = product.id;
+                        
+                        // Show current image if exists
+                        const imagePreview = document.getElementById('current-image-preview');
+                        if (product.image_url) {
+                            imagePreview.innerHTML = `<img src="${product.image_url}" style="max-width: 150px; border-radius: 8px; margin-top: 5px;" alt="Current product image">`;
+                        } else {
+                            imagePreview.innerHTML = '<small style="color: #999;">No image uploaded</small>';
+                        }
+                        
+                        // Show the edit modal
+                        editModal.style.display = 'block';
+                    }
+                }
+            });
+
+            // --- 5. Handle "Edit Product" Form Submission ---
+            editProductForm.addEventListener('submit', async (event) => {
+                event.preventDefault();
+                const productId = editProductForm.dataset.id;
+                const formData = new FormData(editProductForm);
+                
+                try {
+                    const response = await fetch(`/api/inventory/${productId}/`, {
+                        method: 'POST',
+                        headers: {'X-CSRFToken': csrfToken},
+                        body: formData
+                    });
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        editModal.style.display = 'none';
+                        reloadAllData();
+                        alert('Product updated successfully!');
+                    } else {
+                        alert('Error: ' + result.error);
+                    }
+                } catch (error) {
+                    console.error('Failed to update form:', error);
+                }
+            });
+            
+            // --- Initial Load ---
+            loadProducts();
+
+            // --- Sidebar Collapse Toggle (Desktop) ---
+            const sidebarToggle = document.getElementById('sidebarToggle');
+            const mainContent = document.querySelector('.main-content');
+            
+            // Check for saved sidebar state
+            const sidebarCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+            if (sidebarCollapsed && window.innerWidth > 768) {
+                sidebar.classList.add('collapsed');
+                document.body.classList.add('sidebar-collapsed');
+            }
+            
+            if (sidebarToggle) {
+                sidebarToggle.addEventListener('click', function() {
+                    if (window.innerWidth > 768) {
+                        sidebar.classList.toggle('collapsed');
+                        document.body.classList.toggle('sidebar-collapsed');
+                        
+                        // Save state to localStorage
+                        const isCollapsed = sidebar.classList.contains('collapsed');
+                        localStorage.setItem('sidebarCollapsed', isCollapsed);
+                    }
+                });
+            }
+
+        });
+    </script>
+    <script src="{% static 'js/sidebar-tooltip.js' %}"></script>
+</body>
+</html>

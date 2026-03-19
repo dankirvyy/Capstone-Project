@@ -1,0 +1,936 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <meta name="theme-color" content="#0c4b33">
+    <title>Mushroom IoT Dashboard - Notifications</title>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'css/admin.css' %}">
+    <link rel="stylesheet" href="{% static 'css/responsive.css' %}">
+
+    <style>
+        /* --- Global Styles --- */
+        :root {
+            --dark-green: #0c4b33;
+            --mid-green: #1a5e45;
+            --page-bg: #f4f7f6;
+            --card-bg: #ffffff;
+            --text-dark: #333;
+            --text-light: #555;
+            --border-color: #eee;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--page-bg);
+            margin: 0;
+            display: flex;
+            height: 100vh;
+            color: var(--text-dark);
+        }
+
+        /* --- Sidebar --- */
+        .sidebar {
+            width: 260px;
+            background-color: #0c4b33;
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            box-sizing: border-box;
+            height: 100vh;
+            position: fixed;
+            left: 0;
+            top: 0;
+            overflow-y: auto;
+        }
+
+        .sidebar-logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .sidebar-logo .logo {
+            background-color: #f9f9f9;
+            color: #0c4b33;
+            border-radius: 50%;
+            width: 80px;
+            height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 10px;
+            overflow: hidden;
+        }
+        
+        .sidebar-logo .logo img {
+            width: 60px;
+            height: 60px;
+            object-fit: contain;
+        }
+        
+        .sidebar-logo span {
+            font-weight: bold;
+            font-size: 1.1em;
+            letter-spacing: 1px;
+        }
+
+        .sidebar-nav {
+            flex-grow: 1;
+        }
+
+        .sidebar-nav a {
+            display: flex; 
+            align-items: center;
+            gap: 12px;
+            color: #e0e0e0;
+            text-decoration: none;
+            padding: 15px 10px;
+            margin-bottom: 5px;
+            border-radius: 8px;
+            font-size: 0.95em;
+        }
+        
+        .sidebar-nav a .icon {
+            width: 20px; 
+            text-align: center;
+        }
+
+        .sidebar-nav a.active,
+        .sidebar-nav a:hover {
+            background-color: var(--mid-green);
+            color: #ffffff;
+            font-weight: 500;
+        }
+
+        .sidebar-status {
+            background-color: #1a5e45;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            transition: background-color 0.3s ease;
+        }
+        
+        .sidebar-status.warning {
+            background-color: #b45309;
+        }
+        
+        .sidebar-status.error {
+            background-color: #991b1b;
+        }
+
+        .sidebar-status .status-title {
+            font-weight: bold;
+            font-size: 1em;
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .sidebar-status .status-desc {
+            font-size: 0.8em;
+            color: #c0c0c0;
+        }
+
+        /* --- Main Content --- */
+        .main-content {
+            flex-grow: 1;
+            margin-left: 260px;
+            padding: 30px;
+            overflow-y: auto;
+        }
+
+        .main-header {
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .main-header h1 {
+            font-size: 2.5em;
+            font-weight: 700;
+            margin: 0;
+        }
+        
+        .main-header .subtitle {
+            font-size: 0.95em;
+            color: var(--text-light);
+            margin-top: 5px;
+        }
+        
+        .btn-mark-all {
+            background: var(--dark-green);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.9em;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+        
+        .btn-mark-all:hover {
+            background: var(--mid-green);
+            transform: translateY(-1px);
+        }
+        
+        .btn-mark-all:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        /* --- Filter Tabs --- */
+        .filter-tabs {
+            display: flex;
+            gap: 10px;
+            margin: 25px 0;
+        }
+        
+        .btn-tab {
+            padding: 8px 16px;
+            font-size: 0.9em;
+            font-weight: 600;
+            border: none;
+            border-radius: 16px; /* Pill shape */
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-tab.active {
+            background-color: var(--dark-green);
+            color: white;
+        }
+        
+        .btn-tab.inactive {
+            background-color: #e5e7eb; /* Light gray */
+            color: var(--text-dark);
+        }
+
+        /* --- Notification List --- */
+        .notification-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .notification-card {
+            background-color: var(--card-bg);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            border: 1px solid transparent;
+            transition: all 0.3s ease;
+        }
+        
+        .notification-icon {
+            font-size: 1.4em;
+        }
+        /* Icon Colors */
+        .icon-warning { color: #f97316; } /* Orange */
+        .icon-success { color: #16a34a; } /* Green */
+        .icon-info { color: #3b82f6; } /* Blue */
+        
+        .notification-content {
+            flex-grow: 1;
+        }
+        
+        .notification-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 3px;
+        }
+        
+        .notification-title {
+            font-size: 1.1em;
+            font-weight: 600;
+        }
+        
+        .notification-desc {
+            font-size: 0.9em;
+            color: var(--text-light);
+            margin-bottom: 5px;
+        }
+        
+        .notification-time {
+            font-size: 0.8em;
+            color: #999;
+        }
+        
+        .notification-actions {
+            display: flex;
+            gap: 20px;
+            font-size: 1.2em;
+            color: var(--text-light);
+        }
+        
+        .notification-actions .action-icon {
+            cursor: pointer;
+            transition: color 0.2s ease;
+        }
+        
+        .notification-actions .action-icon:hover {
+            color: var(--text-dark);
+        }
+        
+        .notification-actions .action-icon.check {
+            color: #16a34a; /* Green */
+        }
+        .notification-actions .action-icon.trash {
+            color: #dc2626; /* Red */
+        }
+
+        /* --- Status Badges --- */
+        .status-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: 600;
+            border: 1px solid transparent;
+        }
+        
+        .status-warning {
+            color: #a16207;
+            background-color: #fefce8;
+            border-color: #fde047;
+        }
+        
+        .status-success {
+            color: #15803d;
+            background-color: #dcfce7;
+            border-color: #86efac;
+        }
+        
+        .status-info {
+            color: #1e40af;
+            background-color: #eff6ff;
+            border-color: #bfdbfe;
+        }
+        
+    /* --- Logout Modal --- */
+    .logout-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(5px);
+        z-index: 9999;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .logout-modal.show {
+        display: flex;
+    }
+
+    .logout-modal-content {
+        background: white;
+        border-radius: 20px;
+        padding: 2.5rem;
+        max-width: 400px;
+        width: 90%;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        animation: modalSlideIn 0.3s ease;
+    }
+
+    @keyframes modalSlideIn {
+        from { transform: scale(0.7); opacity: 0; }
+        to { transform: scale(1); opacity: 1; }
+    }
+
+    .logout-modal-icon {
+        width: 60px;
+        height: 60px;
+        background: #fee2e2;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1.5rem;
+    }
+
+    .logout-modal-icon i {
+        font-size: 1.8rem;
+        color: #dc2626;
+    }
+
+    .logout-modal-title {
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: #333;
+        text-align: center;
+        margin-bottom: 0.5rem;
+    }
+
+    .logout-modal-message {
+        text-align: center;
+        color: #666;
+        margin-bottom: 2rem;
+        font-size: 0.95rem;
+    }
+
+    .logout-modal-buttons {
+        display: flex;
+        gap: 1rem;
+    }
+
+    .logout-modal-btn {
+        flex: 1;
+        padding: 0.9rem 1.5rem;
+        border: none;
+        border-radius: 12px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.3s;
+        font-size: 0.95rem;
+    }
+
+    .logout-modal-btn-cancel {
+        background: #f1f5f9;
+        color: #475569;
+    }
+
+    .logout-modal-btn-cancel:hover {
+        background: #e2e8f0;
+    }
+
+    .logout-modal-btn-confirm {
+        background: #dc2626;
+        color: white;
+    }
+
+    .logout-modal-btn-confirm:hover {
+        background: #b91c1c;
+    }
+
+        /* --- Mobile Responsive Enhancements --- */
+        @media (max-width: 1024px) {
+            .control-grid, .charts-grid { grid-template-columns: 1fr; }
+        }
+        
+        @media (max-width: 768px) {
+            body { display: block; height: auto; }
+            .sidebar { 
+                transform: translateX(-100%); 
+                width: 280px; 
+                z-index: 9999;
+                padding-top: 70px;
+                padding-bottom: 30px;
+                overflow-y: auto;
+                max-height: 100vh;
+            }
+            .sidebar.active { transform: translateX(0); }
+            .sidebar-nav { padding-bottom: 80px; }
+            .sidebar-nav a[id="logout-link"] {
+                margin-top: 15px;
+                background: rgba(255, 255, 255, 0.1);
+                border: 1px solid rgba(255, 255, 255, 0.2);
+            }
+            .main-content { margin-left: 0; padding: 80px 15px 20px 15px; min-height: 100vh; }
+            .main-header h1 { font-size: 1.75rem; }
+            .card-grid { grid-template-columns: 1fr; }
+            .control-grid { grid-template-columns: 1fr; }
+            .form-grid, .form-grid-col-3 { grid-template-columns: 1fr; }
+        }
+        
+        @media (max-width: 480px) {
+            .main-content { padding: 70px 10px 15px 10px; }
+            .main-header h1 { font-size: 1.5rem; }
+            .card { padding: 18px; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Mobile Menu Toggle Button -->
+    <button class="mobile-menu-toggle" id="mobileMenuToggle" aria-label="Toggle navigation menu">
+        <i class="fa-solid fa-bars" id="menuIcon"></i>
+    </button>
+    
+    <!-- Mobile Overlay -->
+    <div class="mobile-overlay" id="mobileOverlay" style="pointer-events: none;"></div>
+
+    <!-- Logout Confirmation Modal -->
+    <div class="logout-modal" id="logoutModal">
+        <div class="logout-modal-content">
+            <div class="logout-modal-icon">
+                <i class="fa-solid fa-right-from-bracket"></i>
+            </div>
+            <h3 class="logout-modal-title">Confirm Logout</h3>
+            <p class="logout-modal-message">Are you sure you want to logout from your account?</p>
+            <div class="logout-modal-buttons">
+                <button class="logout-modal-btn logout-modal-btn-cancel" id="cancelLogout">Cancel</button>
+                <button class="logout-modal-btn logout-modal-btn-confirm" id="confirmLogout">Logout</button>
+            </div>
+        </div>
+    </div>
+
+    <aside class="sidebar">
+        <!-- Sidebar Toggle Button -->
+        <button class="sidebar-toggle" id="sidebarToggle" title="Toggle Sidebar">
+            <i class="fa-solid fa-chevron-left"></i>
+        </button>
+
+        <div class="sidebar-logo">
+            <div class="logo">
+                <img src="{% static 'images/Screenshot_2025-11-01_124726-removebg-preview.png' %}" alt="Mushroom Logo">
+            </div>
+            <span>KABUTOMATE</span>
+        </div>
+
+        <nav class="sidebar-nav">
+            <a href="{% url 'dashboard' %}" class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" data-tooltip="Dashboard">
+                <i class="fa-solid fa-gauge-high icon"></i> <span>Dashboard</span>
+            </a>
+            <a href="{% url 'environment' %}" class="{% if request.resolver_match.url_name == 'environment' %}active{% endif %}" data-tooltip="Environmental Control"> 
+                <i class="fa-solid fa-leaf icon"></i> <span>Environmental Control</span>
+            </a>
+            <a href="{% url 'production' %}" class="{% if request.resolver_match.url_name == 'production' %}active{% endif %}" data-tooltip="Production Records">
+                <i class="fa-solid fa-clipboard-list icon"></i> <span>Production Records</span>
+            </a>
+            <a href="{% url 'inventory' %}" class="{% if request.resolver_match.url_name == 'inventory' %}active{% endif %}" data-tooltip="Inventory and Sales">
+                <i class="fa-solid fa-boxes-stacked icon"></i> <span>Inventory and Sales</span>
+            </a>
+            <a href="{% url 'cooked_products' %}" class="{% if request.resolver_match.url_name == 'cooked_products' %}active{% endif %}" data-tooltip="Cooked Products">
+                <i class="fa-solid fa-utensils icon"></i> <span>Cooked Products</span>
+            </a>
+            <a href="{% url 'pos_system' %}" class="{% if request.resolver_match.url_name == 'pos_system' %}active{% endif %}" data-tooltip="Point of Sale">
+                <i class="fa-solid fa-cash-register icon"></i> <span>Point of Sale</span>
+            </a>
+            <a href="{% url 'manage_orders' %}" class="{% if request.resolver_match.url_name == 'manage_orders' %}active{% endif %}" data-tooltip="Manage Orders">
+                <i class="fa-solid fa-list-check icon"></i> <span>Manage Orders</span>
+            </a>
+            <a href="{% url 'analytics' %}" class="{% if request.resolver_match.url_name == 'analytics' %}active{% endif %}" data-tooltip="Analytics">
+                <i class="fa-solid fa-chart-line icon"></i> <span>Analytics</span>
+            </a>
+            <a href="{% url 'weather' %}" class="{% if request.resolver_match.url_name == 'weather' %}active{% endif %}" data-tooltip="Weather">
+                <i class="fa-solid fa-cloud-sun icon"></i> <span>Weather</span>
+            </a>
+            <a href="{% url 'notifications' %}" class="{% if request.resolver_match.url_name == 'notifications' %}active{% endif %}" data-tooltip="Notifications">
+                <i class="fa-solid fa-bell icon"></i> <span>Notifications</span>
+            </a>
+            <a href="{% url 'store_settings' %}" class="{% if request.resolver_match.url_name == 'store_settings' %}active{% endif %}" data-tooltip="Store Settings">
+                <i class="fa-solid fa-store icon"></i> <span>Store Settings</span>
+            </a>
+            <a href="{% url 'sales_report' %}" class="{% if request.resolver_match.url_name == 'sales_report' %}active{% endif %}" data-tooltip="Sales Report">
+                <i class="fa-solid fa-file-invoice-dollar icon"></i> <span>Sales Report</span>
+            </a>
+            <a href="{% url 'profile' %}" class="{% if request.resolver_match.url_name == 'profile' %}active{% endif %}" data-tooltip="Profile">
+                <i class="fa-solid fa-user icon"></i> <span>Profile</span>
+            </a>
+            <a href="#" id="logout-link" data-tooltip="Logout">
+                <i class="fa-solid fa-right-from-bracket icon"></i> <span>Logout</span>
+            </a>
+        </nav>
+    </aside>
+
+    <main class="main-content">
+        <header class="main-header">
+            <div>
+                <h1>Notifications</h1>
+                <div class="subtitle">System alerts and important updates</div>
+            </div>
+            <button id="markAllReadBtn" class="btn-mark-all" onclick="markAllAsRead()">
+                <i class="fa-solid fa-check-double"></i> Mark All as Read
+            </button>
+        </header>
+
+        <div class="filter-tabs">
+            <button class="btn-tab active" data-filter="all">All</button>
+            <button class="btn-tab inactive" data-filter="environmental">Environmental</button>
+            <button class="btn-tab inactive" data-filter="equipment">Equipment</button>
+            <button class="btn-tab inactive" data-filter="production">Production</button>
+            <button class="btn-tab inactive" data-filter="system">System</button>
+        </div>
+        
+        <div id="notification-list" class="notification-list">
+            <p>Loading notifications...</p>
+        </div>
+
+    </main>
+    
+    <script>
+    async function updateSidebarStatus() {
+        try {
+            const response = await fetch('/api/dashboard-summary/');
+            const summary = await response.json();
+            const sidebarStatus = document.getElementById('sidebar-status');
+            const statusIcon = document.getElementById('status-icon');
+            const statusTitleText = document.getElementById('status-title-text');
+            const statusDesc = document.getElementById('status-desc');
+            sidebarStatus.classList.remove('warning', 'error');
+            if (summary.system_status === 'active') {
+                statusIcon.className = 'fa-solid fa-circle-check';
+                statusTitleText.textContent = 'System Active';
+            } else if (summary.system_status === 'warning') {
+                sidebarStatus.classList.add('warning');
+                statusIcon.className = 'fa-solid fa-triangle-exclamation';
+                statusTitleText.textContent = 'System Warning';
+            } else if (summary.system_status === 'error') {
+                sidebarStatus.classList.add('error');
+                statusIcon.className = 'fa-solid fa-circle-xmark';
+                statusTitleText.textContent = 'System Error';
+            }
+            statusDesc.textContent = summary.status_message;
+        } catch (error) {
+            console.error('Failed to update sidebar status:', error);
+        }
+    }
+    
+    document.addEventListener('DOMContentLoaded', () => {
+        const notificationList = document.getElementById('notification-list');
+        const filterTabs = document.querySelectorAll('.btn-tab');
+        let allNotifications = []; // To store data for filtering
+
+        // Get CSRF token
+        const csrfToken = document.cookie
+            .split('; ')
+            .find(row => row.startsWith('csrftoken='))
+            ?.split('=')[1];
+
+        // --- 1. Function to get icon and color based on level/category ---
+        function getNotificationDetails(level, category) {
+            let iconClass = 'fa-solid ';
+            let levelClass = 'status-';
+            let iconColor = 'icon-';
+
+            if (level === 'warning') {
+                iconClass += 'fa-triangle-exclamation';
+                levelClass += 'warning';
+                iconColor += 'warning';
+            } else if (level === 'success') {
+                iconClass += 'fa-circle-check';
+                levelClass += 'success';
+                iconColor += 'success';
+            } else { // info
+                iconClass += 'fa-circle-info';
+                levelClass += 'info';
+                iconColor += 'info';
+            }
+            
+            // You can expand this for category icons if you want
+            if (category === 'environmental') iconClass = 'fa-solid fa-smog';
+            if (category === 'production') iconClass = 'fa-solid fa-clipboard-list';
+            if (category === 'system') iconClass = 'fa-solid fa-cog';
+
+            return { iconClass, levelClass, iconColor };
+        }
+
+        // --- 2. Function to render notifications to the page ---
+        function renderNotifications(filter = 'all') {
+            notificationList.innerHTML = ''; // Clear the list
+            
+            const filteredNotifications = (filter === 'all')
+                ? allNotifications
+                : allNotifications.filter(n => n.category === filter);
+
+            if (filteredNotifications.length === 0) {
+                notificationList.innerHTML = '<p>No notifications found.</p>';
+                return;
+            }
+            
+            filteredNotifications.forEach(n => {
+                const { iconClass, levelClass, iconColor } = getNotificationDetails(n.level, n.category);
+                
+                const card = document.createElement('div');
+                card.className = 'notification-card';
+                card.dataset.category = n.category;
+                card.id = `notification-${n.id}`;
+                
+                card.innerHTML = `
+                    <div class="notification-icon ${iconColor}">
+                        <i class="${iconClass}"></i>
+                    </div>
+                    <div class="notification-content">
+                        <div class="notification-header">
+                            <span class="notification-title">${n.title}</span>
+                            <span class="status-badge ${levelClass}">${n.level}</span>
+                        </div>
+                        <div class="notification-desc">${n.description}</div>
+                        <div class="notification-time">${n.time_ago}</div>
+                    </div>
+                    <div class="notification-actions">
+                        <i class="fa-solid fa-check action-icon check btn-mark-read" data-id="${n.id}" title="Mark as read"></i>
+                    </div>
+                `;
+                notificationList.appendChild(card);
+            });
+        }
+
+        // --- 3. Function to load notifications from API ---
+        async function loadNotifications() {
+            try {
+                const response = await fetch('/api/notifications/');
+                allNotifications = await response.json();
+                renderNotifications();
+            } catch (error) {
+                console.error("Failed to load notifications:", error);
+                notificationList.innerHTML = '<p>Error loading notifications.</p>';
+            }
+        }
+
+        // --- 4. Event Listeners ---
+        
+        // Filter tabs
+        filterTabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                filterTabs.forEach(t => t.className = 'btn-tab inactive');
+                tab.className = 'btn-tab active';
+                renderNotifications(tab.dataset.filter);
+            });
+        });
+        
+        // Mark as read (using event delegation)
+        notificationList.addEventListener('click', async (event) => {
+            const markReadBtn = event.target.closest('.btn-mark-read');
+            if (markReadBtn) {
+                const notifId = markReadBtn.dataset.id;
+                try {
+                    const response = await fetch(`/api/notifications/${notifId}/`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrfToken
+                        },
+                    });
+                    
+                    const result = await response.json();
+                    if (result.success) {
+                        // Remove the notification card from the UI
+                        const cardToRemove = document.getElementById(`notification-${notifId}`);
+                        cardToRemove.style.opacity = '0';
+                        setTimeout(() => cardToRemove.remove(), 300);
+                    } else {
+                        alert('Could not mark as read. Please try again.');
+                    }
+                } catch (error) {
+                    console.error("Failed to mark as read:", error);
+                }
+            }
+        });
+
+        // --- 5. Initial Load ---
+        loadNotifications();
+        updateSidebarStatus();
+        setInterval(updateSidebarStatus, 60000);
+    });
+    
+    // Mark All as Read function (global for onclick)
+    async function markAllAsRead() {
+        const btn = document.getElementById('markAllReadBtn');
+        const originalText = btn.innerHTML;
+        
+        // Disable button and show loading
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Processing...';
+        
+        // Get CSRF token
+        const csrfToken = document.cookie
+            .split('; ')
+            .find(row => row.startsWith('csrftoken='))
+            ?.split('=')[1];
+        
+        try {
+            const response = await fetch('/api/notifications/mark-all-read/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+            });
+            
+            const result = await response.json();
+            if (result.success) {
+                // Remove all notification cards with fade effect
+                const cards = document.querySelectorAll('.notification-card');
+                cards.forEach((card, index) => {
+                    setTimeout(() => {
+                        card.style.transition = 'opacity 0.3s, transform 0.3s';
+                        card.style.opacity = '0';
+                        card.style.transform = 'translateX(20px)';
+                        setTimeout(() => card.remove(), 300);
+                    }, index * 50); // Stagger the removal
+                });
+                
+                // Show success message
+                setTimeout(() => {
+                    const notificationList = document.getElementById('notification-list');
+                    if (notificationList.children.length === 0) {
+                        notificationList.innerHTML = '<p style="text-align: center; color: #059669; padding: 2rem;"><i class="fa-solid fa-check-circle"></i> All notifications marked as read!</p>';
+                    }
+                }, cards.length * 50 + 400);
+                
+                // Update button
+                btn.innerHTML = '<i class="fa-solid fa-check"></i> All Marked as Read';
+                btn.style.background = '#059669';
+            } else {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                alert('Could not mark all as read. Please try again.');
+            }
+        } catch (error) {
+            console.error("Failed to mark all as read:", error);
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+            alert('An error occurred. Please try again.');
+        }
+    }
+
+        // --- Logout Modal ---
+        const logoutModal = document.getElementById('logoutModal');
+        const logoutLink = document.getElementById('logout-link');
+        const cancelLogout = document.getElementById('cancelLogout');
+        const confirmLogout = document.getElementById('confirmLogout');
+
+        logoutLink.addEventListener('click', function(e) {
+            e.preventDefault();
+            logoutModal.classList.add('show');
+        });
+
+        cancelLogout.addEventListener('click', function() {
+            logoutModal.classList.remove('show');
+        });
+
+        logoutModal.addEventListener('click', function(e) {
+            if (e.target === logoutModal) {
+                logoutModal.classList.remove('show');
+            }
+        });
+
+        confirmLogout.addEventListener('click', function() {
+            const csrfToken = document.cookie
+                .split('; ')
+                .find(row => row.startsWith('csrftoken='))
+                ?.split('=')[1];
+            
+            fetch('{% url "logout" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.href = data.redirect_url;
+                }
+            })
+            .catch(error => {
+                console.error('Logout error:', error);
+                window.location.href = '{% url "logout" %}';
+            });
+        });
+
+            // --- Mobile Menu Toggle ---
+            const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+            const mobileOverlay = document.getElementById('mobileOverlay');
+            const sidebar = document.querySelector('.sidebar');
+            const menuIcon = document.getElementById('menuIcon');
+            
+            function closeMobileMenu() {
+                sidebar.classList.remove('active');
+                mobileOverlay.classList.remove('active');
+                mobileOverlay.style.pointerEvents = 'none';
+                menuIcon.classList.remove('fa-times');
+                menuIcon.classList.add('fa-bars');
+                document.body.style.overflow = '';
+            }
+            
+            function toggleMobileMenu(e) {
+                if (e) e.stopPropagation();
+                sidebar.classList.toggle('active');
+                mobileOverlay.classList.toggle('active');
+                
+                if (sidebar.classList.contains('active')) {
+                    mobileOverlay.style.pointerEvents = 'auto';
+                    menuIcon.classList.remove('fa-bars');
+                    menuIcon.classList.add('fa-times');
+                    document.body.style.overflow = 'hidden';
+                } else {
+                    mobileOverlay.style.pointerEvents = 'none';
+                    menuIcon.classList.remove('fa-times');
+                    menuIcon.classList.add('fa-bars');
+                    document.body.style.overflow = '';
+                }
+            }
+            
+            if (mobileMenuToggle) {
+                mobileMenuToggle.addEventListener('click', toggleMobileMenu);
+            }
+            if (mobileOverlay) {
+                mobileOverlay.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    closeMobileMenu();
+                });
+            }
+            
+            // Close menu when a nav link is clicked on mobile
+            const navLinks = document.querySelectorAll('.sidebar-nav a');
+            navLinks.forEach(link => {
+                link.addEventListener('click', function() {
+                    if (window.innerWidth <= 768 && sidebar.classList.contains('active')) {
+                        closeMobileMenu();
+                    }
+                });
+            });
+            
+            // Handle window resize
+            window.addEventListener('resize', function() {
+                if (window.innerWidth > 768) {
+                    sidebar.classList.remove('active');
+                    mobileOverlay.classList.remove('active');
+                    mobileOverlay.style.pointerEvents = 'none';
+                    menuIcon.classList.remove('fa-times');
+                    menuIcon.classList.add('fa-bars');
+                    document.body.style.overflow = '';
+                }
+            });
+
+            // --- Sidebar Collapse Toggle (Desktop) ---
+            const sidebarToggle = document.getElementById('sidebarToggle');
+            const mainContent = document.querySelector('.main-content');
+            
+            // Check for saved sidebar state
+            const sidebarCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+            if (sidebarCollapsed && window.innerWidth > 768) {
+                sidebar.classList.add('collapsed');
+                document.body.classList.add('sidebar-collapsed');
+            }
+            
+            if (sidebarToggle) {
+                sidebarToggle.addEventListener('click', function() {
+                    if (window.innerWidth > 768) {
+                        sidebar.classList.toggle('collapsed');
+                        document.body.classList.toggle('sidebar-collapsed');
+                        
+                        // Save state to localStorage
+                        const isCollapsed = sidebar.classList.contains('collapsed');
+                        localStorage.setItem('sidebarCollapsed', isCollapsed);
+                    }
+                });
+            }
+    </script>
+
+    <script src="{% static 'js/sidebar-tooltip.js' %}"></script>
+</body>
+</html>

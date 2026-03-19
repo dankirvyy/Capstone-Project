@@ -1,0 +1,1289 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <meta name="theme-color" content="#0c4b33">
+    <title>Manage Orders - KABUTOMATE</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'css/admin.css' %}">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="{% static 'css/responsive.css' %}">
+    <style>
+        :root {
+            --primary: #0c4b33;
+            --primary-light: #1a5e45;
+            --accent: #d4f26b;
+            --bg: #f8fafc;
+            --glass: rgba(255, 255, 255, 0.9);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        /* Hide sidebar styles from admin.css on this page */
+        .sidebar,
+        .sidebar-toggle,
+        .sidebar-logo,
+        .sidebar-nav,
+        .sidebar-status {
+            display: none !important;
+        }
+
+        /* Also hide the mobile-menu-toggle from responsive.css - this page uses its own navbar-toggle */
+        .mobile-menu-toggle {
+            display: none !important;
+        }
+
+        .main-content {
+            margin-left: 0 !important;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background-color: var(--bg);
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(12, 75, 51, 0.05) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(212, 242, 107, 0.05) 0px, transparent 50%);
+            min-height: 100vh;
+            color: #1e293b;
+            display: block !important;
+            flex-direction: column !important;
+        }
+
+        /* --- Navbar (POS-style dark header) --- */
+        .navbar {
+            background: var(--primary) !important;
+            color: white !important;
+            padding: 0.75rem 2rem !important;
+            display: flex !important;
+            flex-direction: row !important;
+            justify-content: space-between !important;
+            align-items: center !important;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
+            position: sticky !important;
+            top: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            width: 100% !important;
+            z-index: 1000 !important;
+            height: auto !important;
+            min-height: auto !important;
+            max-height: none !important;
+        }
+
+        .logo-section { display: flex; align-items: center; gap: 12px; }
+        .logo-circle {
+            width: 35px; height: 35px;
+            background: white;
+            border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .brand-name { font-size: 1.1rem; font-weight: 800; letter-spacing: 0.5px; color: white; }
+
+        .nav-links { display: flex; gap: 1rem; }
+        .nav-links a {
+            color: white; text-decoration: none;
+            font-weight: 600; font-size: 0.9rem;
+            opacity: 0.9; transition: 0.3s;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .nav-links a:hover { opacity: 1; color: var(--accent); }
+
+        /* --- Mobile Menu Toggle --- */
+        .navbar-toggle {
+            display: none;
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0.5rem;
+        }
+        .navbar-toggle:hover {
+            background: #0a3d2a;
+        }
+
+        /* --- Layout --- */
+        .container { max-width: 1400px; margin: 2rem auto; padding: 0 2rem; }
+
+        .page-header { margin-bottom: 2.5rem; text-align: left; }
+        .page-header h1 { font-size: 2.5rem; font-weight: 900; color: var(--primary); letter-spacing: -1.5px; }
+
+        /* --- Stats Bento Grid --- */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 24px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.02);
+            border: 1px solid rgba(0,0,0,0.03);
+        }
+
+        .stat-label { color: #64748b; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; display: block; }
+        .stat-value { font-size: 2rem; font-weight: 900; color: var(--primary); }
+
+        /* --- Advanced Filters --- */
+        .filters-section {
+            background: white;
+            border-radius: 24px;
+            padding: 1.5rem;
+            margin-bottom: 2.5rem;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.02);
+        }
+
+        .filters-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)) auto; gap: 1.2rem; align-items: end; }
+        .filter-group label { display: block; font-size: 0.8rem; font-weight: 800; color: var(--primary); margin-bottom: 8px; }
+        
+        .filter-input, .filter-select {
+            width: 100%; padding: 0.75rem; border: 2px solid #f1f5f9; background: #f8fafc;
+            border-radius: 12px; font-weight: 600; transition: 0.3s;
+        }
+        .filter-input:focus { outline: none; border-color: var(--primary); background: white; }
+
+        .filter-btn {
+            background: var(--primary); color: white; border: none; padding: 0.8rem 2rem;
+            border-radius: 12px; font-weight: 700; cursor: pointer; transition: 0.3s;
+        }
+        .filter-btn:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(12, 75, 51, 0.2); }
+
+        /* --- Orders Card & Table --- */
+        .orders-card {
+            background: white;
+            border-radius: 24px;
+            overflow: hidden;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.02);
+        }
+
+        table { width: 100%; border-collapse: collapse; }
+        th {
+            background: #f8fafc; padding: 1.2rem 1.5rem; text-align: left;
+            font-size: 0.75rem; font-weight: 800; color: #64748b;
+            text-transform: uppercase; letter-spacing: 1px;
+        }
+        td { padding: 1.2rem 1.5rem; border-bottom: 1px solid #f1f5f9; font-weight: 600; }
+        tr:hover td { background: #fafafa; }
+
+        /* --- Status Badges --- */
+        .status-badge {
+            padding: 6px 14px; border-radius: 50px; font-size: 0.75rem; font-weight: 800;
+        }
+        .status-pending { background: #fffbeb; color: #b45309; }
+        .status-processing { background: #eff6ff; color: #1d4ed8; }
+        .status-delivered { background: #f0fdf4; color: #15803d; }
+        .status-cancelled { background: #fef2f2; color: #dc2626; }
+
+        .payment-badge {
+            padding: 4px 10px; border-radius: 6px; font-size: 0.7rem; font-weight: 800; border: 1px solid currentColor;
+        }
+        .payment-pending { color: #f59e0b; }
+        .payment-paid { color: #10b981; }
+        .payment-failed { color: #dc2626; }
+        .payment-warning { color: #f97316; }
+
+        .action-btn {
+            background: #f1f5f9; color: var(--primary); border: none;
+            padding: 8px 16px; border-radius: 8px; font-weight: 700; cursor: pointer; transition: 0.2s;
+        }
+        .action-btn:hover { background: var(--primary); color: white; }
+
+        /* --- Modal Styling --- */
+        .modal {
+            display: none; position: fixed; inset: 0;
+            background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(8px);
+            z-index: 2000; align-items: center; justify-content: center; padding: 2rem;
+        }
+        .modal.show { display: flex; }
+        .modal-content {
+            background: white; width: 100%; max-width: 800px;
+            border-radius: 30px; padding: 2.5rem; position: relative;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            max-height: 90vh; overflow-y: auto;
+        }
+
+        .modal-close {
+            position: absolute; top: 1.5rem; right: 1.5rem;
+            background: #f1f5f9; border: none; width: 40px; height: 40px;
+            border-radius: 50%; cursor: pointer; font-size: 1.2rem; color: #ef4444;
+        }
+
+        .order-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 1rem; background: #f8fafc; border-radius: 12px; margin-bottom: 0.75rem;
+        }
+
+        .update-status-form {
+            margin-top: 2rem; padding: 1.5rem; background: #f1f5f9; border-radius: 20px;
+        }
+
+        .submit-btn {
+            width: 100%; background: var(--primary); color: white; border: none;
+            padding: 1rem; border-radius: 12px; font-weight: 700; cursor: pointer;
+            margin-top: 1rem; transition: 0.3s;
+        }
+        .submit-btn:hover { background: var(--primary-light); transform: translateY(-2px); }
+
+    /* --- Logout Modal --- */
+    .logout-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(5px);
+        z-index: 9999;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .logout-modal.show {
+        display: flex;
+    }
+
+    .logout-modal-content {
+        background: white;
+        border-radius: 16px;
+        padding: 1.5rem;
+        max-width: 320px;
+        width: 90%;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
+        animation: modalSlideIn 0.2s ease;
+    }
+
+    @keyframes modalSlideIn {
+        from { transform: scale(0.9); opacity: 0; }
+        to { transform: scale(1); opacity: 1; }
+    }
+
+    .logout-modal-icon {
+        width: 48px;
+        height: 48px;
+        background: #fee2e2;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1rem;
+    }
+
+    .logout-modal-icon i {
+        font-size: 1.3rem;
+        color: #dc2626;
+    }
+
+    .logout-modal-title {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #333;
+        text-align: center;
+        margin-bottom: 0.25rem;
+    }
+
+    .logout-modal-message {
+        text-align: center;
+        color: #666;
+        margin-bottom: 1.25rem;
+        font-size: 0.85rem;
+    }
+
+    .logout-modal-buttons {
+        display: flex;
+        gap: 0.75rem;
+    }
+
+    .logout-modal-btn {
+        flex: 1;
+        padding: 0.65rem 1rem;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-size: 0.85rem;
+    }
+
+    .logout-modal-btn-cancel {
+        background: #f1f5f9;
+        color: #475569;
+    }
+
+    .logout-modal-btn-cancel:hover {
+        background: #e2e8f0;
+    }
+
+    .logout-modal-btn-confirm {
+        background: #dc2626;
+        color: white;
+    }
+
+    .logout-modal-btn-confirm:hover {
+        background: #b91c1c;
+    }
+
+        /* --- Mobile Responsive Enhancements --- */
+        @media (max-width: 1024px) {
+            .control-grid, .charts-grid { grid-template-columns: 1fr; }
+        }
+        
+        @media (max-width: 768px) {
+            body { display: block; height: auto; }
+            
+            /* === NAVBAR MOBILE MENU === */
+            .navbar {
+                position: relative;
+                z-index: 10000;
+            }
+            
+            .navbar-toggle {
+                display: block;
+            }
+            
+            .nav-links {
+                position: absolute;
+                top: 100%;
+                left: 0;
+                right: 0;
+                background: var(--primary);
+                flex-direction: column;
+                padding: 1rem;
+                gap: 0;
+                display: none;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                z-index: 10001;
+            }
+            
+            .nav-links.active {
+                display: flex;
+            }
+            
+            .nav-links a {
+                padding: 0.75rem 1rem;
+                border-radius: 8px;
+                font-size: 1rem;
+                color: white;
+                pointer-events: auto;
+            }
+            
+            .nav-links a:hover {
+                background: rgba(255, 255, 255, 0.1);
+            }
+            
+            /* Hide mobile toggle since we moved it to navbar */
+            .mobile-menu-toggle {
+                display: none !important;
+            }
+            
+            .container { 
+                padding: 1rem;
+                margin-top: 0;
+            }
+            
+            .main-header h1 { font-size: 1.75rem; }
+            .card-grid { grid-template-columns: 1fr; }
+            .control-grid { grid-template-columns: 1fr; }
+            .form-grid, .form-grid-col-3 { grid-template-columns: 1fr; }
+            
+            /* === MOBILE BUTTON FIXES === */
+            .order-actions button,
+            .status-btn,
+            .btn-complete,
+            .btn-cancel,
+            button[type="submit"],
+            .main-content button,
+            .container button {
+                position: relative;
+                z-index: 100;
+                min-height: 44px;
+                min-width: 44px;
+                touch-action: manipulation;
+                -webkit-tap-highlight-color: transparent;
+            }
+            
+            .modal button,
+            .modal-content button,
+            .logout-modal button,
+            .logout-modal-content button {
+                position: relative;
+                z-index: 10000;
+                touch-action: manipulation;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .main-content { padding: 70px 10px 15px 10px; }
+            .main-header h1 { font-size: 1.5rem; }
+            .card { padding: 18px; }
+            
+            /* Stack order action buttons on small screens */
+            .order-actions {
+                flex-direction: column;
+                gap: 8px;
+            }
+            
+            .order-actions button {
+                width: 100%;
+            }
+            
+            /* Modal responsive styles */
+            .modal-content {
+                padding: 1.5rem;
+                border-radius: 16px;
+                max-height: 95vh;
+            }
+            
+            .modal-content h2 {
+                font-size: 1.3rem !important;
+            }
+            
+            /* Grid to single column on mobile */
+            .modal-content > div {
+                display: block !important;
+            }
+            
+            .update-status-form {
+                padding: 1rem;
+            }
+            
+            .update-status-form > form > div {
+                grid-template-columns: 1fr !important;
+            }
+        }
+        
+        /* --- Pagination Styles --- */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            margin-top: 20px;
+            padding: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .pagination-btn {
+            background: white;
+            border: 1px solid #e2e8f0;
+            color: #475569;
+            padding: 8px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+        
+        .pagination-btn:hover:not(.disabled) {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+        
+        .pagination-btn.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+        
+        .pagination-btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+        
+        .pagination-info {
+            color: #64748b;
+            font-size: 0.9rem;
+            margin: 0 10px;
+        }
+        
+        /* --- Delivery Map Styles --- */
+        .delivery-map-section {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background: #f8fafc;
+            border-radius: 16px;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .delivery-map-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+        
+        .delivery-map-title {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            font-weight: 800;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        #deliveryMap {
+            height: 300px;
+            width: 100%;
+            border-radius: 12px;
+            border: 2px solid #e2e8f0;
+            margin-bottom: 1rem;
+        }
+        
+        .route-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .route-info-card {
+            background: white;
+            padding: 1rem;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            text-align: center;
+        }
+        
+        .route-info-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            color: #94a3b8;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+        
+        .route-info-value {
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: var(--primary);
+        }
+        
+        .map-loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 200px;
+            background: #f1f5f9;
+            border-radius: 12px;
+            color: #64748b;
+        }
+        
+        .map-error {
+            padding: 1rem;
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 8px;
+            color: #dc2626;
+            font-size: 0.9rem;
+            text-align: center;
+        }
+        
+        .geocode-input-section {
+            margin-bottom: 1rem;
+        }
+        
+        .geocode-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 700;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: 0.2s;
+        }
+        
+        .geocode-btn:hover {
+            background: var(--primary-light);
+        }
+        
+        .geocode-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        @media (max-width: 768px) {
+            #deliveryMap {
+                height: 250px;
+            }
+            
+            .route-info {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Logout Confirmation Modal -->
+    <div class="logout-modal" id="logoutModal">
+        <div class="logout-modal-content">
+            <div class="logout-modal-icon">
+                <i class="fa-solid fa-right-from-bracket"></i>
+            </div>
+            <h3 class="logout-modal-title">Confirm Logout</h3>
+            <p class="logout-modal-message">Are you sure you want to logout from your account?</p>
+            <div class="logout-modal-buttons">
+                <button class="logout-modal-btn logout-modal-btn-cancel" id="cancelLogout">Cancel</button>
+                <button class="logout-modal-btn logout-modal-btn-confirm" id="confirmLogout">Logout</button>
+            </div>
+        </div>
+    </div>
+
+    <nav class="navbar">
+        <div class="logo-section">
+            <div class="logo-circle">
+                <img src="{% static 'images/Screenshot_2025-11-01_124726-removebg-preview.png' %}" style="width: 25px;" alt="Logo">
+            </div>
+            <span class="brand-name">KABUTOMATE Orders</span>
+        </div>
+        <button class="navbar-toggle" id="navbarToggle" aria-label="Toggle navigation">
+            <i class="fa-solid fa-bars" id="navMenuIcon"></i>
+        </button>
+        <div class="nav-links" id="navLinks">
+            <a href="{% url 'dashboard' %}"><i class="fa-solid fa-home"></i> Dashboard</a>
+            <a href="{% url 'pos_system' %}"><i class="fa-solid fa-cash-register"></i> POS</a>
+            <a href="#" id="logout-link"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="page-header">
+            <h1>Order Management</h1>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <span class="stat-label">Total Records</span>
+                <span class="stat-value">{{ total_orders }}</span>
+            </div>
+            <div class="stat-card" style="border-top: 4px solid #f59e0b;">
+                <span class="stat-label">Pending Orders</span>
+                <span class="stat-value">{{ pending_orders }}</span>
+            </div>
+            <div class="stat-card" style="border-top: 4px solid #3b82f6;">
+                <span class="stat-label">In Processing</span>
+                <span class="stat-value">{{ processing_orders }}</span>
+            </div>
+            <div class="stat-card" style="background: var(--primary); color: white;">
+                <span class="stat-label" style="color: rgba(255,255,255,0.7);">Net Revenue</span>
+                <span class="stat-value" style="color: var(--accent);">₱{{ total_revenue|default:"0.00" }}</span>
+            </div>
+        </div>
+
+        <div class="filters-section">
+            <form method="GET" action="{% url 'manage_orders' %}">
+                <div class="filters-row">
+                    <div class="filter-group">
+                        <label>Fulfillment Status</label>
+                        <select name="status" class="filter-select">
+                            <option value="">All Statuses</option>
+                            <option value="PENDING" {% if request.GET.status == 'PENDING' %}selected{% endif %}>Pending</option>
+                            <option value="PROCESSING" {% if request.GET.status == 'PROCESSING' %}selected{% endif %}>Processing</option>
+                            <option value="SHIPPED" {% if request.GET.status == 'SHIPPED' %}selected{% endif %}>Shipped</option>
+                            <option value="DELIVERED" {% if request.GET.status == 'DELIVERED' %}selected{% endif %}>Delivered</option>
+                            <option value="CANCELLED" {% if request.GET.status == 'CANCELLED' %}selected{% endif %}>Cancelled</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>Search Orders</label>
+                        <input type="text" name="search" class="filter-input" placeholder="Name or Order ID..." value="{{ request.GET.search }}">
+                    </div>
+                    <button type="submit" class="filter-btn">
+                        <i class="fa-solid fa-filter"></i>
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <div class="orders-card">
+            <div style="overflow-x: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Order ID</th>
+                            <th>Customer Name</th>
+                            <th>Order Date</th>
+                            <th>Total</th>
+                            <th>Status</th>
+                            <th>Payment</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in orders %}
+                        <tr>
+                            <td style="color: var(--primary); font-weight: 800;">#{{ order.order_number }}</td>
+                            <td>{{ order.customer_name }}</td>
+                            <td style="color: #64748b;">{{ order.created_at|date:"M d, Y" }}</td>
+                            <td>₱{{ order.total_amount }}</td>
+                            <td>
+                                <span class="status-badge status-{{ order.status|lower }}">
+                                    {{ order.get_status_display }}
+                                </span>
+                            </td>
+                            <td>
+                                <div style="display: flex; flex-direction: column; gap: 4px;">
+                                    <span style="font-size: 0.75rem; color: #64748b;">
+                                        {% if order.payment_method == 'GCASH' %}
+                                        <i class="fa-solid fa-wallet" style="color: #007bff;"></i> GCash
+                                        {% else %}
+                                        <i class="fa-solid fa-money-bill" style="color: #10b981;"></i> COD
+                                        {% endif %}
+                                    </span>
+                                    {% if order.status == 'CANCELLED' %}
+                                    <span class="payment-badge" style="background: #fef2f2; color: #dc2626;">
+                                        Cancelled
+                                    </span>
+                                    {% else %}
+                                    <span class="payment-badge 
+                                        {% if order.payment_status == 'PAID' %}payment-paid
+                                        {% elif order.payment_status == 'FAILED' %}payment-failed
+                                        {% elif order.payment_status == 'PENDING' %}payment-warning
+                                        {% else %}payment-pending{% endif %}">
+                                        {{ order.get_payment_status_display }}
+                                    </span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td>
+                                {% if order.status == 'CANCELLED' or order.status == 'DELIVERED' %}
+                                <button class="action-btn" style="opacity: 0.5; cursor: not-allowed;" disabled title="Order {{ order.status|lower }} - no further actions">
+                                    Manage
+                                </button>
+                                {% else %}
+                                <button class="action-btn" onclick="viewOrder('{{ order.id }}')">
+                                    Manage
+                                </button>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% if not orders %}
+            <div style="text-align: center; padding: 5rem; color: #cbd5e1;">
+                <i class="fa-solid fa-inbox" style="font-size: 4rem; margin-bottom: 1rem;"></i>
+                <p style="font-weight: 600;">No orders found matching filters</p>
+            </div>
+            {% endif %}
+            
+            {% if orders.has_other_pages %}
+            <div class="pagination">
+                {% if orders.has_previous %}
+                <a href="?page={{ orders.previous_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}" class="pagination-btn">
+                    <i class="fa-solid fa-chevron-left"></i> Previous
+                </a>
+                {% else %}
+                <span class="pagination-btn disabled">
+                    <i class="fa-solid fa-chevron-left"></i> Previous
+                </span>
+                {% endif %}
+                
+                <span class="pagination-info">Page {{ orders.number }} of {{ orders.paginator.num_pages }}</span>
+                
+                {% if orders.has_next %}
+                <a href="?page={{ orders.next_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}" class="pagination-btn">
+                    Next <i class="fa-solid fa-chevron-right"></i>
+                </a>
+                {% else %}
+                <span class="pagination-btn disabled">
+                    Next <i class="fa-solid fa-chevron-right"></i>
+                </span>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="modal" id="orderModal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeModal()"><i class="fa-solid fa-xmark"></i></button>
+            <div id="orderDetails"></div>
+            <div id="deliveryMapSection"></div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // Delivery Map Variables
+        let deliveryMap = null;
+        let routeLayer = null;
+        
+        // Custom marker icons
+        const storeIcon = L.divIcon({
+            className: 'custom-marker',
+            html: '<div style="background: #0c4b33; color: white; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); border: 3px solid white;"><i class="fa-solid fa-store"></i></div>',
+            iconSize: [36, 36],
+            iconAnchor: [18, 36]
+        });
+        
+        const customerIcon = L.divIcon({
+            className: 'custom-marker',
+            html: '<div style="background: #dc2626; color: white; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); border: 3px solid white;"><i class="fa-solid fa-location-dot"></i></div>',
+            iconSize: [36, 36],
+            iconAnchor: [18, 36]
+        });
+        
+        // Geocode address using Nominatim (free OpenStreetMap service)
+        async function geocodeAddress(address, city, postalCode) {
+            // Try multiple search strategies for better results
+            const searchQueries = [
+                `${address}, ${city}, ${postalCode}, Philippines`,
+                `${address}, ${city}, Philippines`,
+                `${city}, ${postalCode}, Philippines`,
+                `${city}, Philippines`
+            ];
+            
+            for (const query of searchQueries) {
+                try {
+                    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1&countrycodes=ph`;
+                    const response = await fetch(url, {
+                        headers: {
+                            'User-Agent': 'KABUTOMATE-Dashboard/1.0'
+                        }
+                    });
+                    
+                    if (!response.ok) {
+                        console.warn('Nominatim response not ok:', response.status);
+                        continue;
+                    }
+                    
+                    const data = await response.json();
+                    if (data && data.length > 0) {
+                        console.log('Geocoded successfully with query:', query);
+                        return {
+                            lat: parseFloat(data[0].lat),
+                            lng: parseFloat(data[0].lon),
+                            display_name: data[0].display_name
+                        };
+                    }
+                } catch (error) {
+                    console.warn('Geocoding attempt failed for:', query, error);
+                }
+            }
+            
+            console.error('All geocoding attempts failed for address:', address, city, postalCode);
+            return null;
+        }
+        
+        // Get route from OSRM (free routing service)
+        async function getRoute(startLat, startLng, endLat, endLng) {
+            try {
+                const url = `https://router.project-osrm.org/route/v1/driving/${startLng},${startLat};${endLng},${endLat}?overview=full&geometries=geojson`;
+                const response = await fetch(url);
+                const data = await response.json();
+                if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
+                    const route = data.routes[0];
+                    return {
+                        geometry: route.geometry,
+                        distance: route.distance, // in meters
+                        duration: route.duration  // in seconds
+                    };
+                }
+                return null;
+            } catch (error) {
+                console.error('Routing error:', error);
+                return null;
+            }
+        }
+        
+        // Format distance
+        function formatDistance(meters) {
+            if (meters >= 1000) {
+                return (meters / 1000).toFixed(1) + ' km';
+            }
+            return Math.round(meters) + ' m';
+        }
+        
+        // Format duration
+        function formatDuration(seconds) {
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            if (hours > 0) {
+                return `${hours}h ${minutes}m`;
+            }
+            return `${minutes} min`;
+        }
+        
+        // Initialize or update delivery map
+        async function initDeliveryMap(store, order) {
+            const mapSection = document.getElementById('deliveryMapSection');
+            
+            // Check if store has coordinates
+            if (!store.latitude || !store.longitude) {
+                mapSection.innerHTML = `
+                    <div class="delivery-map-section">
+                        <div class="delivery-map-header">
+                            <span class="delivery-map-title"><i class="fa-solid fa-route"></i> Delivery Route</span>
+                        </div>
+                        <div class="map-error">
+                            <i class="fa-solid fa-exclamation-triangle"></i> Store location not set. Please configure store coordinates in Store Settings.
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Show loading state
+            mapSection.innerHTML = `
+                <div class="delivery-map-section">
+                    <div class="delivery-map-header">
+                        <span class="delivery-map-title"><i class="fa-solid fa-route"></i> Delivery Route</span>
+                    </div>
+                    <div class="map-loading">
+                        <i class="fa-solid fa-spinner fa-spin" style="margin-right: 10px;"></i> Loading delivery map...
+                    </div>
+                </div>
+            `;
+            
+            // PRIORITY: Use stored GPS coordinates if available (exact customer location)
+            let customerLocation = null;
+            let locationSource = 'unknown';
+            
+            if (order.customer_latitude && order.customer_longitude) {
+                // Customer pinned their exact location during checkout
+                customerLocation = {
+                    lat: order.customer_latitude,
+                    lng: order.customer_longitude,
+                    display_name: `${order.shipping_address}, ${order.shipping_city}`
+                };
+                locationSource = 'gps';
+                console.log('Using stored GPS coordinates (exact location):', customerLocation);
+            } else {
+                // Fallback: Geocode the address if no stored coordinates
+                console.log('No stored coordinates, attempting to geocode address...');
+                customerLocation = await geocodeAddress(order.shipping_address, order.shipping_city, order.shipping_postal_code);
+                locationSource = 'geocoded';
+            }
+            
+            mapSection.innerHTML = `
+                <div class="delivery-map-section">
+                    <div class="delivery-map-header">
+                        <span class="delivery-map-title"><i class="fa-solid fa-route"></i> Delivery Route</span>
+                        ${locationSource === 'gps' ? '<span style="background: #10b981; color: white; padding: 4px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; margin-left: 10px;"><i class="fa-solid fa-location-crosshairs"></i> Exact Location</span>' : '<span style="background: #f59e0b; color: white; padding: 4px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; margin-left: 10px;"><i class="fa-solid fa-location-dot"></i> Approximate</span>'}
+                    </div>
+                    <div id="deliveryMap"></div>
+                    <div id="routeInfoContainer"></div>
+                </div>
+            `;
+            
+            // Initialize map
+            const storeLat = store.latitude;
+            const storeLng = store.longitude;
+            
+            deliveryMap = L.map('deliveryMap').setView([storeLat, storeLng], 12);
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(deliveryMap);
+            
+            // Add store marker
+            const storeMarker = L.marker([storeLat, storeLng], {icon: storeIcon}).addTo(deliveryMap);
+            storeMarker.bindPopup(`<b>${store.name || 'Store'}</b><br>${store.address || 'Store Location'}`);
+            
+            if (customerLocation) {
+                // Add customer marker
+                const customerMarker = L.marker([customerLocation.lat, customerLocation.lng], {icon: customerIcon}).addTo(deliveryMap);
+                customerMarker.bindPopup(`<b>${order.customer_name}</b><br>${order.shipping_address}<br>${order.shipping_city}, ${order.shipping_postal_code}`);
+                
+                // Get and display route
+                const route = await getRoute(storeLat, storeLng, customerLocation.lat, customerLocation.lng);
+                
+                if (route) {
+                    // Draw route line
+                    routeLayer = L.geoJSON(route.geometry, {
+                        style: {
+                            color: '#0c4b33',
+                            weight: 5,
+                            opacity: 0.8,
+                            dashArray: null
+                        }
+                    }).addTo(deliveryMap);
+                    
+                    // Fit map to show entire route
+                    const bounds = L.latLngBounds([[storeLat, storeLng], [customerLocation.lat, customerLocation.lng]]);
+                    deliveryMap.fitBounds(bounds, { padding: [50, 50] });
+                    
+                    // Show route info
+                    document.getElementById('routeInfoContainer').innerHTML = `
+                        <div class="route-info">
+                            <div class="route-info-card">
+                                <div class="route-info-label">Distance</div>
+                                <div class="route-info-value">${formatDistance(route.distance)}</div>
+                            </div>
+                            <div class="route-info-card">
+                                <div class="route-info-label">Est. Travel Time</div>
+                                <div class="route-info-value">${formatDuration(route.duration)}</div>
+                            </div>
+                            <div class="route-info-card">
+                                <div class="route-info-label">Destination</div>
+                                <div class="route-info-value" style="font-size: 0.9rem;">${order.shipping_city}</div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    // Just fit to markers without route
+                    const bounds = L.latLngBounds([[storeLat, storeLng], [customerLocation.lat, customerLocation.lng]]);
+                    deliveryMap.fitBounds(bounds, { padding: [50, 50] });
+                    
+                    document.getElementById('routeInfoContainer').innerHTML = `
+                        <div class="map-error" style="margin-top: 1rem;">
+                            <i class="fa-solid fa-info-circle"></i> Unable to calculate route. Showing locations only.
+                        </div>
+                    `;
+                }
+            } else {
+                // Could not geocode customer address - show map with just store
+                document.getElementById('routeInfoContainer').innerHTML = `
+                    <div class="map-error" style="margin-top: 1rem;">
+                        <i class="fa-solid fa-info-circle"></i> Could not locate customer address. Please verify the shipping address.
+                    </div>
+                `;
+            }
+            
+            // Fix map display issue in modal
+            setTimeout(() => {
+                if (deliveryMap) deliveryMap.invalidateSize();
+            }, 100);
+        }
+        
+        // Cleanup map when modal closes
+        function cleanupDeliveryMap() {
+            if (deliveryMap) {
+                deliveryMap.remove();
+                deliveryMap = null;
+            }
+            routeLayer = null;
+            document.getElementById('deliveryMapSection').innerHTML = '';
+        }
+        
+        // CORE LOGIC (Maintained from your source)
+        function viewOrder(orderId) {
+            fetch(`/order-detail/${orderId}/`)
+                .then(response => response.json())
+                .then(data => {
+                    const order = data.order;
+                    const items = data.items;
+                    
+                    let itemsHtml = '';
+                    items.forEach(item => {
+                        itemsHtml += `
+                            <div class="order-item">
+                                <div>
+                                    <div style="font-weight:700; color:var(--primary);">${item.product_name}</div>
+                                    <small style="color:#64748b;">${item.quantity_kg} kg × ₱${item.price_per_kg}</small>
+                                </div>
+                                <div style="font-weight:800;">₱${item.subtotal}</div>
+                            </div>
+                        `;
+                    });
+                    
+                    const html = `
+                        <h2 style="color: var(--primary); margin-bottom: 2rem; font-weight:900;">Order #${order.order_number}</h2>
+                        
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:2rem; margin-bottom:2rem;">
+                            <div>
+                                <h4 style="font-size:0.7rem; text-transform:uppercase; color:#94a3b8; margin-bottom:10px;">Contact Information</h4>
+                                <p><b>Name:</b> ${order.customer_name}</p>
+                                <p><b>Email:</b> ${order.customer_email}</p>
+                                <p><b>Phone:</b> ${order.customer_phone}</p>
+                            </div>
+                            <div>
+                                <h4 style="font-size:0.7rem; text-transform:uppercase; color:#94a3b8; margin-bottom:10px;">Shipping Destination</h4>
+                                <p>${order.shipping_address}</p>
+                                <p>${order.shipping_city}, ${order.shipping_postal_code}</p>
+                            </div>
+                        </div>
+                        
+                        <h4 style="font-size:0.7rem; text-transform:uppercase; color:#94a3b8; margin-bottom:10px;">Manifest</h4>
+                        <div class="order-items-list">${itemsHtml}</div>
+                        
+                        <div style="display:flex; justify-content:space-between; padding:1.5rem; background:var(--primary); border-radius:12px; color:white; margin-top:1rem;">
+                            <span style="font-weight:800; text-transform:uppercase; font-size:0.8rem;">Grand Total</span>
+                            <span style="font-weight:900; font-size:1.4rem; color:var(--accent);">₱${order.total_amount}</span>
+                        </div>
+                        
+                        <div class="update-status-form">
+                            <h4 style="font-weight:800; color:var(--primary); margin-bottom:1.5rem;">Fulfillment Control</h4>
+                            <form method="POST" action="/update-order-status/${orderId}/">
+                                <input type="hidden" name="csrfmiddlewaretoken" value="${getCookie('csrftoken')}">
+                                <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+                                    <div>
+                                        <label style="display:block; font-size:0.7rem; font-weight:800; margin-bottom:5px;">Order Status</label>
+                                        <select name="status" class="filter-select">
+                                            <option value="PENDING" ${order.status === 'PENDING' ? 'selected' : ''}>Pending</option>
+                                            <option value="PROCESSING" ${order.status === 'PROCESSING' ? 'selected' : ''}>Processing</option>
+                                            <option value="SHIPPED" ${order.status === 'SHIPPED' ? 'selected' : ''}>Shipped</option>
+                                            <option value="DELIVERED" ${order.status === 'DELIVERED' ? 'selected' : ''}>Delivered</option>
+                                            <option value="CANCELLED" ${order.status === 'CANCELLED' ? 'selected' : ''}>Cancelled</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label style="display:block; font-size:0.7rem; font-weight:800; margin-bottom:5px;">Payment Status</label>
+                                        <select name="is_paid" class="filter-select">
+                                            <option value="false" ${!order.is_paid ? 'selected' : ''}>Pending</option>
+                                            <option value="true" ${order.is_paid ? 'selected' : ''}>Paid</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <button type="submit" class="submit-btn">Update Entry</button>
+                            </form>
+                        </div>
+                    `;
+                    
+                    document.getElementById('orderDetails').innerHTML = html;
+                    document.getElementById('orderModal').classList.add('show');
+                    
+                    // Initialize delivery map with store and order data
+                    const store = data.store;
+                    initDeliveryMap(store, order);
+                });
+        }
+        
+        function closeModal() { 
+            document.getElementById('orderModal').classList.remove('show');
+            cleanupDeliveryMap();
+        }
+        
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+        
+        window.onclick = function(e) { 
+            if (e.target === document.getElementById('orderModal')) {
+                closeModal();
+            }
+        }
+
+        // --- Logout Modal ---
+        const logoutModal = document.getElementById('logoutModal');
+        const logoutLink = document.getElementById('logout-link');
+        const cancelLogout = document.getElementById('cancelLogout');
+        const confirmLogout = document.getElementById('confirmLogout');
+
+        logoutLink.addEventListener('click', function(e) {
+            e.preventDefault();
+            logoutModal.classList.add('show');
+        });
+
+        cancelLogout.addEventListener('click', function() {
+            logoutModal.classList.remove('show');
+        });
+
+        logoutModal.addEventListener('click', function(e) {
+            if (e.target === logoutModal) {
+                logoutModal.classList.remove('show');
+            }
+        });
+
+        confirmLogout.addEventListener('click', function() {
+            const csrfToken = getCookie('csrftoken');
+            
+            fetch('{% url "logout" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.href = data.redirect_url;
+                }
+            })
+            .catch(error => {
+                console.error('Logout error:', error);
+                window.location.href = '{% url "logout" %}';
+            });
+        });
+
+        // --- Mobile Menu Toggle (for Navbar layout) ---
+        const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+        const navbarToggle = document.getElementById('navbarToggle');
+        const menuIcon = document.getElementById('navMenuIcon');
+        const navLinks = document.getElementById('navLinks');
+        const mobileOverlay = document.getElementById('mobileOverlay');
+
+        function closeMobileMenu() {
+            if (navLinks) navLinks.classList.remove('active');
+            if (mobileOverlay) {
+                mobileOverlay.classList.remove('active');
+                mobileOverlay.style.pointerEvents = 'none';
+            }
+            if (menuIcon) {
+                menuIcon.classList.remove('fa-times');
+                menuIcon.classList.add('fa-bars');
+            }
+            document.body.style.overflow = '';
+        }
+
+        function toggleMobileMenu(e) {
+            if (e) e.stopPropagation();
+            if (navLinks) navLinks.classList.toggle('active');
+            if (mobileOverlay) mobileOverlay.classList.toggle('active');
+            
+            if (mobileOverlay && mobileOverlay.classList.contains('active')) {
+                mobileOverlay.style.pointerEvents = 'auto';
+                if (menuIcon) {
+                    menuIcon.classList.remove('fa-bars');
+                    menuIcon.classList.add('fa-times');
+                }
+                document.body.style.overflow = 'hidden';
+            } else {
+                if (mobileOverlay) mobileOverlay.style.pointerEvents = 'none';
+                if (menuIcon) {
+                    menuIcon.classList.remove('fa-times');
+                    menuIcon.classList.add('fa-bars');
+                }
+                document.body.style.overflow = '';
+            }
+        }
+
+        if (mobileMenuToggle) mobileMenuToggle.addEventListener('click', toggleMobileMenu);
+        if (navbarToggle) navbarToggle.addEventListener('click', toggleMobileMenu);
+        if (mobileOverlay) mobileOverlay.addEventListener('click', closeMobileMenu);
+
+        // Close menu when clicking on nav links on mobile
+        if (navLinks) {
+            navLinks.querySelectorAll('a').forEach(link => {
+                link.addEventListener('click', function() {
+                    if (window.innerWidth <= 768) {
+                        closeMobileMenu();
+                    }
+                });
+            });
+        }
+
+        // Handle window resize
+        window.addEventListener('resize', function() {
+            if (window.innerWidth > 768) {
+                closeMobileMenu();
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,2667 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <meta name="theme-color" content="#0c4b33">
+    <title>My Profile - KABUTOMATE</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="{% static 'css/responsive.css' %}">
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        :root {
+            --primary: #0c4b33;
+            --accent: #d4f26b;
+            --glass: rgba(255, 255, 255, 0.9);
+            --text-main: #1a1a1a;
+            --card-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: #f0f4f2;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(12, 75, 51, 0.1) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(212, 242, 107, 0.1) 0px, transparent 50%);
+            min-height: 100vh;
+            color: var(--text-main);
+        }
+
+        /* --- Navbar --- */
+        .navbar {
+            background: var(--glass);
+            backdrop-filter: blur(10px);
+            padding: 1rem 5%;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+
+        .logo-section { display: flex; align-items: center; gap: 12px; }
+        
+        .logo-circle {
+            width: 45px; height: 45px;
+            background: var(--primary);
+            border-radius: 12px;
+            transform: rotate(-5deg);
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 4px 12px rgba(12, 75, 51, 0.3);
+        }
+
+        .brand-name {
+            font-size: 1.4rem; font-weight: 800;
+            letter-spacing: -0.5px; color: var(--primary);
+        }
+
+        .nav-links { display: flex; gap: 2.5rem; align-items: center; }
+        .nav-links a { 
+            text-decoration: none; color: #555; 
+            font-weight: 600; font-size: 0.95rem;
+            transition: 0.3s;
+        }
+        .nav-links a:hover { color: var(--primary); }
+
+        /* --- Main Container --- */
+        .container {
+            max-width: 1000px;
+            margin: 3rem auto;
+            padding: 0 2rem;
+        }
+
+        .profile-header {
+            background: white;
+            border-radius: 20px;
+            padding: 2.5rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--card-shadow);
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+        }
+
+        .profile-avatar {
+            width: 100px;
+            height: 100px;
+            background: linear-gradient(135deg, var(--primary), #1a5e45);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            color: white;
+            font-weight: bold;
+        }
+
+        .profile-info h1 {
+            font-size: 2rem;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .profile-info p {
+            color: #666;
+            font-size: 1rem;
+        }
+
+        .profile-meta {
+            display: flex;
+            gap: 2rem;
+            margin-top: 1rem;
+        }
+
+        .profile-meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #555;
+            font-size: 0.9rem;
+        }
+
+        .profile-meta-item i {
+            color: var(--primary);
+        }
+
+        /* --- Cards --- */
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--card-shadow);
+        }
+
+        .card-title {
+            font-size: 1.5rem;
+            color: var(--primary);
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+        }
+
+        .card-title i {
+            font-size: 1.3rem;
+        }
+
+        /* --- Profile Details --- */
+        .detail-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5rem;
+        }
+
+        .detail-item {
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 12px;
+        }
+
+        .detail-label {
+            font-size: 0.85rem;
+            color: #666;
+            margin-bottom: 0.3rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .detail-value {
+            font-size: 1.05rem;
+            color: var(--text-main);
+            font-weight: 600;
+        }
+
+        /* --- Orders Cards --- */
+        .orders-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .order-status-tabs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .order-tab-btn {
+            border: 1px solid #d1d5db;
+            background: #ffffff;
+            color: #374151;
+            padding: 0.6rem 1rem;
+            border-radius: 999px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .order-tab-btn.active {
+            border-color: var(--primary);
+            background: var(--primary);
+            color: #ffffff;
+        }
+
+        .order-tab-empty {
+            display: none;
+            text-align: center;
+            background: #f8fafc;
+            border: 1px dashed #cbd5e1;
+            border-radius: 12px;
+            padding: 1rem;
+            color: #64748b;
+            font-weight: 600;
+        }
+
+        .order-card {
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            overflow: hidden;
+            background: white;
+        }
+
+        .order-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.25rem;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .order-header h3 {
+            margin: 0 0 0.25rem 0;
+            font-size: 1.1rem;
+            color: #1f2937;
+        }
+
+        .order-date {
+            margin: 0;
+            font-size: 0.9rem;
+            color: #6b7280;
+        }
+
+        .order-header-right {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .payment-status {
+            font-size: 0.9rem;
+            color: #374151;
+        }
+
+        .order-items {
+            padding: 1rem;
+        }
+
+        .order-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            border-bottom: 1px solid #f3f4f6;
+        }
+
+        .order-item:last-child {
+            border-bottom: none;
+        }
+
+        .item-info h4 {
+            margin: 0 0 0.5rem 0;
+            font-size: 1rem;
+            color: #1f2937;
+        }
+
+        .item-details {
+            margin: 0;
+            font-size: 0.9rem;
+            color: #6b7280;
+        }
+
+        .btn-review {
+            padding: 0.5rem 1rem;
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .btn-review:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+        }
+
+        .btn-view-rating {
+            padding: 0.5rem 1rem;
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .btn-view-rating:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+
+        .review-action-buttons {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .btn-buy-again {
+            padding: 0.5rem 1rem;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+            text-decoration: none;
+        }
+
+        .btn-buy-again:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+
+        .order-footer {
+            padding: 1rem 1.25rem;
+            background: #f8f9fa;
+            border-top: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 1.1rem;
+            color: #1f2937;
+        }
+        
+        .order-footer-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .btn-cancel-order {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #ef4444;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            text-decoration: none;
+        }
+        
+        .btn-cancel-order:hover {
+            background: #ef4444;
+            color: white;
+        }
+        
+        .btn-view-order {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            text-decoration: none;
+        }
+        
+        .btn-view-order:hover {
+            opacity: 0.9;
+        }
+
+        .status-badge {
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            display: inline-block;
+        }
+
+        .status-pending { background: #fef3c7; color: #92400e; }
+        .status-processing { background: #dbeafe; color: #1e40af; }
+        .status-shipped { background: #e0e7ff; color: #4338ca; }
+        .status-delivered { background: #d1fae5; color: #065f46; }
+        .status-cancelled { background: #fee2e2; color: #991b1b; }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem 2rem;
+            color: #888;
+        }
+
+        .empty-state i {
+            font-size: 3rem;
+            color: #ddd;
+            margin-bottom: 1rem;
+        }
+
+        .chat-panel {
+            display: flex;
+            flex-direction: column;
+            border: 1px solid #e5e7eb;
+            border-radius: 14px;
+            overflow: hidden;
+            background: #ffffff;
+        }
+
+        .chat-messages {
+            height: 340px;
+            overflow-y: auto;
+            padding: 1rem;
+            background: #f8fafc;
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+        }
+
+        .chat-message {
+            max-width: 82%;
+            padding: 0.7rem 0.9rem;
+            border-radius: 12px;
+            line-height: 1.45;
+            word-break: break-word;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        }
+
+        .chat-message.mine {
+            align-self: flex-end;
+            background: var(--primary);
+            color: #ffffff;
+            border-bottom-right-radius: 4px;
+        }
+
+        .chat-message.other {
+            align-self: flex-start;
+            background: #ffffff;
+            color: #111827;
+            border-bottom-left-radius: 4px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .chat-message-meta {
+            font-size: 0.75rem;
+            margin-top: 0.35rem;
+            opacity: 0.8;
+        }
+
+        .chat-input-wrap {
+            display: flex;
+            gap: 0.75rem;
+            padding: 0.9rem;
+            border-top: 1px solid #e5e7eb;
+            background: #ffffff;
+        }
+
+        .chat-input-wrap input {
+            flex: 1;
+            border: 1px solid #d1d5db;
+            border-radius: 10px;
+            padding: 0.7rem 0.9rem;
+            font-size: 0.95rem;
+        }
+
+        .chat-send-btn {
+            border: none;
+            background: var(--primary);
+            color: #ffffff;
+            border-radius: 10px;
+            padding: 0.7rem 1rem;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 0.8rem 1.5rem;
+            background: var(--primary);
+            color: white;
+            text-decoration: none;
+            border-radius: 10px;
+            font-weight: 600;
+            transition: all 0.3s;
+            margin-top: 1rem;
+        }
+
+        .btn:hover {
+            background: #1a5e45;
+            transform: translateY(-2px);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 2px solid var(--primary);
+            color: var(--primary);
+        }
+
+        .btn-outline:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        /* --- Logout Modal --- */
+        .logout-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .logout-modal.show {
+            display: flex;
+        }
+
+        .logout-modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: 2.5rem;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: modalSlideIn 0.3s ease;
+        }
+
+        @keyframes modalSlideIn {
+            from { transform: scale(0.7); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .logout-modal-icon {
+            width: 60px;
+            height: 60px;
+            background: #fee2e2;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.5rem;
+        }
+
+        .logout-modal-icon i {
+            font-size: 1.8rem;
+            color: #dc2626;
+        }
+
+        .logout-modal-title {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--text-main);
+            text-align: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .logout-modal-message {
+            text-align: center;
+            color: #666;
+            margin-bottom: 2rem;
+            font-size: 0.95rem;
+        }
+
+        .logout-modal-buttons {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .logout-modal-btn {
+            flex: 1;
+            padding: 0.9rem 1.5rem;
+            border: none;
+            border-radius: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.95rem;
+        }
+
+        .logout-modal-btn-cancel {
+            background: #f1f5f9;
+            color: #475569;
+        }
+
+        .logout-modal-btn-cancel:hover {
+            background: #e2e8f0;
+        }
+
+        .logout-modal-btn-confirm {
+            background: #dc2626;
+            color: white;
+        }
+
+        .logout-modal-btn-confirm:hover {
+            background: #b91c1c;
+        }
+
+        /* --- Review Modal --- */
+        .review-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 10000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .review-modal.show {
+            display: flex;
+        }
+
+        .review-modal-content {
+            background: white;
+            border-radius: 20px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: modalSlideIn 0.3s ease;
+        }
+
+        .review-modal-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .review-modal-header h2 {
+            margin: 0;
+            font-size: 1.5rem;
+            color: #1f2937;
+        }
+
+        .close-review-modal {
+            font-size: 2rem;
+            cursor: pointer;
+            color: #9ca3af;
+            line-height: 1;
+            transition: color 0.3s;
+        }
+
+        .close-review-modal:hover {
+            color: #4b5563;
+        }
+
+        .review-modal-body {
+            padding: 1.5rem;
+        }
+
+        .review-modal-body h3 {
+            margin: 0 0 1rem 0;
+            color: #1f2937;
+        }
+
+        .rating-input-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .rating-input-section label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .stars-input {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .stars-input i {
+            font-size: 2rem;
+            color: #d1d5db;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .stars-input i:hover,
+        .stars-input i.active {
+            color: #fbbf24;
+        }
+
+        .review-input-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .review-input-section label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .review-input-section textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 1rem;
+            resize: vertical;
+        }
+
+        .submit-review-btn {
+            width: 100%;
+            padding: 0.75rem 1.5rem;
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            transition: all 0.3s;
+        }
+
+        .submit-review-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+        }
+
+        .review-message {
+            margin-top: 1rem;
+            padding: 0.75rem;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .review-message.success {
+            background: #d1fae5;
+            color: #065f46;
+            display: block;
+        }
+
+        .review-message.error {
+            background: #fee2e2;
+            color: #991b1b;
+            display: block;
+        }
+
+        /* --- Media Upload Styles --- */
+        .media-upload-section {
+            margin-bottom: 1.5rem;
+        }
+        
+        .media-upload-section label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #374151;
+        }
+        
+        .media-upload-area {
+            display: block;
+            border: 2px dashed #d1d5db;
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+            background: #f9fafb;
+            transition: all 0.3s;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        .media-upload-area:hover,
+        .media-upload-area.drag-over {
+            border-color: var(--primary);
+            background: #f0fdf4;
+        }
+        
+        .upload-placeholder i {
+            font-size: 2.5rem;
+            color: #9ca3af;
+            margin-bottom: 0.5rem;
+        }
+        
+        .upload-placeholder p {
+            margin: 0.5rem 0;
+            font-weight: 600;
+            color: #6b7280;
+        }
+        
+        .upload-hint {
+            font-size: 0.75rem;
+            color: #9ca3af;
+        }
+        
+        .media-preview-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 10px;
+            margin-top: 1rem;
+        }
+        
+        .media-preview-item {
+            position: relative;
+            aspect-ratio: 1;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #f3f4f6;
+        }
+        
+        .media-preview-item img,
+        .media-preview-item video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .media-preview-item .video-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 1.5rem;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
+        
+        .media-preview-item .remove-media {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            width: 24px;
+            height: 24px;
+            background: rgba(239, 68, 68, 0.9);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            transition: all 0.2s;
+        }
+        
+        .media-preview-item .remove-media:hover {
+            background: #dc2626;
+            transform: scale(1.1);
+        }
+        
+        .upload-progress {
+            margin-top: 1rem;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e5e7eb;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), #10b981);
+            border-radius: 4px;
+            width: 0%;
+            transition: width 0.3s;
+        }
+        
+        #uploadStatus {
+            display: block;
+            margin-top: 0.5rem;
+            font-size: 0.85rem;
+            color: #6b7280;
+        }
+        
+        /* --- Review Media Gallery --- */
+        .review-media-gallery {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 0.75rem;
+        }
+        
+        .review-media-thumb {
+            width: 60px;
+            height: 60px;
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: pointer;
+            position: relative;
+            transition: transform 0.2s;
+        }
+        
+        .review-media-thumb:hover {
+            transform: scale(1.05);
+        }
+        
+        .review-media-thumb img,
+        .review-media-thumb video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .review-media-thumb .play-icon {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 1.2rem;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .existing-reviews {
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        .existing-reviews h3 {
+            margin: 0 0 1rem 0;
+            font-size: 1.2rem;
+        }
+
+        .review-item {
+            padding: 1rem;
+            border-bottom: 1px solid #f3f4f6;
+        }
+
+        .review-item:last-child {
+            border-bottom: none;
+        }
+
+        .review-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+
+        .review-user {
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        .review-date {
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+
+        .review-stars {
+            margin-bottom: 0.5rem;
+        }
+
+        .review-stars i {
+            color: #fbbf24;
+            font-size: 0.875rem;
+        }
+
+        .review-comment {
+            color: #4b5563;
+            line-height: 1.6;
+        }
+
+        .btn-edit-profile {
+            padding: 0.6rem 1.2rem;
+            background: linear-gradient(135deg, var(--primary) 0%, #1a5e45 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .btn-edit-profile:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(12, 75, 51, 0.3);
+        }
+
+        #locationMap {
+            height: 350px;
+            width: 100%;
+            border-radius: 12px;
+            margin-top: 0.5rem;
+            border: 2px solid #d1d5db;
+        }
+
+        .location-info {
+            margin-top: 0.75rem;
+            padding: 0.75rem;
+            background: #f0f9ff;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            color: #0369a1;
+        }
+
+        .location-info i {
+            margin-right: 0.5rem;
+        }
+
+        .map-controls {
+            display: flex;
+            gap: 0.75rem;
+            margin-top: 0.75rem;
+        }
+
+        .btn-locate {
+            flex: 1;
+            padding: 0.6rem 1rem;
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .btn-locate:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+        
+        /* --- Mobile Toggle Button --- */
+        .nav-toggle {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: var(--primary);
+            cursor: pointer;
+            padding: 8px;
+        }
+        
+        /* --- Responsive Styles --- */
+        @media (max-width: 768px) {
+            .nav-toggle {
+                display: block;
+            }
+            
+            .nav-links {
+                display: none;
+                flex-direction: column;
+                width: 100%;
+                gap: 0;
+                padding-top: 1rem;
+                border-top: 1px solid rgba(0,0,0,0.05);
+                margin-top: 0.5rem;
+            }
+            
+            .nav-links.active {
+                display: flex;
+            }
+            
+            .nav-links a {
+                padding: 0.75rem 0;
+                border-bottom: 1px solid rgba(0,0,0,0.05);
+            }
+            
+            .container {
+                margin: 1.5rem auto;
+                padding: 0 1rem;
+            }
+            
+            .profile-header {
+                flex-direction: column;
+                text-align: center;
+                padding: 2rem 1.5rem;
+            }
+            
+            .profile-info h1 {
+                font-size: 1.5rem;
+            }
+            
+            .profile-meta {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            .detail-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .card {
+                padding: 1.5rem;
+            }
+            
+            .order-header {
+                flex-direction: column;
+                gap: 0.75rem;
+            }
+            
+            .review-action-buttons {
+                flex-wrap: wrap;
+            }
+
+            .order-status-tabs {
+                gap: 0.5rem;
+            }
+
+            .order-tab-btn {
+                font-size: 0.85rem;
+                padding: 0.55rem 0.8rem;
+            }
+
+            .chat-messages {
+                height: 280px;
+            }
+            
+            .btn-review,
+            .btn-view-rating,
+            .btn-buy-again {
+                font-size: 0.85rem;
+                padding: 0.5rem 0.75rem;
+            }
+            
+            #locationMap {
+                height: 250px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .navbar {
+                padding: 0.75rem 4%;
+            }
+            
+            .brand-name {
+                font-size: 1.2rem;
+            }
+            
+            .profile-avatar {
+                width: 80px;
+                height: 80px;
+                font-size: 2rem;
+            }
+            
+            .profile-info h1 {
+                font-size: 1.3rem;
+            }
+            
+            .card {
+                padding: 1.25rem;
+                border-radius: 16px;
+            }
+            
+            .card-title {
+                font-size: 1.2rem;
+            }
+            
+            .logout-modal-content,
+            .review-modal-content {
+                padding: 1.5rem;
+                margin: 0 15px;
+            }
+            
+            .logout-modal-buttons {
+                flex-direction: column;
+            }
+            
+            #locationMap {
+                height: 200px;
+            }
+            
+            .review-action-buttons {
+                flex-direction: column;
+                width: 100%;
+            }
+            
+            .btn-review,
+            .btn-view-rating,
+            .btn-buy-again {
+                width: 100%;
+                justify-content: center;
+                font-size: 0.85rem;
+                padding: 0.6rem 0.8rem;
+            }
+            
+            .order-item {
+                flex-direction: column;
+                gap: 0.75rem;
+                align-items: flex-start;
+            }
+
+            .chat-input-wrap {
+                flex-direction: column;
+            }
+
+            .chat-send-btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Logout Confirmation Modal -->
+    <div class="logout-modal" id="logoutModal">
+        <div class="logout-modal-content">
+            <div class="logout-modal-icon">
+                <i class="fa-solid fa-right-from-bracket"></i>
+            </div>
+            <h3 class="logout-modal-title">Confirm Logout</h3>
+            <p class="logout-modal-message">Are you sure you want to logout from your account?</p>
+            <div class="logout-modal-buttons">
+                <button class="logout-modal-btn logout-modal-btn-cancel" id="cancelLogout">Cancel</button>
+                <button class="logout-modal-btn logout-modal-btn-confirm" id="confirmLogout">Logout</button>
+            </div>
+        </div>
+    </div>
+
+    <nav class="navbar">
+        <div class="logo-section">
+            <div class="logo-circle">
+                <img src="{% static 'images/Screenshot_2025-11-01_124726-removebg-preview.png' %}" style="width: 30px;" alt="Logo">
+            </div>
+            <span class="brand-name">KABUTOMATE</span>
+        </div>
+        <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation">
+            <i class="fa-solid fa-bars"></i>
+        </button>
+        <div class="nav-links" id="navLinks">
+            <a href="{% url 'shop' %}"><i class="fa-solid fa-store"></i> Shop</a>
+            <a href="{% url 'view_cart' %}"><i class="fa-solid fa-basket-shopping"></i> Cart</a>
+            <a href="{% url 'profile' %}" style="color: var(--primary);"><i class="fa-solid fa-user"></i> Profile</a>
+            <a href="#" id="logout-link" style="color: #ef4444;"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="profile-header">
+            <div class="profile-avatar">
+                {{ user.first_name|first|upper|default:user.username|first|upper }}
+            </div>
+            <div class="profile-info">
+                <h1>{{ user.get_full_name|default:user.username }}</h1>
+                <p>Customer Account</p>
+                <div class="profile-meta">
+                    <div class="profile-meta-item">
+                        <i class="fa-solid fa-envelope"></i>
+                        <span>{{ user.email }}</span>
+                    </div>
+                    {% if user.profile.phone %}
+                    <div class="profile-meta-item">
+                        <i class="fa-solid fa-phone"></i>
+                        <span>{{ user.profile.phone }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title" style="display: flex; justify-content: space-between; align-items: center;">
+                <span>
+                    <i class="fa-solid fa-user-circle"></i>
+                    Account Information
+                </span>
+                <button class="btn-edit-profile" id="editProfileBtn">
+                    <i class="fa-solid fa-pen-to-square"></i> Edit Profile
+                </button>
+            </div>
+            <div class="detail-grid">
+                <div class="detail-item">
+                    <div class="detail-label">Username</div>
+                    <div class="detail-value">{{ user.username }}</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Email</div>
+                    <div class="detail-value">{{ user.email }}</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">First Name</div>
+                    <div class="detail-value">{{ user.first_name|default:"Not set" }}</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Last Name</div>
+                    <div class="detail-value">{{ user.last_name|default:"Not set" }}</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Phone</div>
+                    <div class="detail-value">{{ user.profile.phone|default:"Not set" }}</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">City</div>
+                    <div class="detail-value">{{ user.profile.city|default:"Not set" }}</div>
+                </div>
+            </div>
+            {% if user.profile.address %}
+            <div style="margin-top: 1.5rem; padding: 1rem; background: #f8f9fa; border-radius: 12px;">
+                <div class="detail-label">Full Address</div>
+                <div class="detail-value">{{ user.profile.address }}, {{ user.profile.city|default:"" }} {{ user.profile.postal_code|default:"" }}</div>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="card">
+            <div class="card-title">
+                <i class="fa-solid fa-shopping-bag"></i>
+                My Orders
+            </div>
+            {% if orders %}
+            <div class="order-status-tabs" id="orderStatusTabs">
+                <button type="button" class="order-tab-btn active" data-tab="to-pay">To Pay</button>
+                <button type="button" class="order-tab-btn" data-tab="to-ship">To Ship / To Receive</button>
+                <button type="button" class="order-tab-btn" data-tab="to-review">To Review</button>
+            </div>
+            <div class="orders-list">
+                {% for order in orders %}
+                <div class="order-card" data-order-status="{{ order.status }}">
+                    <div class="order-header">
+                        <div>
+                            <h3>Order {{ order.order_number }}</h3>
+                            <p class="order-date">{{ order.created_at|date:"F d, Y - h:i A" }}</p>
+                        </div>
+                        <div class="order-header-right">
+                            <span class="status-badge status-{{ order.status|lower }}">
+                                {{ order.get_status_display }}
+                            </span>
+                            <div class="payment-status">
+                                {% if order.is_paid %}
+                                    <i class="fa-solid fa-check-circle" style="color: #22c55e;"></i> Paid
+                                {% else %}
+                                    <i class="fa-solid fa-clock" style="color: #f59e0b;"></i> Unpaid
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="order-items">
+                        {% for item in order.items.all %}
+                        <div class="order-item">
+                            <div class="item-info">
+                                <h4>{{ item.product.name }}</h4>
+                                <p class="item-details">{{ item.quantity_kg }}kg × ₱{{ item.product.price_per_kg }} = ₱{{ item.total_price }}</p>
+                            </div>
+                            {% if order.status == 'DELIVERED' %}
+                                {% with product_id_str=item.product.id|stringformat:"d" order_id_str=order.id|stringformat:"d" %}
+                                {% with review_key=product_id_str|add:"-"|add:order_id_str %}
+                                {% if review_key in reviewed_items %}
+                                <div class="review-action-buttons">
+                                    <button class="btn-view-rating" data-product-id="{{ item.product.id }}" data-product-name="{{ item.product.name }}" data-order-id="{{ order.id }}">
+                                        <i class="fa-solid fa-eye"></i> View Your Rating
+                                    </button>
+                                    <button class="btn-buy-again" data-product-id="{{ item.product.id }}" data-quantity="{{ item.quantity_kg }}">
+                                        <i class="fa-solid fa-cart-plus"></i> Buy Again
+                                    </button>
+                                </div>
+                                {% else %}
+                                <button class="btn-review" data-product-id="{{ item.product.id }}" data-product-name="{{ item.product.name }}" data-order-id="{{ order.id }}">
+                                    <i class="fa-solid fa-star"></i> Write Review
+                                </button>
+                                {% endif %}
+                                {% endwith %}
+                                {% endwith %}
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    
+                    <div class="order-footer">
+                        <div class="order-footer-actions">
+                            <a href="{% url 'order_confirmation' order.order_number %}" class="btn-view-order">
+                                <i class="fa-solid fa-eye"></i> View Details
+                            </a>
+                            {% if order.status == 'PENDING' %}
+                            <button type="button" class="btn-cancel-order" onclick="showCancelModal('{{ order.order_number }}', '{{ order.total_amount }}', '{{ order.payment_method }}', '{{ order.payment_status }}')">
+                                <i class="fa-solid fa-times-circle"></i> Cancel Order
+                            </button>
+                            {% endif %}
+                        </div>
+                        <strong>Total: ₱{{ order.total_amount }}</strong>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            <div class="order-tab-empty" id="orderTabEmptyState">
+                No orders in this category yet.
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <i class="fa-solid fa-box-open"></i>
+                <p>No orders yet</p>
+                <a href="{% url 'shop' %}" class="btn">Start Shopping</a>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="card">
+            <div class="card-title">
+                <i class="fa-solid fa-comments"></i>
+                Chat with Admin
+            </div>
+            <div class="chat-panel">
+                <div class="chat-messages" id="customerChatMessages">
+                    <div style="text-align:center; color:#64748b;">Loading messages...</div>
+                </div>
+                <form class="chat-input-wrap" id="customerChatForm">
+                    <input type="text" id="customerChatInput" placeholder="Type your inquiry here..." maxlength="1000" required>
+                    <button type="submit" class="chat-send-btn">
+                        <i class="fa-solid fa-paper-plane"></i> Send
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div style="text-align: center; margin-top: 2rem;">
+            <a href="{% url 'shop' %}" class="btn btn-outline">
+                <i class="fa-solid fa-arrow-left"></i> Back to Shop
+            </a>
+        </div>
+    </div>
+
+    <!-- Review Modal -->
+    <div id="reviewModal" class="review-modal">
+        <div class="review-modal-content">
+            <div class="review-modal-header">
+                <h2>Write a Review</h2>
+                <span class="close-review-modal">&times;</span>
+            </div>
+            
+            <div class="review-modal-body">
+                <h3 id="reviewProductName"></h3>
+                
+                <div class="rating-input-section">
+                    <label>Your Rating:</label>
+                    <div class="stars-input" id="starsInput">
+                        <i class="fa-regular fa-star" data-rating="1"></i>
+                        <i class="fa-regular fa-star" data-rating="2"></i>
+                        <i class="fa-regular fa-star" data-rating="3"></i>
+                        <i class="fa-regular fa-star" data-rating="4"></i>
+                        <i class="fa-regular fa-star" data-rating="5"></i>
+                    </div>
+                </div>
+                
+                <div class="review-input-section">
+                    <label for="reviewComment">Your Review:</label>
+                    <textarea id="reviewComment" rows="4" placeholder="Share your experience with this product..."></textarea>
+                </div>
+                
+                <!-- Media Upload Section -->
+                <div class="media-upload-section">
+                    <label>Add Photos or Videos (Optional):</label>
+                    <input type="file" id="mediaInput" multiple accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime" style="display: none;">
+                    <label for="mediaInput" class="media-upload-area" id="mediaUploadArea">
+                        <div class="upload-placeholder">
+                            <i class="fa-solid fa-cloud-arrow-up"></i>
+                            <p>Tap to upload or drag files here</p>
+                            <span class="upload-hint">Images (JPG, PNG, WebP, GIF) up to 5MB • Videos (MP4, WebM, MOV) up to 50MB</span>
+                        </div>
+                    </label>
+                    <div class="media-preview-grid" id="mediaPreviewGrid"></div>
+                    <div class="upload-progress" id="uploadProgress" style="display: none;">
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressFill"></div>
+                        </div>
+                        <span id="uploadStatus">Uploading...</span>
+                    </div>
+                </div>
+                
+                <button id="submitReviewBtn" class="submit-review-btn">
+                    <i class="fa-solid fa-paper-plane"></i> Submit Review
+                </button>
+                
+                <div id="reviewMessage" class="review-message"></div>
+                
+                <div class="existing-reviews">
+                    <h3>Customer Reviews</h3>
+                    <div id="reviewsList"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Profile Modal -->
+    <div class="review-modal" id="editProfileModal">
+        <div class="review-modal-content">
+            <div class="review-modal-header">
+                <h2><i class="fa-solid fa-user-pen"></i> Edit Profile Information</h2>
+                <span class="close-review-modal" id="closeEditModal">&times;</span>
+            </div>
+            <div class="review-modal-body">
+                <form id="editProfileForm">
+                    <div class="review-input-section">
+                        <label for="edit-first-name">First Name</label>
+                        <input type="text" id="edit-first-name" value="{{ user.first_name }}" required style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 8px; font-size: 1rem;">
+                    </div>
+                    <div class="review-input-section">
+                        <label for="edit-last-name">Last Name</label>
+                        <input type="text" id="edit-last-name" value="{{ user.last_name }}" required style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 8px; font-size: 1rem;">
+                    </div>
+                    <div class="review-input-section">
+                        <label for="edit-email">Email Address</label>
+                        <input type="email" id="edit-email" value="{{ user.email }}" required style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 8px; font-size: 1rem;">
+                    </div>
+                    <div class="review-input-section">
+                        <label for="edit-phone">Phone Number</label>
+                        <input type="text" id="edit-phone" value="{{ user.profile.phone }}" placeholder="e.g., +63 912 345 6789" style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 8px; font-size: 1rem;">
+                    </div>
+                    <div class="review-input-section">
+                        <label for="edit-address">Street Address</label>
+                        <textarea id="edit-address" rows="2" placeholder="Enter your street address" style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 8px; font-size: 1rem; resize: vertical;">{{ user.profile.address }}</textarea>
+                    </div>
+                    <div class="review-input-section">
+                        <label for="edit-city">City</label>
+                        <input type="text" id="edit-city" value="{{ user.profile.city }}" placeholder="Enter your city" style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 8px; font-size: 1rem;">
+                    </div>
+                    <div class="review-input-section">
+                        <label for="edit-postal-code">Postal Code</label>
+                        <input type="text" id="edit-postal-code" value="{{ user.profile.postal_code }}" placeholder="Enter postal code" style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 8px; font-size: 1rem;">
+                    </div>
+                    <div class="review-input-section">
+                        <label for="locationMap">
+                            <i class="fa-solid fa-map-location-dot"></i> Pin Your Location on Map
+                        </label>
+                        <div class="map-controls">
+                            <button type="button" class="btn-locate" id="getCurrentLocation">
+                                <i class="fa-solid fa-location-crosshairs"></i> Use My Current Location
+                            </button>
+                        </div>
+                        <div id="locationMap"></div>
+                        <div class="location-info" id="locationInfo">
+                            <i class="fa-solid fa-circle-info"></i> Click on the map to pin your exact delivery location
+                        </div>
+                        <input type="hidden" id="edit-latitude" value="{{ user.profile.latitude|default:'' }}">
+                        <input type="hidden" id="edit-longitude" value="{{ user.profile.longitude|default:'' }}">
+                    </div>
+                    <button type="submit" class="submit-review-btn" style="background: linear-gradient(135deg, var(--primary) 0%, #1a5e45 100%);">
+                        <i class="fa-solid fa-floppy-disk"></i> Save Changes
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Logout confirmation
+        const logoutLink = document.getElementById('logout-link');
+        const logoutModal = document.getElementById('logoutModal');
+        const cancelLogout = document.getElementById('cancelLogout');
+        const confirmLogout = document.getElementById('confirmLogout');
+        
+        if (logoutLink) {
+            logoutLink.addEventListener('click', function(e) {
+                e.preventDefault();
+                logoutModal.classList.add('show');
+            });
+        }
+        
+        if (cancelLogout) {
+            cancelLogout.addEventListener('click', function() {
+                logoutModal.classList.remove('show');
+            });
+        }
+        
+        if (confirmLogout) {
+            confirmLogout.addEventListener('click', function() {
+                const csrfToken = document.cookie
+                    .split('; ')
+                    .find(row => row.startsWith('csrftoken='))
+                    ?.split('=')[1];
+                
+                fetch('{% url "logout" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        window.location.href = data.redirect_url;
+                    }
+                })
+                .catch(error => {
+                    console.error('Logout error:', error);
+                });
+            });
+        }
+        
+        // Close modal when clicking outside
+        logoutModal.addEventListener('click', function(e) {
+            if (e.target === logoutModal) {
+                logoutModal.classList.remove('show');
+            }
+        });
+
+        // Review Modal Functionality
+        const reviewModal = document.getElementById('reviewModal');
+        const closeReviewModal = document.querySelector('.close-review-modal');
+        const reviewButtons = document.querySelectorAll('.btn-review');
+        const viewRatingButtons = document.querySelectorAll('.btn-view-rating');
+        const starsInput = document.querySelectorAll('.stars-input i');
+        const submitReviewBtn = document.getElementById('submitReviewBtn');
+        const reviewComment = document.getElementById('reviewComment');
+        const reviewMessage = document.getElementById('reviewMessage');
+        const reviewProductName = document.getElementById('reviewProductName');
+        const reviewsList = document.getElementById('reviewsList');
+        
+        let currentProductId = null;
+        let currentOrderId = null;
+        let selectedRating = 0;
+        let viewMode = false; // Track if we're viewing or writing
+        
+        // Media upload variables
+        const mediaInput = document.getElementById('mediaInput');
+        const mediaUploadArea = document.getElementById('mediaUploadArea');
+        const mediaPreviewGrid = document.getElementById('mediaPreviewGrid');
+        const uploadProgress = document.getElementById('uploadProgress');
+        const progressFill = document.getElementById('progressFill');
+        const uploadStatus = document.getElementById('uploadStatus');
+        let selectedMediaFiles = [];
+        
+        const MAX_FILES = 5;
+        const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
+        const MAX_VIDEO_SIZE = 50 * 1024 * 1024; // 50MB
+        const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+        const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/quicktime'];
+        
+        // Media upload - drag and drop handlers (click is handled by label for="mediaInput")
+        if (mediaUploadArea) {
+            // Drag and drop handlers (desktop only)
+            mediaUploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                mediaUploadArea.classList.add('drag-over');
+            });
+            
+            mediaUploadArea.addEventListener('dragleave', () => {
+                mediaUploadArea.classList.remove('drag-over');
+            });
+            
+            mediaUploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                mediaUploadArea.classList.remove('drag-over');
+                handleFileSelection(e.dataTransfer.files);
+            });
+        }
+        
+        if (mediaInput) {
+            mediaInput.addEventListener('change', (e) => {
+                if (e.target.files && e.target.files.length > 0) {
+                    handleFileSelection(e.target.files);
+                }
+            });
+        }
+        
+        function handleFileSelection(files) {
+            if (!files || files.length === 0) return;
+            const fileArray = Array.from(files);
+            
+            for (const file of fileArray) {
+                if (selectedMediaFiles.length >= MAX_FILES) {
+                    showMessage(`Maximum ${MAX_FILES} files allowed`, 'error');
+                    break;
+                }
+                
+                const isImage = ALLOWED_IMAGE_TYPES.includes(file.type);
+                const isVideo = ALLOWED_VIDEO_TYPES.includes(file.type);
+                
+                if (!isImage && !isVideo) {
+                    showMessage(`${file.name}: Invalid file type`, 'error');
+                    continue;
+                }
+                
+                if (isImage && file.size > MAX_IMAGE_SIZE) {
+                    showMessage(`${file.name}: Image must be under 5MB`, 'error');
+                    continue;
+                }
+                
+                if (isVideo && file.size > MAX_VIDEO_SIZE) {
+                    showMessage(`${file.name}: Video must be under 50MB`, 'error');
+                    continue;
+                }
+                
+                selectedMediaFiles.push(file);
+                addMediaPreview(file);
+            }
+            
+            // Clear input so same file can be re-selected
+            mediaInput.value = '';
+        }
+        
+        function addMediaPreview(file) {
+            const isVideo = file.type.startsWith('video/');
+            const previewItem = document.createElement('div');
+            previewItem.className = 'media-preview-item';
+            previewItem.dataset.fileName = file.name;
+            
+            if (isVideo) {
+                const video = document.createElement('video');
+                video.src = URL.createObjectURL(file);
+                previewItem.appendChild(video);
+                
+                const playIcon = document.createElement('span');
+                playIcon.className = 'video-overlay';
+                playIcon.innerHTML = '<i class="fa-solid fa-play"></i>';
+                previewItem.appendChild(playIcon);
+            } else {
+                const img = document.createElement('img');
+                img.src = URL.createObjectURL(file);
+                previewItem.appendChild(img);
+            }
+            
+            const removeBtn = document.createElement('button');
+            removeBtn.className = 'remove-media';
+            removeBtn.innerHTML = '<i class="fa-solid fa-times"></i>';
+            removeBtn.onclick = (e) => {
+                e.stopPropagation();
+                removeMediaFile(file.name);
+                previewItem.remove();
+            };
+            previewItem.appendChild(removeBtn);
+            
+            mediaPreviewGrid.appendChild(previewItem);
+        }
+        
+        function removeMediaFile(fileName) {
+            selectedMediaFiles = selectedMediaFiles.filter(f => f.name !== fileName);
+        }
+        
+        function clearMediaPreviews() {
+            selectedMediaFiles = [];
+            if (mediaPreviewGrid) {
+                mediaPreviewGrid.innerHTML = '';
+            }
+            if (uploadProgress) {
+                uploadProgress.style.display = 'none';
+            }
+        }
+        
+        async function uploadMediaFiles(reviewId) {
+            if (selectedMediaFiles.length === 0) return Promise.resolve();
+            
+            uploadProgress.style.display = 'block';
+            const csrfToken = document.cookie
+                .split('; ')
+                .find(row => row.startsWith('csrftoken='))
+                ?.split('=')[1];
+            
+            let uploaded = 0;
+            for (const file of selectedMediaFiles) {
+                const formData = new FormData();
+                formData.append('media', file);
+                
+                try {
+                    uploadStatus.textContent = `Uploading ${uploaded + 1}/${selectedMediaFiles.length}...`;
+                    progressFill.style.width = `${(uploaded / selectedMediaFiles.length) * 100}%`;
+                    
+                    const response = await fetch(`/review/${reviewId}/upload-media/`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': csrfToken
+                        },
+                        body: formData
+                    });
+                    
+                    const result = await response.json();
+                    if (!response.ok || !result.success) {
+                        console.error(`Failed to upload ${file.name}:`, result.message || result.errors);
+                    }
+                    uploaded++;
+                } catch (error) {
+                    console.error(`Error uploading ${file.name}:`, error);
+                }
+            }
+            
+            progressFill.style.width = '100%';
+            uploadStatus.textContent = 'Upload complete!';
+            
+            // Clear preview but not the uploaded status
+            selectedMediaFiles = [];
+            if (mediaPreviewGrid) {
+                mediaPreviewGrid.innerHTML = '';
+            }
+            
+            return Promise.resolve();
+        }
+
+        // Open review modal for writing
+        reviewButtons.forEach(btn => {
+            btn.addEventListener('click', function() {
+                viewMode = false;
+                currentProductId = this.dataset.productId;
+                currentOrderId = this.dataset.orderId;
+                const productName = this.dataset.productName;
+                reviewProductName.textContent = productName;
+                
+                // Show/enable input fields
+                document.querySelector('.rating-input-section').style.display = 'block';
+                document.querySelector('.review-input-section').style.display = 'block';
+                document.querySelector('.media-upload-section').style.display = 'block';
+                submitReviewBtn.style.display = 'flex';
+                
+                // Reset form
+                selectedRating = 0;
+                reviewComment.value = '';
+                updateStarDisplay();
+                clearMediaPreviews();
+                reviewMessage.style.display = 'none';
+                reviewMessage.className = 'review-message';
+                
+                // Load existing reviews
+                loadReviews(currentProductId);
+                
+                reviewModal.classList.add('show');
+            });
+        });
+
+        // Open review modal for viewing (read-only)
+        viewRatingButtons.forEach(btn => {
+            btn.addEventListener('click', function() {
+                viewMode = true;
+                currentProductId = this.dataset.productId;
+                currentOrderId = this.dataset.orderId;
+                const productName = this.dataset.productName;
+                
+                // Hide input fields
+                document.querySelector('.rating-input-section').style.display = 'none';
+                document.querySelector('.review-input-section').style.display = 'none';
+                document.querySelector('.media-upload-section').style.display = 'none';
+                submitReviewBtn.style.display = 'none';
+                
+                reviewProductName.textContent = productName ? `Your Review for ${productName}` : 'Your Review';
+                reviewMessage.style.display = 'none';
+                
+                // Load user's specific review for this order
+                loadUserReview(currentProductId, currentOrderId);
+                
+                reviewModal.classList.add('show');
+            });
+        });
+        
+        // Buy Again functionality
+        const buyAgainButtons = document.querySelectorAll('.btn-buy-again');
+        buyAgainButtons.forEach(btn => {
+            btn.addEventListener('click', function() {
+                const productId = this.dataset.productId;
+                const quantity = parseFloat(this.dataset.quantity) || 1;
+                const button = this;
+                
+                // Disable button during request
+                button.disabled = true;
+                button.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Adding...';
+                
+                const csrfToken = document.cookie
+                    .split('; ')
+                    .find(row => row.startsWith('csrftoken='))
+                    ?.split('=')[1];
+                
+                fetch('/api/cart/add/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({
+                        product_id: parseInt(productId),
+                        quantity: quantity
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Redirect to cart
+                        window.location.href = '/cart/';
+                    } else {
+                        alert(data.message || 'Failed to add to cart');
+                        button.disabled = false;
+                        button.innerHTML = '<i class="fa-solid fa-cart-plus"></i> Buy Again';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred. Please try again.');
+                    button.disabled = false;
+                    button.innerHTML = '<i class="fa-solid fa-cart-plus"></i> Buy Again';
+                });
+            });
+        });
+
+        // Close review modal
+        closeReviewModal.addEventListener('click', function() {
+            reviewModal.classList.remove('show');
+            clearMediaPreviews();
+        });
+
+        reviewModal.addEventListener('click', function(e) {
+            if (e.target === reviewModal) {
+                reviewModal.classList.remove('show');
+                clearMediaPreviews();
+            }
+        });
+
+        // Star rating input
+        starsInput.forEach(star => {
+            star.addEventListener('click', function() {
+                selectedRating = parseInt(this.dataset.rating);
+                updateStarDisplay();
+            });
+
+            star.addEventListener('mouseenter', function() {
+                const rating = parseInt(this.dataset.rating);
+                starsInput.forEach((s, index) => {
+                    if (index < rating) {
+                        s.classList.add('fa-solid', 'active');
+                        s.classList.remove('fa-regular');
+                    } else {
+                        s.classList.remove('fa-solid', 'active');
+                        s.classList.add('fa-regular');
+                    }
+                });
+            });
+        });
+
+        document.querySelector('.stars-input').addEventListener('mouseleave', function() {
+            updateStarDisplay();
+        });
+
+        function updateStarDisplay() {
+            starsInput.forEach((star, index) => {
+                if (index < selectedRating) {
+                    star.classList.add('fa-solid', 'active');
+                    star.classList.remove('fa-regular');
+                } else {
+                    star.classList.remove('fa-solid', 'active');
+                    star.classList.add('fa-regular');
+                }
+            });
+        }
+
+        // Submit review
+        submitReviewBtn.addEventListener('click', function() {
+            if (selectedRating === 0) {
+                showMessage('Please select a rating', 'error');
+                return;
+            }
+
+            if (!reviewComment.value.trim()) {
+                showMessage('Please write a review', 'error');
+                return;
+            }
+            
+            if (!currentOrderId) {
+                showMessage('Order ID is missing. Please try again.', 'error');
+                return;
+            }
+
+            const csrfToken = document.cookie
+                .split('; ')
+                .find(row => row.startsWith('csrftoken='))
+                ?.split('=')[1];
+
+            fetch(`/submit-review/${currentProductId}/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify({
+                    rating: selectedRating,
+                    comment: reviewComment.value.trim(),
+                    order_id: parseInt(currentOrderId)
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    // Upload media files if any
+                    if (selectedMediaFiles.length > 0 && data.review_id) {
+                        showMessage('Review submitted! Uploading media...', 'success');
+                        uploadMediaFiles(data.review_id).then(() => {
+                            loadReviews(currentProductId);
+                            finishReviewSubmit();
+                        });
+                    } else {
+                        showMessage('Review submitted successfully!', 'success');
+                        loadReviews(currentProductId);
+                        finishReviewSubmit();
+                    }
+                } else {
+                    showMessage(data.message || 'Failed to submit review', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error submitting review:', error);
+                showMessage('An error occurred. Please try again.', 'error');
+            });
+        });
+        
+        function finishReviewSubmit() {
+            // Reset form
+            selectedRating = 0;
+            reviewComment.value = '';
+            updateStarDisplay();
+            clearMediaPreviews();
+            
+            // Update button in DOM (change "Write Review" to "View Your Rating" + "Buy Again")
+            updateReviewButtonAfterSubmit(currentProductId, currentOrderId);
+            
+            // Close modal after a short delay
+            setTimeout(() => {
+                reviewModal.classList.remove('show');
+            }, 1500);
+        }
+        
+        function updateReviewButtonAfterSubmit(productId, orderId) {
+            // Find the specific Write Review button for this product+order
+            const reviewBtn = document.querySelector(`.btn-review[data-product-id="${productId}"][data-order-id="${orderId}"]`);
+            if (reviewBtn) {
+                const productName = reviewBtn.dataset.productName;
+                const quantity = '1'; // Default quantity for buy again
+                
+                // Create new container with both buttons
+                const container = document.createElement('div');
+                container.className = 'review-action-buttons';
+                container.innerHTML = `
+                    <button class="btn-view-rating" data-product-id="${productId}" data-product-name="${productName}" data-order-id="${orderId}">
+                        <i class="fa-solid fa-eye"></i> View Your Rating
+                    </button>
+                    <button class="btn-buy-again" data-product-id="${productId}" data-quantity="${quantity}">
+                        <i class="fa-solid fa-cart-plus"></i> Buy Again
+                    </button>
+                `;
+                
+                // Replace the old button
+                reviewBtn.replaceWith(container);
+                
+                // Re-attach event listeners to new buttons
+                const newViewBtn = container.querySelector('.btn-view-rating');
+                const newBuyBtn = container.querySelector('.btn-buy-again');
+                
+                newViewBtn.addEventListener('click', function() {
+                    viewMode = true;
+                    currentProductId = this.dataset.productId;
+                    currentOrderId = this.dataset.orderId;
+                    const pName = this.dataset.productName;
+                    
+                    document.querySelector('.rating-input-section').style.display = 'none';
+                    document.querySelector('.review-input-section').style.display = 'none';
+                    document.querySelector('.media-upload-section').style.display = 'none';
+                    submitReviewBtn.style.display = 'none';
+                    
+                    reviewProductName.textContent = pName ? `Your Review for ${pName}` : 'Your Review';
+                    reviewMessage.style.display = 'none';
+                    
+                    loadUserReview(currentProductId, currentOrderId);
+                    reviewModal.classList.add('show');
+                });
+                
+                newBuyBtn.addEventListener('click', function() {
+                    const pId = this.dataset.productId;
+                    const qty = parseFloat(this.dataset.quantity) || 1;
+                    const button = this;
+                    
+                    button.disabled = true;
+                    button.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Adding...';
+                    
+                    const csrfToken = document.cookie
+                        .split('; ')
+                        .find(row => row.startsWith('csrftoken='))
+                        ?.split('=')[1];
+                    
+                    fetch('/api/cart/add/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrfToken
+                        },
+                        body: JSON.stringify({
+                            product_id: parseInt(pId),
+                            quantity: qty
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            window.location.href = '/cart/';
+                        } else {
+                            alert(data.message || 'Failed to add to cart');
+                            button.disabled = false;
+                            button.innerHTML = '<i class="fa-solid fa-cart-plus"></i> Buy Again';
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('An error occurred. Please try again.');
+                        button.disabled = false;
+                        button.innerHTML = '<i class="fa-solid fa-cart-plus"></i> Buy Again';
+                    });
+                });
+            }
+        }
+
+        function showMessage(message, type) {
+            reviewMessage.textContent = message;
+            reviewMessage.className = `review-message ${type}`;
+        }
+
+        function loadReviews(productId, highlightUserReview = false) {
+            fetch(`/get-reviews/${productId}/`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.reviews && data.reviews.length > 0) {
+                        const currentUsername = '{{ user.username }}';
+                        
+                        reviewsList.innerHTML = data.reviews.map(review => {
+                            const isUserReview = review.user === currentUsername;
+                            const highlightClass = (highlightUserReview && isUserReview) ? ' style="background: #dbeafe; border: 2px solid #3b82f6;"' : '';
+                            
+                            // Build media gallery HTML
+                            let mediaHtml = '';
+                            if (review.media && review.media.length > 0) {
+                                mediaHtml = `<div class="review-media-gallery">
+                                    ${review.media.map(m => {
+                                        if (m.type === 'VIDEO') {
+                                            return `<div class="review-media-thumb" onclick="openMediaViewer('${m.url}', 'video')">
+                                                <video src="${m.url}"></video>
+                                                <span class="play-icon"><i class="fa-solid fa-play"></i></span>
+                                            </div>`;
+                                        } else {
+                                            return `<div class="review-media-thumb" onclick="openMediaViewer('${m.url}', 'image')">
+                                                <img src="${m.url}" alt="Review media">
+                                            </div>`;
+                                        }
+                                    }).join('')}
+                                </div>`;
+                            }
+                            
+                            return `
+                            <div class="review-item"${highlightClass}>
+                                <div class="review-header">
+                                    <span class="review-user">${review.user}${isUserReview ? ' (You)' : ''}</span>
+                                    <span class="review-date">${review.created_at}</span>
+                                </div>
+                                <div class="review-stars">
+                                    ${'<i class="fa-solid fa-star"></i>'.repeat(review.rating)}
+                                    ${'<i class="fa-regular fa-star"></i>'.repeat(5 - review.rating)}
+                                </div>
+                                <div class="review-comment">${review.comment}</div>
+                                ${mediaHtml}
+                            </div>
+                        `}).join('');
+                    } else {
+                        reviewsList.innerHTML = '<p style="color: #6b7280; text-align: center;">No reviews yet. Be the first to review!</p>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading reviews:', error);
+                    reviewsList.innerHTML = '<p style="color: #ef4444;">Failed to load reviews</p>';
+                });
+        }
+        
+        function loadUserReview(productId, orderId) {
+            // Load specific user review for a product+order combination
+            let url = `/get-reviews/${productId}/`;
+            if (orderId) {
+                url += `?order_id=${orderId}`;
+            }
+            
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.reviews && data.reviews.length > 0) {
+                        // Find the user's own review (filtered by order on backend)
+                        const currentUsername = '{{ user.username }}';
+                        const userReview = data.reviews.find(r => r.is_own_review);
+                        
+                        if (userReview) {
+                            // Build media gallery HTML
+                            let mediaHtml = '';
+                            if (userReview.media && userReview.media.length > 0) {
+                                mediaHtml = `<div class="review-media-gallery" style="margin-top: 1rem;">
+                                    ${userReview.media.map(m => {
+                                        if (m.type === 'VIDEO') {
+                                            return `<div class="review-media-thumb" onclick="openMediaViewer('${m.url}', 'video')">
+                                                <video src="${m.url}"></video>
+                                                <span class="play-icon"><i class="fa-solid fa-play"></i></span>
+                                            </div>`;
+                                        } else {
+                                            return `<div class="review-media-thumb" onclick="openMediaViewer('${m.url}', 'image')">
+                                                <img src="${m.url}" alt="Review media">
+                                            </div>`;
+                                        }
+                                    }).join('')}
+                                </div>`;
+                            }
+                            
+                            reviewsList.innerHTML = `
+                                <div class="review-item" style="background: #dbeafe; border: 2px solid #3b82f6;">
+                                    <div class="review-header">
+                                        <span class="review-user">${userReview.user} (You)</span>
+                                        <span class="review-date">${userReview.created_at}</span>
+                                    </div>
+                                    <div class="review-stars" style="font-size: 1.5rem; margin: 0.75rem 0;">
+                                        ${'<i class="fa-solid fa-star" style="color: #f59e0b;"></i>'.repeat(userReview.rating)}
+                                        ${'<i class="fa-regular fa-star" style="color: #d1d5db;"></i>'.repeat(5 - userReview.rating)}
+                                    </div>
+                                    <div class="review-comment" style="font-size: 1rem; line-height: 1.6; color: #374151;">${userReview.comment}</div>
+                                    ${mediaHtml}
+                                </div>
+                            `;
+                        } else {
+                            reviewsList.innerHTML = '<p style="color: #6b7280; text-align: center;">Your review was not found.</p>';
+                        }
+                    } else {
+                        reviewsList.innerHTML = '<p style="color: #6b7280; text-align: center;">No review found for this order.</p>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading review:', error);
+                    reviewsList.innerHTML = '<p style="color: #ef4444;">Failed to load review</p>';
+                });
+        }
+        
+        // Media viewer modal
+        function openMediaViewer(url, type) {
+            const viewer = document.createElement('div');
+            viewer.className = 'media-viewer-overlay';
+            viewer.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);display:flex;align-items:center;justify-content:center;z-index:10000;';
+            viewer.onclick = () => viewer.remove();
+            
+            if (type === 'video') {
+                viewer.innerHTML = `<video src="${url}" controls autoplay style="max-width:90%;max-height:90%;border-radius:8px;"></video>`;
+            } else {
+                viewer.innerHTML = `<img src="${url}" style="max-width:90%;max-height:90%;border-radius:8px;object-fit:contain;">`;
+            }
+            
+            // Close button
+            const closeBtn = document.createElement('button');
+            closeBtn.innerHTML = '<i class="fa-solid fa-times"></i>';
+            closeBtn.style.cssText = 'position:absolute;top:20px;right:20px;background:rgba(255,255,255,0.2);color:white;border:none;width:40px;height:40px;border-radius:50%;cursor:pointer;font-size:1.2rem;';
+            closeBtn.onclick = () => viewer.remove();
+            viewer.appendChild(closeBtn);
+            
+            document.body.appendChild(viewer);
+        }
+
+        // Edit Profile Modal Handling
+        const editProfileBtn = document.getElementById('editProfileBtn');
+        const editProfileModal = document.getElementById('editProfileModal');
+        const closeEditModal = document.getElementById('closeEditModal');
+        const editProfileForm = document.getElementById('editProfileForm');
+
+        let map;
+        let marker;
+        let userLatitude = parseFloat(document.getElementById('edit-latitude').value) || 14.5995; // Default to Manila
+        let userLongitude = parseFloat(document.getElementById('edit-longitude').value) || 120.9842;
+
+        editProfileBtn.addEventListener('click', function() {
+            editProfileModal.classList.add('show');
+            
+            // Initialize map after modal is shown
+            setTimeout(() => {
+                if (!map) {
+                    initializeMap();
+                }
+            }, 100);
+        });
+
+        closeEditModal.addEventListener('click', function() {
+            editProfileModal.classList.remove('show');
+        });
+
+        function initializeMap() {
+            // Initialize the map centered on user's saved location or default
+            map = L.map('locationMap').setView([userLatitude, userLongitude], 13);
+            
+            // Add OpenStreetMap tiles
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+                maxZoom: 19
+            }).addTo(map);
+            
+            // Add marker if user has saved location
+            if (document.getElementById('edit-latitude').value && document.getElementById('edit-longitude').value) {
+                marker = L.marker([userLatitude, userLongitude], {
+                    draggable: true
+                }).addTo(map);
+                
+                updateLocationInfo(userLatitude, userLongitude);
+                
+                marker.on('dragend', function(e) {
+                    const position = marker.getLatLng();
+                    updateLocationInfo(position.lat, position.lng);
+                });
+            }
+            
+            // Add click event to map
+            map.on('click', function(e) {
+                const lat = e.latlng.lat;
+                const lng = e.latlng.lng;
+                
+                if (marker) {
+                    marker.setLatLng([lat, lng]);
+                } else {
+                    marker = L.marker([lat, lng], {
+                        draggable: true
+                    }).addTo(map);
+                    
+                    marker.on('dragend', function(e) {
+                        const position = marker.getLatLng();
+                        updateLocationInfo(position.lat, position.lng);
+                    });
+                }
+                
+                updateLocationInfo(lat, lng);
+            });
+        }
+
+        function updateLocationInfo(lat, lng) {
+            document.getElementById('edit-latitude').value = lat.toFixed(6);
+            document.getElementById('edit-longitude').value = lng.toFixed(6);
+            document.getElementById('locationInfo').innerHTML = 
+                `<i class="fa-solid fa-check-circle"></i> Location pinned: ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+        }
+
+        // Get current location button
+        document.getElementById('getCurrentLocation').addEventListener('click', function() {
+            if (navigator.geolocation) {
+                this.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Getting location...';
+                const btn = this;
+                
+                navigator.geolocation.getCurrentPosition(
+                    function(position) {
+                        const lat = position.coords.latitude;
+                        const lng = position.coords.longitude;
+                        
+                        map.setView([lat, lng], 15);
+                        
+                        if (marker) {
+                            marker.setLatLng([lat, lng]);
+                        } else {
+                            marker = L.marker([lat, lng], {
+                                draggable: true
+                            }).addTo(map);
+                            
+                            marker.on('dragend', function(e) {
+                                const position = marker.getLatLng();
+                                updateLocationInfo(position.lat, position.lng);
+                            });
+                        }
+                        
+                        updateLocationInfo(lat, lng);
+                        btn.innerHTML = '<i class="fa-solid fa-location-crosshairs"></i> Use My Current Location';
+                    },
+                    function(error) {
+                        alert('Unable to get your location. Please pin manually on the map.');
+                        btn.innerHTML = '<i class="fa-solid fa-location-crosshairs"></i> Use My Current Location';
+                    }
+                );
+            } else {
+                alert('Geolocation is not supported by your browser');
+            }
+        });
+
+        window.addEventListener('click', function(event) {
+            if (event.target === editProfileModal) {
+                editProfileModal.classList.remove('show');
+            }
+        });
+
+        editProfileForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const formData = {
+                first_name: document.getElementById('edit-first-name').value.trim(),
+                last_name: document.getElementById('edit-last-name').value.trim(),
+                email: document.getElementById('edit-email').value.trim(),
+                phone: document.getElementById('edit-phone').value.trim(),
+                address: document.getElementById('edit-address').value.trim(),
+                city: document.getElementById('edit-city').value.trim(),
+                postal_code: document.getElementById('edit-postal-code').value.trim(),
+                latitude: document.getElementById('edit-latitude').value || null,
+                longitude: document.getElementById('edit-longitude').value || null
+            };
+
+            const csrfToken = document.cookie
+                .split('; ')
+                .find(row => row.startsWith('csrftoken='))
+                ?.split('=')[1];
+
+            try {
+                const response = await fetch('/api/update-profile/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    alert('Profile updated successfully!');
+                    editProfileModal.classList.remove('show');
+                    location.reload(); // Reload to show updated information
+                } else {
+                    alert('Error: ' + (data.error || 'Failed to update profile'));
+                }
+            } catch (error) {
+                console.error('Error updating profile:', error);
+                alert('An error occurred while updating your profile');
+            }
+        });
+
+        // Mobile Navigation Toggle
+        const navToggle = document.getElementById('navToggle');
+        const navLinks = document.getElementById('navLinks');
+        
+        if (navToggle && navLinks) {
+            navToggle.addEventListener('click', function() {
+                navLinks.classList.toggle('active');
+                const icon = this.querySelector('i');
+                if (navLinks.classList.contains('active')) {
+                    icon.classList.remove('fa-bars');
+                    icon.classList.add('fa-xmark');
+                } else {
+                    icon.classList.remove('fa-xmark');
+                    icon.classList.add('fa-bars');
+                }
+            });
+            
+            // Close mobile nav when clicking a link
+            navLinks.querySelectorAll('a').forEach(link => {
+                link.addEventListener('click', function() {
+                    navLinks.classList.remove('active');
+                    navToggle.querySelector('i').classList.remove('fa-xmark');
+                    navToggle.querySelector('i').classList.add('fa-bars');
+                });
+            });
+        }
+
+        // Order status tabs (To Pay / To Ship / To Review)
+        const orderTabButtons = document.querySelectorAll('.order-tab-btn');
+        const orderCards = document.querySelectorAll('.order-card[data-order-status]');
+        const orderTabEmptyState = document.getElementById('orderTabEmptyState');
+
+        function matchesOrderTab(status, tab) {
+            if (tab === 'to-pay') return status === 'PENDING';
+            if (tab === 'to-ship') return status === 'PROCESSING' || status === 'SHIPPED';
+            if (tab === 'to-review') return status === 'DELIVERED';
+            return false;
+        }
+
+        function applyOrderTab(tab) {
+            let visibleCount = 0;
+            orderCards.forEach(card => {
+                const status = card.dataset.orderStatus;
+                const shouldShow = matchesOrderTab(status, tab);
+                card.style.display = shouldShow ? '' : 'none';
+                if (shouldShow) visibleCount++;
+            });
+
+            if (orderTabEmptyState) {
+                orderTabEmptyState.style.display = visibleCount === 0 ? 'block' : 'none';
+            }
+        }
+
+        if (orderTabButtons.length > 0) {
+            orderTabButtons.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    orderTabButtons.forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    applyOrderTab(this.dataset.tab);
+                });
+            });
+
+            applyOrderTab('to-pay');
+        }
+
+        // Customer-admin chat
+        const customerChatMessages = document.getElementById('customerChatMessages');
+        const customerChatForm = document.getElementById('customerChatForm');
+        const customerChatInput = document.getElementById('customerChatInput');
+
+        function getCsrfToken() {
+            return document.cookie
+                .split('; ')
+                .find(row => row.startsWith('csrftoken='))
+                ?.split('=')[1] || '';
+        }
+
+        function renderCustomerMessages(messages) {
+            if (!customerChatMessages) return;
+
+            if (!messages || messages.length === 0) {
+                customerChatMessages.innerHTML = '<div style="text-align:center; color:#64748b;">No messages yet. Start a conversation with admin.</div>';
+                return;
+            }
+
+            customerChatMessages.innerHTML = messages.map(msg => `
+                <div class="chat-message ${msg.is_mine ? 'mine' : 'other'}">
+                    <div>${msg.message}</div>
+                    <div class="chat-message-meta">${msg.sender_name} • ${msg.created_at}</div>
+                </div>
+            `).join('');
+
+            customerChatMessages.scrollTop = customerChatMessages.scrollHeight;
+        }
+
+        async function loadCustomerChat() {
+            if (!customerChatMessages) return;
+            try {
+                const response = await fetch('/api/chat/customer/');
+                const data = await response.json();
+                renderCustomerMessages(data.messages || []);
+            } catch (error) {
+                customerChatMessages.innerHTML = '<div style="text-align:center; color:#dc2626;">Failed to load chat messages.</div>';
+            }
+        }
+
+        if (customerChatForm && customerChatInput) {
+            customerChatForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                const message = customerChatInput.value.trim();
+                if (!message) return;
+
+                try {
+                    const response = await fetch('/api/chat/customer/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': getCsrfToken()
+                        },
+                        body: JSON.stringify({ message })
+                    });
+
+                    const result = await response.json();
+                    if (!response.ok || !result.success) {
+                        throw new Error(result.error || 'Failed to send message');
+                    }
+
+                    customerChatInput.value = '';
+                    loadCustomerChat();
+                } catch (error) {
+                    alert(error.message || 'Failed to send message');
+                }
+            });
+
+            loadCustomerChat();
+            setInterval(loadCustomerChat, 10000);
+        }
+        
+        // Cancel Order Modal
+        function showCancelModal(orderNumber, totalAmount, paymentMethod, paymentStatus) {
+            const modal = document.getElementById('cancelOrderModal');
+            document.getElementById('cancelOrderNumber').textContent = orderNumber;
+            document.getElementById('cancelOrderAmount').textContent = totalAmount;
+            document.getElementById('confirmCancelBtn').href = '/order/' + orderNumber + '/cancel/';
+            
+            // Show refund notice if paid via GCash
+            const refundNotice = document.getElementById('refundNotice');
+            if (paymentMethod === 'GCASH' && paymentStatus === 'PAID') {
+                refundNotice.style.display = 'block';
+                document.getElementById('refundAmount').textContent = totalAmount;
+            } else {
+                refundNotice.style.display = 'none';
+            }
+            
+            modal.classList.add('show');
+        }
+        
+        function hideCancelModal() {
+            document.getElementById('cancelOrderModal').classList.remove('show');
+        }
+        
+        // Close modal when clicking outside
+        document.getElementById('cancelOrderModal')?.addEventListener('click', function(e) {
+            if (e.target === this) {
+                hideCancelModal();
+            }
+        });
+    </script>
+    
+    <!-- Cancel Order Modal -->
+    <div class="logout-modal" id="cancelOrderModal">
+        <div class="logout-modal-content">
+            <div class="logout-modal-icon" style="background: linear-gradient(135deg, #ef4444, #dc2626);">
+                <i class="fa-solid fa-times-circle"></i>
+            </div>
+            <h3 class="logout-modal-title">Cancel Order</h3>
+            <p class="logout-modal-message">
+                Are you sure you want to cancel order <strong>#<span id="cancelOrderNumber"></span></strong>?
+                <br><br>
+                <span style="color: #64748b;">Total: ₱<span id="cancelOrderAmount"></span></span>
+            </p>
+            <div id="refundNotice" style="display: none; background: #d1fae5; border: 1px solid #10b981; border-radius: 8px; padding: 12px; margin-bottom: 15px; text-align: left;">
+                <i class="fa-solid fa-info-circle" style="color: #059669;"></i>
+                <span style="color: #065f46; font-size: 0.9rem;">
+                    <strong>Refund Notice:</strong> Your GCash payment of ₱<span id="refundAmount"></span> will be refunded.
+                </span>
+            </div>
+            <div class="logout-modal-buttons">
+                <button class="logout-modal-btn logout-modal-btn-cancel" onclick="hideCancelModal()">Keep Order</button>
+                <a id="confirmCancelBtn" href="#" class="logout-modal-btn logout-modal-btn-confirm" style="background: #ef4444;">Cancel Order</a>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

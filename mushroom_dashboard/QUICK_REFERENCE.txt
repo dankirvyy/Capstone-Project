@@ -1,0 +1,172 @@
+"""
+Quick Reference: ESP32 DHT22 Setup
+Mushroom Farming Dashboard
+"""
+
+# ============================================
+# HARDWARE WIRING
+# ============================================
+
+DHT22 Sensor Pinout:
+┌─────────────┐
+│  DHT22      │
+│             │
+│ 1  2  3  4  │
+└─┬──┬──┬──┬──┘
+  │  │  │  └── Pin 4: Not used
+  │  │  └───── Pin 3: GND → ESP32 GND
+  │  └──────── Pin 2: DATA → ESP32 GPIO 4
+  └─────────── Pin 1: VCC → ESP32 3.3V
+
+Note: Add 10kΩ pull-up resistor between Pin 1 (VCC) and Pin 2 (DATA)
+      if using bare sensor (not a module)
+
+
+# ============================================
+# ARDUINO IDE SETUP CHECKLIST
+# ============================================
+
+□ Install ESP32 board support
+  URL: https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
+
+□ Install libraries:
+  ✓ DHT sensor library (Adafruit)
+  ✓ Adafruit Unified Sensor
+
+□ Board settings:
+  - Board: ESP32 Dev Module
+  - Upload Speed: 115200
+  - Flash Frequency: 80MHz
+  - Core Debug Level: None
+
+
+# ============================================
+# CONFIGURATION CHECKLIST
+# ============================================
+
+Arduino Sketch (arduino_esp32_dht22.ino):
+□ WiFi SSID: "YOUR_WIFI_NAME"
+□ WiFi Password: "YOUR_PASSWORD"
+□ Server URL: "http://YOUR_IP:8000/api/sensor-data/"
+□ API Key: "your-secret-key"
+□ GPIO Pin: 4 (or your choice)
+
+Django Settings:
+□ Run: python manage.py migrate
+□ API Key in sensor_api.py matches Arduino
+□ ALLOWED_HOSTS includes your server IP
+□ Server running: python manage.py runserver 0.0.0.0:8000
+
+
+# ============================================
+# TESTING COMMANDS
+# ============================================
+
+# Test API manually
+curl -X POST http://localhost:8000/api/sensor-data/ \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: your-secret-api-key" \
+  -d '{"temperature": 16.5, "humidity": 85.2}'
+
+# Check database
+python manage.py shell
+>>> from core.models import SensorReading
+>>> SensorReading.objects.latest('timestamp')
+
+# Get latest readings
+curl http://localhost:8000/api/sensor-data/latest/
+
+# Get statistics
+curl http://localhost:8000/api/sensor-data/stats/?hours=24
+
+
+# ============================================
+# OPTIMAL MUSHROOM GROWING CONDITIONS
+# ============================================
+
+Temperature: 13-18°C (55-64°F)
+Humidity:    80-95%
+
+Status Levels:
+- OPTIMAL:    13-18°C AND 80-95% humidity
+- ACCEPTABLE: 10-21°C AND 70-98% humidity
+- CRITICAL:   Outside acceptable ranges
+
+
+# ============================================
+# COMMON ISSUES & FIXES
+# ============================================
+
+"Failed to read from DHT sensor"
+→ Check wiring, add delay(2000) in setup()
+
+"WiFi connection failed"
+→ Check SSID/password, use 2.4GHz network only
+
+"HTTP Error 401"
+→ API keys don't match in Arduino & Django
+
+"HTTP Error 500"
+→ Check Django logs, ensure migrations applied
+
+"No data in dashboard"
+→ Verify data in database, check view/template
+
+
+# ============================================
+# DEFAULT READING INTERVAL
+# ============================================
+
+Current: 60 seconds (60000 ms)
+
+To change, modify in Arduino sketch:
+const unsigned long readingInterval = 30000;  // 30 seconds
+
+
+# ============================================
+# FILE LOCATIONS
+# ============================================
+
+Arduino:
+  mushroom_dashboard/arduino_esp32_dht22.ino
+
+Django:
+  mushroom_dashboard/core/models.py
+  mushroom_dashboard/core/sensor_api.py
+  mushroom_dashboard/core/urls.py
+  mushroom_dashboard/core/migrations/0016_dht22_sensor_integration.py
+
+Documentation:
+  mushroom_dashboard/DHT22_INTEGRATION_GUIDE.md
+  mushroom_dashboard/database_schema_dht22.sql
+  mushroom_dashboard/QUICK_REFERENCE.txt (this file)
+
+
+# ============================================
+# API ENDPOINTS
+# ============================================
+
+POST   /api/sensor-data/          - Receive sensor data
+GET    /api/sensor-data/latest/   - Get recent readings
+GET    /api/sensor-data/stats/    - Get statistics
+
+
+# ============================================
+# SERIAL MONITOR OUTPUT
+# ============================================
+
+Expected output when working:
+=================================
+ESP32 DHT22 Sensor Node
+=================================
+✓ WiFi connected!
+IP Address: 192.168.1.50
+
+--- Sensor Reading ---
+Temperature: 16.5 °C
+Humidity: 85.2 %
+✓ Temperature is OPTIMAL
+✓ Humidity is OPTIMAL
+
+📡 Sending data to server...
+✓ Server Response Code: 201

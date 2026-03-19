@@ -1,0 +1,476 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <meta name="theme-color" content="#0c4b33">
+    <title>My Wishlist - KABUTOMATE</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'css/responsive.css' %}">
+    <style>
+        :root {
+            --primary: #0c4b33;
+            --accent: #d4f26b;
+            --glass: rgba(255, 255, 255, 0.9);
+            --text-main: #1a1a1a;
+            --card-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: #f0f4f2;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(12, 75, 51, 0.1) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(212, 242, 107, 0.1) 0px, transparent 50%);
+            min-height: 100vh;
+            color: var(--text-main);
+        }
+
+        /* Navbar */
+        .navbar {
+            background: var(--glass);
+            backdrop-filter: blur(10px);
+            padding: 1rem 5%;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+
+        .logo-section { display: flex; align-items: center; gap: 12px; }
+        
+        .logo-circle {
+            width: 45px; height: 45px;
+            background: var(--primary);
+            border-radius: 12px;
+            transform: rotate(-5deg);
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 4px 12px rgba(12, 75, 51, 0.3);
+        }
+
+        .brand-name {
+            font-size: 1.4rem; font-weight: 800;
+            letter-spacing: -0.5px; color: var(--primary);
+        }
+
+        .nav-links { display: flex; gap: 2.5rem; align-items: center; }
+        .nav-links a { 
+            text-decoration: none; color: #555; 
+            font-weight: 600; font-size: 0.95rem;
+            transition: 0.3s;
+        }
+        .nav-links a:hover { color: var(--primary); }
+
+        /* Page Header */
+        .page-header {
+            padding: 4rem 2rem 2rem;
+            text-align: center;
+        }
+
+        .page-header h1 {
+            font-size: 3.5rem;
+            font-weight: 900;
+            color: var(--primary);
+            margin-bottom: 10px;
+            letter-spacing: -2px;
+        }
+
+        /* Container */
+        .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+
+        /* Wishlist Grid */
+        .wishlist-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 2.5rem;
+        }
+
+        .wishlist-card {
+            background: white;
+            border-radius: 24px;
+            padding: 15px;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border: 1px solid rgba(0,0,0,0.03);
+            position: relative;
+        }
+
+        .wishlist-card:hover {
+            transform: translateY(-10px);
+            box-shadow: var(--card-shadow);
+        }
+
+        .product-image-container {
+            position: relative;
+            width: 100%;
+            height: 240px;
+            background: #f8faf9;
+            border-radius: 18px;
+            overflow: hidden;
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        .product-emoji { font-size: 5rem; transition: 0.3s; }
+        .wishlist-card:hover .product-emoji { transform: scale(1.2) rotate(10deg); }
+
+        .remove-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: white;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .remove-btn i {
+            font-size: 1.2rem;
+            color: #ef4444;
+        }
+
+        .remove-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+        }
+
+        .product-info { padding: 1.5rem 0.5rem 0.5rem; }
+
+        .product-name {
+            font-size: 1.5rem; font-weight: 800;
+            margin-bottom: 8px; color: var(--primary);
+        }
+
+        .product-price {
+            font-size: 1.8rem; font-weight: 900;
+            color: var(--text-main);
+            margin-bottom: 15px;
+        }
+
+        .stock-tag {
+            display: flex; align-items: center; gap: 6px;
+            font-size: 0.85rem; font-weight: 600;
+            color: #666; margin-bottom: 12px;
+        }
+
+        .add-to-cart-btn {
+            width: 100%;
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 1rem;
+            border-radius: 10px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.3s;
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+        }
+
+        .add-to-cart-btn:hover { background: #156344; }
+
+        .empty-state {
+            text-align: center;
+            padding: 5rem 2rem;
+            background: white;
+            border-radius: 30px;
+        }
+
+        .empty-state i {
+            font-size: 4rem;
+            color: var(--primary);
+            margin-bottom: 20px;
+        }
+
+        .empty-state h2 {
+            font-size: 2rem;
+            margin-bottom: 15px;
+            color: var(--primary);
+        }
+
+        .empty-state p {
+            font-size: 1.1rem;
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        .shop-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--primary);
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: 700;
+            transition: 0.3s;
+        }
+
+        .shop-btn:hover {
+            background: #156344;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(12, 75, 51, 0.3);
+        }
+        
+        /* --- Mobile Toggle Button --- */
+        .nav-toggle {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: var(--primary);
+            cursor: pointer;
+            padding: 8px;
+        }
+        
+        /* --- Responsive Styles --- */
+        @media (max-width: 768px) {
+            .nav-toggle {
+                display: block;
+            }
+            
+            .nav-links {
+                display: none;
+                flex-direction: column;
+                width: 100%;
+                gap: 0;
+                padding-top: 1rem;
+                border-top: 1px solid rgba(0,0,0,0.05);
+                margin-top: 0.5rem;
+            }
+            
+            .nav-links.active {
+                display: flex;
+            }
+            
+            .nav-links a {
+                padding: 0.75rem 0;
+                border-bottom: 1px solid rgba(0,0,0,0.05);
+            }
+            
+            .page-header {
+                padding: 2rem 1rem 1rem;
+            }
+            
+            .page-header h1 {
+                font-size: 2rem;
+            }
+            
+            .wishlist-grid {
+                grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .navbar {
+                padding: 0.75rem 4%;
+            }
+            
+            .brand-name {
+                font-size: 1.2rem;
+            }
+            
+            .page-header h1 {
+                font-size: 1.5rem;
+            }
+            
+            .wishlist-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .wishlist-card {
+                padding: 12px;
+            }
+            
+            .product-image-container {
+                height: 200px;
+            }
+            
+            .product-name {
+                font-size: 1.25rem;
+            }
+            
+            .product-price {
+                font-size: 1.4rem;
+            }
+            
+            .empty-state {
+                padding: 3rem 1.5rem;
+            }
+            
+            .empty-state i {
+                font-size: 3rem;
+            }
+            
+            .empty-state h2 {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="logo-section">
+            <div class="logo-circle">🍄</div>
+            <span class="brand-name">KABUTOMATE</span>
+        </div>
+        <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation">
+            <i class="fa-solid fa-bars" id="navIcon"></i>
+        </button>
+        <div class="nav-links" id="navLinks">
+            <a href="{% url 'shop' %}">Shop</a>
+            <a href="{% url 'wishlist' %}" style="color: var(--primary);">Wishlist</a>
+            <a href="{% url 'view_cart' %}" class="cart-btn">
+                <i class="fa-solid fa-cart-shopping"></i>
+                Cart
+            </a>
+            {% if user.is_authenticated %}
+                {% if user.is_staff %}
+                    <a href="{% url 'dashboard' %}">Dashboard</a>
+                {% endif %}
+                <a href="#" id="logout-link">Logout</a>
+            {% else %}
+                <a href="{% url 'login' %}">Login</a>
+            {% endif %}
+        </div>
+    </nav>
+
+    <!-- Page Header -->
+    <div class="page-header">
+        <h1>💝 My Wishlist</h1>
+        <p style="font-size: 1.2rem; color: #666;">Products you've saved for later</p>
+    </div>
+
+    <!-- Wishlist Content -->
+    <div class="container">
+        {% if wishlist_items %}
+        <div class="wishlist-grid">
+            {% for item in wishlist_items %}
+            <div class="wishlist-card">
+                <div class="product-image-container">
+                    <button class="remove-btn" data-product-id="{{ item.product.id }}">
+                        <i class="fa-solid fa-heart"></i>
+                    </button>
+                    {% if item.product.images.all %}
+                        {% with primary_image=item.product.images.all.0 %}
+                        <img src="{{ primary_image.image.url }}" alt="{{ item.product.name }}" class="product-emoji" style="width: 100%; height: 100%; object-fit: cover; font-size: initial;">
+                        {% endwith %}
+                    {% else %}
+                    <div class="product-emoji">🍄</div>
+                    {% endif %}
+                </div>
+                
+                <div class="product-info">
+                    <div class="product-name">{{ item.product.name }}</div>
+                    
+                    <div class="stock-tag">
+                        <i class="fa-solid fa-layer-group"></i>
+                        {% if item.product.stock_kg > 0 %}
+                            {{ item.product.stock_kg }} kg in stock
+                        {% else %}
+                            Out of stock
+                        {% endif %}
+                    </div>
+
+                    <div class="product-price">₱{{ item.product.price_per_kg }}<small style="font-size: 1rem; color: #888;">/kg</small></div>
+                    
+                    <form method="POST" action="{% url 'add_to_cart' item.product.id %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="quantity_kg" value="1">
+                        <button type="submit" class="add-to-cart-btn" {% if item.product.stock_kg == 0 %}disabled{% endif %}>
+                            <i class="fa-solid fa-cart-plus"></i>
+                            Add to Cart
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <i class="fa-solid fa-heart-crack"></i>
+            <h2>Your wishlist is empty</h2>
+            <p>Start adding products you love to save them for later!</p>
+            <a href="{% url 'shop' %}" class="shop-btn">
+                <i class="fa-solid fa-store"></i>
+                Browse Products
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    <script>
+        // Remove from wishlist
+        document.querySelectorAll('.remove-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const productId = this.dataset.productId;
+                const card = this.closest('.wishlist-card');
+                
+                const csrfToken = document.cookie
+                    .split('; ')
+                    .find(row => row.startsWith('csrftoken='))
+                    ?.split('=')[1];
+                
+                fetch(`/toggle-wishlist/${productId}/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Fade out and remove card
+                        card.style.opacity = '0';
+                        card.style.transform = 'scale(0.8)';
+                        setTimeout(() => {
+                            card.remove();
+                            
+                            // Check if wishlist is empty
+                            const grid = document.querySelector('.wishlist-grid');
+                            if (!grid.children.length) {
+                                location.reload(); // Reload to show empty state
+                            }
+                        }, 300);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error removing from wishlist:', error);
+                    alert('Failed to remove item from wishlist');
+                });
+            });
+        });
+        
+        // Mobile Navigation Toggle
+        const navToggle = document.getElementById('navToggle');
+        const navLinks = document.getElementById('navLinks');
+        const navIcon = document.getElementById('navIcon');
+        
+        if (navToggle) {
+            navToggle.addEventListener('click', function() {
+                navLinks.classList.toggle('active');
+                if (navLinks.classList.contains('active')) {
+                    navIcon.classList.remove('fa-bars');
+                    navIcon.classList.add('fa-times');
+                } else {
+                    navIcon.classList.remove('fa-times');
+                    navIcon.classList.add('fa-bars');
+                }
+            });
+        }
+    </script>
+</body>
+</html>

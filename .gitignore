@@ -1,0 +1,6 @@
+# Local env and secrets
+.env
+*.env
+
+# Database dumps
+*.sql

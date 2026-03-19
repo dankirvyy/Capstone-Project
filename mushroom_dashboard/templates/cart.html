@@ -1,0 +1,547 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <meta name="theme-color" content="#0c4b33">
+    <title>Your Basket - KABUTOMATE</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'css/responsive.css' %}">
+    
+    <style>
+        :root {
+            --primary: #0c4b33;
+            --primary-light: #1a5e45;
+            --accent: #d4f26b;
+            --danger: #ff6b6b;
+            --glass: rgba(255, 255, 255, 0.95);
+            --bg-gradient: linear-gradient(135deg, #f0f4f2 0%, #e8f5e9 100%);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg-gradient);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        /* --- Refined Navbar --- */
+        .navbar {
+            background: var(--glass);
+            backdrop-filter: blur(10px);
+            padding: 1rem 5%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.05);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .logo-section { display: flex; align-items: center; gap: 1rem; }
+        .logo-circle {
+            width: 45px; height: 45px;
+            background: var(--primary);
+            border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 4px 10px rgba(12, 75, 51, 0.2);
+        }
+
+        .brand-name {
+            font-size: 1.4rem; font-weight: 800;
+            color: var(--primary); letter-spacing: -0.5px;
+        }
+
+        .nav-links a {
+            text-decoration: none; color: #444;
+            font-weight: 600; margin-left: 2rem;
+            transition: 0.3s;
+        }
+        .nav-links a:hover { color: var(--primary); }
+
+        /* --- Layout --- */
+        .container {
+            max-width: 1100px;
+            margin: 3rem auto;
+            padding: 0 2rem;
+        }
+
+        .page-header {
+            margin-bottom: 2.5rem;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .page-header h1 {
+            font-size: 2.5rem;
+            font-weight: 900;
+            color: var(--primary);
+            letter-spacing: -1px;
+        }
+
+        /* --- Cart Bento Box --- */
+        .cart-grid {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 2rem;
+        }
+
+        @media (max-width: 900px) {
+            .cart-grid { grid-template-columns: 1fr; }
+        }
+
+        .cart-items-card {
+            background: white;
+            border-radius: 24px;
+            padding: 1.5rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+        }
+
+        .cart-item {
+            display: flex;
+            align-items: center;
+            padding: 1.5rem 0;
+            border-bottom: 1px solid #f0f0f0;
+            gap: 1.5rem;
+        }
+
+        .cart-item:last-child { border-bottom: none; }
+
+        .item-preview {
+            width: 80px; height: 80px;
+            background: #f8faf9;
+            border-radius: 16px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 2.5rem;
+        }
+
+        .item-info { flex: 1; }
+        .item-name {
+            font-size: 1.25rem; font-weight: 700;
+            color: var(--primary); margin-bottom: 4px;
+        }
+        .item-price { color: #888; font-size: 0.95rem; font-weight: 500; }
+
+        /* --- Quantity Controls --- */
+        .item-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .qty-input {
+            width: 70px;
+            padding: 8px;
+            border: 2px solid #edf2f0;
+            border-radius: 10px;
+            text-align: center;
+            font-weight: 700;
+            outline: none;
+        }
+
+        .btn-icon {
+            border: none;
+            background: #edf2f0;
+            color: #555;
+            width: 35px; height: 35px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .btn-icon:hover { background: var(--primary); color: white; }
+        .btn-remove { background: #fff1f1; color: var(--danger); }
+        .btn-remove:hover { background: var(--danger); color: white; }
+
+        .item-subtotal {
+            text-align: right;
+            font-weight: 800;
+            font-size: 1.2rem;
+            color: var(--primary);
+        }
+
+        /* --- Summary Sidebar --- */
+        .summary-card {
+            background: var(--primary);
+            color: white;
+            border-radius: 24px;
+            padding: 2rem;
+            height: fit-content;
+            position: sticky;
+            top: 100px;
+        }
+
+        .summary-card h2 { margin-bottom: 1.5rem; font-weight: 800; }
+
+        .summary-line {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+            opacity: 0.9;
+        }
+
+        .total-line {
+            border-top: 1px solid rgba(255,255,255,0.2);
+            padding-top: 1.5rem;
+            margin-top: 1.5rem;
+            font-size: 1.8rem;
+            font-weight: 900;
+        }
+
+        .btn-checkout {
+            display: block;
+            width: 100%;
+            background: var(--accent);
+            color: var(--primary);
+            text-align: center;
+            text-decoration: none;
+            padding: 1.2rem;
+            border-radius: 16px;
+            font-weight: 800;
+            font-size: 1.1rem;
+            margin-top: 2rem;
+            transition: 0.3s;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+
+        .btn-checkout:hover {
+            transform: translateY(-3px);
+            filter: brightness(1.05);
+        }
+
+        .btn-back {
+            display: inline-block;
+            margin-top: 1.5rem;
+            color: rgba(255,255,255,0.7);
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: 0.3s;
+        }
+        .btn-back:hover { color: white; }
+
+        /* --- Empty State --- */
+        .empty-state {
+            text-align: center;
+            padding: 5rem 2rem;
+            background: white;
+            border-radius: 30px;
+        }
+        .empty-state i { font-size: 5rem; color: #eee; margin-bottom: 1.5rem; }
+        
+        /* --- Mobile Toggle Button --- */
+        .nav-toggle {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: var(--primary);
+            cursor: pointer;
+            padding: 8px;
+        }
+        
+        /* --- Enhanced Responsive Styles --- */
+        @media (max-width: 1024px) {
+            .cart-grid {
+                grid-template-columns: 1fr 300px;
+            }
+        }
+        
+        @media (max-width: 900px) {
+            .cart-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .summary-card {
+                position: static;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .nav-toggle {
+                display: block;
+            }
+            
+            .nav-links {
+                display: none;
+                flex-direction: column;
+                width: 100%;
+                gap: 0;
+                padding-top: 1rem;
+                border-top: 1px solid rgba(0,0,0,0.05);
+                margin-top: 0.5rem;
+            }
+            
+            .nav-links.active {
+                display: flex;
+            }
+            
+            .nav-links a {
+                padding: 0.75rem 0;
+                border-bottom: 1px solid rgba(0,0,0,0.05);
+                margin-left: 0 !important;
+            }
+            
+            .container {
+                margin: 1.5rem auto;
+                padding: 0 1rem;
+            }
+            
+            .page-header h1 {
+                font-size: 1.75rem;
+            }
+            
+            .cart-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+            }
+            
+            .item-preview {
+                width: 100%;
+                height: 120px;
+            }
+            
+            .item-subtotal {
+                text-align: left;
+                width: 100%;
+                padding-top: 0.5rem;
+                border-top: 1px dashed #eee;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .navbar {
+                padding: 0.75rem 4%;
+            }
+            
+            .brand-name {
+                font-size: 1.2rem;
+            }
+            
+            .page-header h1 {
+                font-size: 1.5rem;
+            }
+            
+            .cart-items-card,
+            .summary-card {
+                padding: 1rem;
+                border-radius: 18px;
+            }
+            
+            .summary-card h2 {
+                font-size: 1.25rem;
+            }
+            
+            .total-line {
+                font-size: 1.4rem;
+            }
+            
+            .btn-checkout {
+                padding: 1rem;
+                font-size: 1rem;
+            }
+            
+            .empty-state {
+                padding: 3rem 1.5rem;
+            }
+            
+            .empty-state i {
+                font-size: 3.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="logo-section">
+            <div class="logo-circle">
+                <img src="{% static 'images/Screenshot_2025-11-01_124726-removebg-preview.png' %}" style="width: 30px;" alt="Logo">
+            </div>
+            <span class="brand-name">KABUTOMATE</span>
+        </div>
+        <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation">
+            <i class="fa-solid fa-bars" id="navIcon"></i>
+        </button>
+        <div class="nav-links" id="navLinks">
+            <a href="{% url 'shop' %}">Shop</a>
+            {% if user.is_authenticated %}
+            <a href="{% url 'profile' %}">
+                <i class="fa-solid fa-user"></i> {{ user.first_name|default:user.username }}
+            </a>
+            {% else %}
+            <a href="{% url 'login' %}">
+                <i class="fa-solid fa-right-to-bracket"></i> Login
+            </a>
+            {% endif %}
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="page-header">
+            <h1>Your <span style="color: var(--primary-light)">Basket</span></h1>
+            <span style="background: var(--primary); color: white; padding: 5px 15px; border-radius: 50px; font-weight: 700;">{{ cart_items|length }} Items</span>
+        </div>
+
+        {% if cart_items %}
+        <div class="cart-grid">
+            <div class="cart-items-card">
+                {% for item in cart_items %}
+                <div class="cart-item">
+                    <div class="item-preview">
+                        {% if item.product.images.all %}
+                            {% with primary_image=item.product.images.all.0 %}
+                            <img src="{{ primary_image.image.url }}" alt="{{ item.product.name }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 16px;">
+                            {% endwith %}
+                        {% else %}
+                        🍄
+                        {% endif %}
+                    </div>
+                    
+                    <div class="item-info">
+                        <div class="item-name">{{ item.product.name }}</div>
+                        <div class="item-price">₱{{ item.product.price_per_kg }} per kg</div>
+                        
+                        <div class="item-controls">
+                            <form method="POST" action="{% url 'update_cart_item' item.id %}" style="display: flex; gap: 8px;">
+                                {% csrf_token %}
+                                <input type="number" name="quantity_kg" class="qty-input" 
+                                       value="{{ item.quantity_kg }}" min="0.1" 
+                                       max="{{ item.product.stock_kg }}" step="0.1">
+                                <button type="submit" class="btn-icon" title="Update Quantity">
+                                    <i class="fa-solid fa-rotate"></i>
+                                </button>
+                            </form>
+                            
+                            <form method="POST" action="{% url 'remove_from_cart' item.id %}">
+                                {% csrf_token %}
+                                <button type="submit" class="btn-icon btn-remove" title="Remove Item">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div class="item-subtotal">
+                        ₱{{ item.subtotal }}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <div class="summary-card">
+                <h2>Summary</h2>
+                
+                <!-- Minimum Order Warning -->
+                {% if below_minimum %}
+                <div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 12px; padding: 15px; margin-bottom: 15px;">
+                    <div style="display: flex; align-items: flex-start; gap: 10px;">
+                        <i class="fa-solid fa-triangle-exclamation" style="color: #d97706; font-size: 1.2rem; margin-top: 2px;"></i>
+                        <div>
+                            <strong style="color: #92400e;">Minimum Order Not Met</strong>
+                            <p style="margin: 5px 0 0; color: #92400e; font-size: 0.9rem;">
+                                Your order must reach ₱{{ store_settings.minimum_order_amount|floatformat:2 }} to proceed with checkout. 
+                                Add ₱{{ amount_needed|floatformat:2 }} more to continue.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <div class="summary-line">
+                    <span>Subtotal</span>
+                    <span>₱{{ total }}</span>
+                </div>
+                <div class="summary-line">
+                    <span>Shipping</span>
+                    {% if free_shipping_eligible %}
+                    <span style="color: #16a34a; font-weight: 700;">FREE</span>
+                    {% else %}
+                    <span style="color: var(--primary); font-size: 0.85rem;">Calculated at checkout</span>
+                    {% endif %}
+                </div>
+                
+                <!-- Free Shipping Progress -->
+                {% if not free_shipping_eligible and total > 0 %}
+                <div style="background: #f0fdf4; border-radius: 10px; padding: 12px; margin: 10px 0;">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                        <i class="fa-solid fa-truck" style="color: #16a34a;"></i>
+                        <span style="font-size: 0.85rem; color: #15803d;">Add ₱{{ amount_for_free_shipping|floatformat:2 }} more for FREE shipping!</span>
+                    </div>
+                    <div style="background: #d1fae5; border-radius: 5px; height: 6px; overflow: hidden;">
+                        {% widthratio total store_settings.free_shipping_threshold 100 as progress %}
+                        <div style="background: #16a34a; height: 100%; width: {{ progress }}%;"></div>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <div class="total-line">
+                    <div style="font-size: 0.9rem; text-transform: uppercase; opacity: 0.7; margin-bottom: 5px;">Estimated Total</div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>Total</span>
+                        <span>₱{{ total }}</span>
+                    </div>
+                </div>
+
+                {% if below_minimum %}
+                <button class="btn-checkout" disabled style="opacity: 0.5; cursor: not-allowed; background: #9ca3af;">
+                    <i class="fa-solid fa-lock" style="margin-right: 8px;"></i> Minimum ₱{{ store_settings.minimum_order_amount|floatformat:0 }} Required
+                </button>
+                {% else %}
+                <a href="{% url 'checkout' %}" class="btn-checkout">
+                    Secure Checkout <i class="fa-solid fa-shield-check" style="margin-left: 8px;"></i>
+                </a>
+                {% endif %}
+                
+                <center>
+                    <a href="{% url 'shop' %}" class="btn-back">
+                        <i class="fa-solid fa-chevron-left"></i> Continue Shopping
+                    </a>
+                </center>
+            </div>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <i class="fa-solid fa-basket-shopping"></i>
+            <h2 style="font-size: 2rem; color: var(--primary); margin-bottom: 10px;">Your basket is empty</h2>
+            <p style="color: #666; margin-bottom: 2rem;">Looks like you haven't added any fresh mushrooms yet.</p>
+            <a href="{% url 'shop' %}" class="btn-checkout" style="display: inline-block; width: auto; padding: 1rem 3rem;">
+                Back to Shop
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    <script>
+        // Auto-hide alerts
+        setTimeout(() => {
+            const alerts = document.querySelectorAll('.alert');
+            alerts.forEach(a => a.style.display = 'none');
+        }, 3000);
+        
+        // Mobile Navigation Toggle
+        const navToggle = document.getElementById('navToggle');
+        const navLinks = document.getElementById('navLinks');
+        const navIcon = document.getElementById('navIcon');
+        
+        if (navToggle) {
+            navToggle.addEventListener('click', function() {
+                navLinks.classList.toggle('active');
+                if (navLinks.classList.contains('active')) {
+                    navIcon.classList.remove('fa-bars');
+                    navIcon.classList.add('fa-times');
+                } else {
+                    navIcon.classList.remove('fa-times');
+                    navIcon.classList.add('fa-bars');
+                }
+            });
+        }
+    </script>
+</body>
+</html>

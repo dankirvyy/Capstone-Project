@@ -1,0 +1,283 @@
+DHT22 SENSOR INTEGRATION - SYSTEM ARCHITECTURE
+==============================================
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         MUSHROOM FARMING DASHBOARD                           │
+│                         Real-Time Monitoring System                          │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃                           HARDWARE LAYER                                    ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+    ┌────────────────┐                   ┌────────────────┐
+    │   DHT22 Sensor │                   │  ESP32 Board   │
+    │                │                   │                │
+    │  Temp: -40~80°C│◄──Digital Data────│  WiFi: 2.4GHz  │
+    │  Hum:  0-100%  │                   │  GPIO Pins     │
+    │  ±0.5°C / ±2%  │                   │  32-bit CPU    │
+    └────────────────┘                   └────────────────┘
+            │                                     │
+            │                                     │
+    Measures every 60s                    Processes & Sends
+            │                                     │
+            ▼                                     ▼
+
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃                        COMMUNICATION LAYER                                  ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+                    ┌────────────────────────┐
+                    │    WiFi Network        │
+                    │    (2.4GHz only)       │
+                    └────────────────────────┘
+                              │
+                              │
+                    HTTP POST Request
+                    Content-Type: JSON
+                    X-API-Key: [auth]
+                              │
+                              ▼
+                    {
+                      "temperature": 16.5,
+                      "humidity": 85.2,
+                      "device_id": "ESP32_001"
+                    }
+                              │
+                              ▼
+
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃                          DJANGO BACKEND                                     ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+    ┌────────────────────────────────────────────────────────────────┐
+    │                      URL Routing (urls.py)                     │
+    ├────────────────────────────────────────────────────────────────┤
+    │  POST   /api/sensor-data/          → receive_sensor_data()     │
+    │  GET    /api/sensor-data/latest/   → get_latest_sensor_data()  │
+    │  GET    /api/sensor-data/stats/    → get_sensor_statistics()   │
+    └────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+    ┌────────────────────────────────────────────────────────────────┐
+    │                  API Views (sensor_api.py)                     │
+    ├────────────────────────────────────────────────────────────────┤
+    │  ✓ Validate API Key                                            │
+    │  ✓ Parse JSON Data                                             │
+    │  ✓ Validate Temperature & Humidity                             │
+    │  ✓ Create SensorReading Object                                 │
+    │  ✓ Check Growing Conditions                                    │
+    │  ✓ Generate Alerts if Critical                                 │
+    │  ✓ Return Success/Error Response                               │
+    └────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+    ┌────────────────────────────────────────────────────────────────┐
+    │                   Models (models.py)                           │
+    ├────────────────────────────────────────────────────────────────┤
+    │  SensorReading:                                                │
+    │    - timestamp (auto)                                          │
+    │    - temperature (Decimal)                                     │
+    │    - humidity (Decimal)                                        │
+    │    - co2_ppm (Integer, nullable)                               │
+    │    - device_id (String)                                        │
+    │                                                                │
+    │  Properties:                                                   │
+    │    - is_temperature_optimal (13-18°C)                          │
+    │    - is_humidity_optimal (80-95%)                              │
+    │    - condition_status (OPTIMAL/ACCEPTABLE/CRITICAL)            │
+    └────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃                         DATABASE LAYER                                      ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+    ┌────────────────────────────────────────────────────────────────┐
+    │                 MySQL Database (SQLite/PostgreSQL)             │
+    ├────────────────────────────────────────────────────────────────┤
+    │  Table: core_sensorreading                                     │
+    │  ┌─────┬───────────┬─────┬─────┬────────┬───────────┐         │
+    │  │ id  │ timestamp │ temp│ hum │ co2_ppm│ device_id │         │
+    │  ├─────┼───────────┼─────┼─────┼────────┼───────────┤         │
+    │  │  1  │ 2026-01-30│ 16.5│ 85.2│  NULL  │ ESP32_001 │         │
+    │  │  2  │ 2026-01-30│ 16.8│ 84.5│  NULL  │ ESP32_001 │         │
+    │  │  3  │ 2026-01-30│ 17.2│ 83.1│  NULL  │ ESP32_001 │         │
+    │  └─────┴───────────┴─────┴─────┴────────┴───────────┘         │
+    │                                                                │
+    │  Indexes:                                                      │
+    │    - PRIMARY KEY (id)                                          │
+    │    - INDEX idx_timestamp (timestamp DESC)                      │
+    │    - INDEX idx_device_timestamp (device_id, timestamp)         │
+    └────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃                      NOTIFICATION SYSTEM                                    ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+    ┌────────────────────────────────────────────────────────────────┐
+    │              Condition Monitoring & Alerts                     │
+    ├────────────────────────────────────────────────────────────────┤
+    │                                                                │
+    │  IF Temperature < 10°C or > 21°C:                              │
+    │     → Create CRITICAL Notification                             │
+    │     → Alert: "CRITICAL: Temperature out of range"              │
+    │                                                                │
+    │  IF Humidity < 70% or > 98%:                                   │
+    │     → Create WARNING Notification                              │
+    │     → Alert: "WARNING: Humidity out of range"                  │
+    │                                                                │
+    │  IF Temperature 13-18°C AND Humidity 80-95%:                   │
+    │     → Status: OPTIMAL                                          │
+    │     → No alerts                                                │
+    │                                                                │
+    └────────────────────────────────────────────────────────────────┘
+
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃                      PRESENTATION LAYER                                     ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+    ┌────────────────────────────────────────────────────────────────┐
+    │                   Admin Dashboard                              │
+    ├────────────────────────────────────────────────────────────────┤
+    │  • View all sensor readings                                    │
+    │  • Filter by device, date, status                              │
+    │  • Color-coded status indicators                               │
+    │  • Export data to CSV                                          │
+    └────────────────────────────────────────────────────────────────┘
+                              │
+    ┌────────────────────────────────────────────────────────────────┐
+    │              Environment Dashboard (Optional)                  │
+    ├────────────────────────────────────────────────────────────────┤
+    │  • Real-time temperature & humidity display                    │
+    │  • Historical charts (Chart.js)                                │
+    │  • Condition status widget                                     │
+    │  • Alert notifications                                         │
+    └────────────────────────────────────────────────────────────────┘
+
+
+═══════════════════════════════════════════════════════════════════════════
+                            DATA FLOW SEQUENCE
+═══════════════════════════════════════════════════════════════════════════
+
+ 1. ESP32 wakes up (or timer triggers)
+ 2. Read temperature and humidity from DHT22
+ 3. Validate readings (not NaN, in realistic range)
+ 4. Check WiFi connection (reconnect if needed)
+ 5. Create JSON payload
+ 6. Send HTTP POST to Django API endpoint
+ 7. Django validates API key
+ 8. Django parses JSON data
+ 9. Django creates SensorReading object
+10. Django checks growing conditions
+11. Django creates alerts if critical
+12. Django saves to database
+13. Django returns success response to ESP32
+14. ESP32 displays status on Serial Monitor
+15. ESP32 waits 60 seconds
+16. Repeat from step 1
+
+
+═══════════════════════════════════════════════════════════════════════════
+                         CONDITION CLASSIFICATION
+═══════════════════════════════════════════════════════════════════════════
+
+                    Temperature (°C)
+                    ↓
+         <10    10-13   13-18   18-21    >21
+         ════   ═════   ═════   ═════   ════
+         CRIT   ACCPT   OPTIM   ACCPT   CRIT
+                         │
+                    ┌────┼────┐
+                    │    │    │
+         Humidity   ↓    ↓    ↓   (%)
+                 <70  70-80 80-95 95-98  >98
+                 ════ ═════ ═════ ═════  ════
+                 WARN ACCPT OPTIM ACCPT  WARN
+
+
+═══════════════════════════════════════════════════════════════════════════
+                              FILE STRUCTURE
+═══════════════════════════════════════════════════════════════════════════
+
+mushroom_dashboard/
+│
+├── arduino_esp32_dht22.ino              ← ESP32 firmware
+│
+├── core/
+│   ├── models.py                        ← SensorReading model (enhanced)
+│   ├── sensor_api.py                    ← NEW: API endpoints
+│   ├── urls.py                          ← Routes (updated)
+│   ├── admin.py                         ← Admin panel (enhanced)
+│   └── migrations/
+│       └── 0016_dht22_sensor_integration.py  ← Database migration
+│
+├── database_schema_dht22.sql            ← MySQL schema
+├── DHT22_INTEGRATION_GUIDE.md           ← Complete setup guide
+├── DHT22_README.md                      ← Overview & features
+├── QUICK_REFERENCE.txt                  ← Quick reference card
+├── SYSTEM_ARCHITECTURE.txt              ← This file
+├── test_dht22_integration.py            ← Testing script
+└── ARDUINO_LIBRARIES.txt                ← Required libraries
+
+
+═══════════════════════════════════════════════════════════════════════════
+                           SECURITY LAYERS
+═══════════════════════════════════════════════════════════════════════════
+
+Layer 1: Network
+  └── WiFi password protection
+  └── Local network isolation (optional)
+
+Layer 2: Application
+  └── API Key authentication (X-API-Key header)
+  └── CSRF exempt for external devices
+  └── Input validation (JSON schema)
+
+Layer 3: Database
+  └── Django ORM (SQL injection prevention)
+  └── User permissions (Django admin)
+
+Layer 4: Production (Recommended)
+  └── HTTPS/TLS encryption
+  └── Firewall rules
+  └── Rate limiting
+  └── IP whitelisting
+
+
+═══════════════════════════════════════════════════════════════════════════
+                         PERFORMANCE METRICS
+═══════════════════════════════════════════════════════════════════════════
+
+ESP32:
+  • CPU Usage: < 5% (mostly idle)
+  • Power: ~80mA (WiFi active), ~10mA (deep sleep)
+  • Memory: ~50KB used (plenty available)
+  • WiFi Range: ~50m indoors, ~100m outdoors
+
+DHT22:
+  • Sampling Rate: Max 0.5Hz (one reading every 2 seconds)
+  • Response Time: ~2 seconds
+  • Accuracy: ±0.5°C, ±2% RH
+
+Django:
+  • Request Time: ~50ms (typical)
+  • Database Insert: ~5ms
+  • Concurrent Devices: 100+ (depends on server)
+
+Database:
+  • Storage: ~100 bytes per reading
+  • Daily Data: ~144 KB (60-second intervals)
+  • Annual Data: ~52 MB per device
+
+
+═══════════════════════════════════════════════════════════════════════════
+
+Created: January 30, 2026
+For: Mushroom Farming Dashboard
+Hardware: ESP32 + DHT22
+Framework: Django + Arduino

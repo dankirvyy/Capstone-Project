@@ -1,0 +1,1003 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <meta name="theme-color" content="#0c4b33">
+    <title>Mushroom IoT Dashboard - Weather</title>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'css/admin.css' %}">
+    <link rel="stylesheet" href="{% static 'css/responsive.css' %}">
+
+    <style>
+        /* --- Global Styles --- */
+        :root {
+            --dark-green: #0c4b33;
+            --mid-green: #1a5e45;
+            --light-green-bg: #dcfce7;
+            --light-green-bar: #22c55e;
+            --page-bg: #f4f7f6;
+            --card-bg: #ffffff;
+            --text-dark: #333;
+            --text-light: #555;
+            --border-color: #eee;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--page-bg);
+            margin: 0;
+            display: flex;
+            height: 100vh;
+            color: var(--text-dark);
+        }
+
+        /* --- Sidebar --- */
+        .sidebar {
+            width: 260px;
+            background-color: #0c4b33;
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            box-sizing: border-box;
+            height: 100vh;
+            position: fixed;
+            left: 0;
+            top: 0;
+            overflow-y: auto;
+        }
+
+        .sidebar-logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .sidebar-logo .logo {
+            background-color: #f9f9f9;
+            color: #0c4b33;
+            border-radius: 50%;
+            width: 80px;
+            height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 10px;
+            overflow: hidden;
+        }
+        
+        .sidebar-logo .logo img {
+            width: 60px;
+            height: 60px;
+            object-fit: contain;
+        }
+        
+        .sidebar-logo span {
+            font-weight: bold;
+            font-size: 1.1em;
+            letter-spacing: 1px;
+        }
+
+        .sidebar-nav {
+            flex-grow: 1;
+        }
+
+        .sidebar-nav a {
+            display: flex; 
+            align-items: center;
+            gap: 12px;
+            color: #e0e0e0;
+            text-decoration: none;
+            padding: 15px 10px;
+            margin-bottom: 5px;
+            border-radius: 8px;
+            font-size: 0.95em;
+        }
+        
+        .sidebar-nav a .icon {
+            width: 20px; 
+            text-align: center;
+        }
+
+        .sidebar-nav a.active,
+        .sidebar-nav a:hover {
+            background-color: var(--mid-green);
+            color: #ffffff;
+            font-weight: 500;
+        }
+
+        .sidebar-status {
+            background-color: #1a5e45;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            transition: background-color 0.3s ease;
+        }
+        
+        .sidebar-status.warning {
+            background-color: #b45309;
+        }
+        
+        .sidebar-status.error {
+            background-color: #991b1b;
+        }
+
+        .sidebar-status .status-title {
+            font-weight: bold;
+            font-size: 1em;
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .sidebar-status .status-desc {
+            font-size: 0.8em;
+            color: #c0c0c0;
+        }
+
+        /* --- Main Content --- */
+        .main-content {
+            flex-grow: 1;
+            margin-left: 260px;
+            padding: 30px;
+            overflow-y: auto;
+        }
+
+        .main-header {
+            margin-bottom: 20px;
+        }
+
+        .main-header h1 {
+            font-size: 2.5em;
+            font-weight: 700;
+            margin: 0;
+        }
+        
+        .card {
+            background-color: var(--card-bg);
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            margin-bottom: 20px;
+        }
+
+        /* --- Alerts --- */
+        .alert-section {
+            margin-bottom: 20px;
+        }
+        .alert {
+            padding: 12px 20px;
+            border-radius: 8px;
+            display: flex;
+            align-items: flex-start;
+            font-size: 0.9em;
+            margin-bottom: 10px;
+            gap: 10px; 
+            line-height: 1.5;
+        }
+        
+        .alert-icon {
+            margin-top: 3px;
+        }
+
+        .alert-warning {
+            background-color: #fffbeb;
+            border: 1px solid #fde68a;
+            color: #78350f;
+        }
+
+        .alert-info-highlight {
+            background-color: #eff6ff;
+            border: 2px solid #3b82f6; /* Blue highlight */
+            color: #1e40af;
+        }
+        
+        .alert-title {
+            font-weight: 700;
+            margin-bottom: 2px;
+            display: block;
+        }
+
+        /* --- Current Conditions --- */
+        .card.current-conditions {
+            padding-bottom: 15px;
+        }
+
+        .section-title {
+            font-size: 1.1em;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+
+        .current-conditions-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr;
+            gap: 20px;
+        }
+        
+        .current-temp .temp {
+            font-size: 3.5em;
+            font-weight: 600;
+            line-height: 1;
+        }
+        
+        .current-temp .desc {
+            font-size: 1.1em;
+            color: var(--text-light);
+            margin: 5px 0;
+            text-transform: capitalize;
+        }
+        
+        .current-temp .feels {
+            font-size: 0.9em;
+            color: var(--text-light);
+        }
+        
+        .current-details .detail-item {
+            font-size: 0.95em;
+            margin-bottom: 15px;
+        }
+        
+        .current-details .label {
+            color: var(--text-light);
+        }
+        
+        .current-details .value {
+            font-weight: 600;
+            display: block;
+        }
+
+        /* --- Hourly Forecast --- */
+        .hourly-grid {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr); /* Show 8 hours */
+            gap: 10px;
+            text-align: center;
+        }
+        
+        .hourly-item {
+            background-color: var(--page-bg);
+            padding: 15px 10px;
+            border-radius: 8px;
+        }
+        
+        .hourly-item .time {
+            font-size: 0.9em;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        
+        .hourly-item .icon {
+            font-size: 1.5em;
+            margin-bottom: 10px;
+            color: var(--text-light);
+        }
+        
+        .hourly-item .temp {
+            font-size: 1.1em;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        
+        .hourly-item .precip {
+            font-size: 0.85em;
+            color: #3b82f6; /* Blue for precip */
+            font-weight: 500;
+        }
+
+        /* --- 7-Day Forecast --- */
+        .daily-forecast-grid {
+            display: grid;
+            grid-template-columns: 0.5fr 2fr 0.5fr 0.5fr 0.5fr;
+            gap: 10px 20px;
+            align-items: center;
+            font-size: 0.95em;
+            font-weight: 500;
+        }
+        
+        .daily-item {
+            padding: 10px 0;
+        }
+        
+        .daily-item.day {
+            font-weight: 600;
+        }
+        
+        .temp-bar-container {
+            width: 100%;
+            height: 8px;
+            background-color: var(--light-green-bg);
+            border-radius: 4px;
+        }
+        
+        .temp-bar {
+            height: 100%;
+            background-color: var(--dark-green);
+            border-radius: 4px;
+        }
+        
+        .daily-item.max,
+        .daily-item.min,
+        .daily-item.precip {
+            text-align: right;
+        }
+        
+        .daily-item.min {
+            color: var(--text-light);
+        }
+        
+        .daily-item.precip {
+            color: #3b82f6; /* Blue for precip */
+        }
+
+        /* --- AI Impact Analysis --- */
+        .ai-impact-card {
+            background-color: #eff6ff;
+            border: 1px solid #bfdbfe;
+            color: #1e40af;
+        }
+        
+        .ai-impact-card h3 {
+            margin-top: 0;
+            color: #1d4ed8;
+            margin-bottom: 10px;
+        }
+        
+        .ai-impact-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .ai-impact-text {
+            font-size: 0.9em;
+            line-height: 1.6;
+            padding-right: 20px;
+        }
+        
+        .ai-impact-text .label {
+            font-weight: 700;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            font-weight: 600;
+            border: 1px solid transparent;
+            flex-shrink: 0;
+        }
+        
+        .status-green {
+            color: #15803d; 
+            background-color: #dcfce7; 
+            border-color: #86efac; 
+        }
+        .status-red {
+            color: #991b1b;
+            background-color: #fee2e2;
+            border-color: #fca5a5;
+        }
+        
+    /* --- Logout Modal --- */
+    .logout-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(5px);
+        z-index: 9999;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .logout-modal.show {
+        display: flex;
+    }
+
+    .logout-modal-content {
+        background: white;
+        border-radius: 20px;
+        padding: 2.5rem;
+        max-width: 400px;
+        width: 90%;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        animation: modalSlideIn 0.3s ease;
+    }
+
+    @keyframes modalSlideIn {
+        from { transform: scale(0.7); opacity: 0; }
+        to { transform: scale(1); opacity: 1; }
+    }
+
+    .logout-modal-icon {
+        width: 60px;
+        height: 60px;
+        background: #fee2e2;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1.5rem;
+    }
+
+    .logout-modal-icon i {
+        font-size: 1.8rem;
+        color: #dc2626;
+    }
+
+    .logout-modal-title {
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: #333;
+        text-align: center;
+        margin-bottom: 0.5rem;
+    }
+
+    .logout-modal-message {
+        text-align: center;
+        color: #666;
+        margin-bottom: 2rem;
+        font-size: 0.95rem;
+    }
+
+    .logout-modal-buttons {
+        display: flex;
+        gap: 1rem;
+    }
+
+    .logout-modal-btn {
+        flex: 1;
+        padding: 0.9rem 1.5rem;
+        border: none;
+        border-radius: 12px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.3s;
+        font-size: 0.95rem;
+    }
+
+    .logout-modal-btn-cancel {
+        background: #f1f5f9;
+        color: #475569;
+    }
+
+    .logout-modal-btn-cancel:hover {
+        background: #e2e8f0;
+    }
+
+    .logout-modal-btn-confirm {
+        background: #dc2626;
+        color: white;
+    }
+
+    .logout-modal-btn-confirm:hover {
+        background: #b91c1c;
+    }
+
+        /* --- Mobile Responsive Enhancements --- */
+        @media (max-width: 1024px) {
+            .control-grid, .charts-grid { grid-template-columns: 1fr; }
+        }
+        
+        @media (max-width: 768px) {
+            body { display: block; height: auto; }
+            .sidebar { 
+                transform: translateX(-100%); 
+                width: 280px; 
+                z-index: 9999;
+                padding-top: 70px;
+                padding-bottom: 30px;
+                overflow-y: auto;
+                max-height: 100vh;
+            }
+            .sidebar.active { transform: translateX(0); }
+            .sidebar-nav { padding-bottom: 80px; }
+            .sidebar-nav a[id="logout-link"] {
+                margin-top: 15px;
+                background: rgba(255, 255, 255, 0.1);
+                border: 1px solid rgba(255, 255, 255, 0.2);
+            }
+            .main-content { margin-left: 0; padding: 80px 15px 20px 15px; min-height: 100vh; }
+            .main-header h1 { font-size: 1.75rem; }
+            .card-grid { grid-template-columns: 1fr; }
+            .control-grid { grid-template-columns: 1fr; }
+            .form-grid, .form-grid-col-3 { grid-template-columns: 1fr; }
+        }
+        
+        @media (max-width: 480px) {
+            .main-content { padding: 70px 10px 15px 10px; }
+            .main-header h1 { font-size: 1.5rem; }
+            .card { padding: 18px; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Mobile Menu Toggle Button -->
+    <button class="mobile-menu-toggle" id="mobileMenuToggle" aria-label="Toggle navigation menu">
+        <i class="fa-solid fa-bars" id="menuIcon"></i>
+    </button>
+    
+    <!-- Mobile Overlay -->
+    <div class="mobile-overlay" id="mobileOverlay" style="pointer-events: none;"></div>
+
+    <!-- Logout Confirmation Modal -->
+    <div class="logout-modal" id="logoutModal">
+        <div class="logout-modal-content">
+            <div class="logout-modal-icon">
+                <i class="fa-solid fa-right-from-bracket"></i>
+            </div>
+            <h3 class="logout-modal-title">Confirm Logout</h3>
+            <p class="logout-modal-message">Are you sure you want to logout from your account?</p>
+            <div class="logout-modal-buttons">
+                <button class="logout-modal-btn logout-modal-btn-cancel" id="cancelLogout">Cancel</button>
+                <button class="logout-modal-btn logout-modal-btn-confirm" id="confirmLogout">Logout</button>
+            </div>
+        </div>
+    </div>
+
+    <aside class="sidebar">
+        <!-- Sidebar Toggle Button -->
+        <button class="sidebar-toggle" id="sidebarToggle" title="Toggle Sidebar">
+            <i class="fa-solid fa-chevron-left"></i>
+        </button>
+
+        <div class="sidebar-logo">
+            <div class="logo">
+                <img src="{% static 'images/Screenshot_2025-11-01_124726-removebg-preview.png' %}" alt="Mushroom Logo">
+            </div>
+            <span>KABUTOMATE</span>
+        </div>
+
+        <nav class="sidebar-nav">
+            <a href="{% url 'dashboard' %}" class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" data-tooltip="Dashboard">
+                <i class="fa-solid fa-gauge-high icon"></i> <span>Dashboard</span>
+            </a>
+            <a href="{% url 'environment' %}" class="{% if request.resolver_match.url_name == 'environment' %}active{% endif %}" data-tooltip="Environmental Control"> 
+                <i class="fa-solid fa-leaf icon"></i> <span>Environmental Control</span>
+            </a>
+            <a href="{% url 'production' %}" class="{% if request.resolver_match.url_name == 'production' %}active{% endif %}" data-tooltip="Production Records">
+                <i class="fa-solid fa-clipboard-list icon"></i> <span>Production Records</span>
+            </a>
+            <a href="{% url 'inventory' %}" class="{% if request.resolver_match.url_name == 'inventory' %}active{% endif %}" data-tooltip="Inventory and Sales">
+                <i class="fa-solid fa-boxes-stacked icon"></i> <span>Inventory and Sales</span>
+            </a>
+            <a href="{% url 'cooked_products' %}" class="{% if request.resolver_match.url_name == 'cooked_products' %}active{% endif %}" data-tooltip="Cooked Products">
+                <i class="fa-solid fa-utensils icon"></i> <span>Cooked Products</span>
+            </a>
+            <a href="{% url 'pos_system' %}" class="{% if request.resolver_match.url_name == 'pos_system' %}active{% endif %}" data-tooltip="Point of Sale">
+                <i class="fa-solid fa-cash-register icon"></i> <span>Point of Sale</span>
+            </a>
+            <a href="{% url 'manage_orders' %}" class="{% if request.resolver_match.url_name == 'manage_orders' %}active{% endif %}" data-tooltip="Manage Orders">
+                <i class="fa-solid fa-list-check icon"></i> <span>Manage Orders</span>
+            </a>
+            <a href="{% url 'analytics' %}" class="{% if request.resolver_match.url_name == 'analytics' %}active{% endif %}" data-tooltip="Analytics">
+                <i class="fa-solid fa-chart-line icon"></i> <span>Analytics</span>
+            </a>
+            <a href="{% url 'weather' %}" class="{% if request.resolver_match.url_name == 'weather' %}active{% endif %}" data-tooltip="Weather">
+                <i class="fa-solid fa-cloud-sun icon"></i> <span>Weather</span>
+            </a>
+            <a href="{% url 'notifications' %}" class="{% if request.resolver_match.url_name == 'notifications' %}active{% endif %}" data-tooltip="Notifications">
+                <i class="fa-solid fa-bell icon"></i> <span>Notifications</span>
+            </a>
+            <a href="{% url 'store_settings' %}" class="{% if request.resolver_match.url_name == 'store_settings' %}active{% endif %}" data-tooltip="Store Settings">
+                <i class="fa-solid fa-store icon"></i> <span>Store Settings</span>
+            </a>
+            <a href="{% url 'sales_report' %}" class="{% if request.resolver_match.url_name == 'sales_report' %}active{% endif %}" data-tooltip="Sales Report">
+                <i class="fa-solid fa-file-invoice-dollar icon"></i> <span>Sales Report</span>
+            </a>
+            <a href="{% url 'profile' %}" class="{% if request.resolver_match.url_name == 'profile' %}active{% endif %}" data-tooltip="Profile">
+                <i class="fa-solid fa-user icon"></i> <span>Profile</span>
+            </a>
+            <a href="#" id="logout-link" data-tooltip="Logout">
+                <i class="fa-solid fa-right-from-bracket icon"></i> <span>Logout</span>
+            </a>
+        </nav>
+    </aside>
+
+    <main class="main-content">
+        <header class="main-header">
+            <h1>Weather Forecast</h1>
+        </header>
+        
+        <div id="alert-section" class="alert-section">
+            <div class="alert alert-info-highlight">Loading weather alerts...</div>
+        </div>
+
+        <div class="card current-conditions">
+            <div class="section-title">Current Conditions (Naujan)</div>
+            <div class="current-conditions-grid">
+                <div class="current-temp">
+                    <div id="current-temp" class="temp">...°C</div>
+                    <div id="current-desc" class="desc">Loading...</div>
+                    <div id="current-feels" class="feels">Feels like ...°C</div>
+                </div>
+                <div class="current-details">
+                    <div class="detail-item">
+                        <span class="label">Humidity</span>
+                        <span id="current-humidity" class="value">...%</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="label">Pressure</span>
+                        <span id="current-pressure" class="value">... mb</span>
+                    </div>
+                </div>
+                 <div class="current-details">
+                    <div class="detail-item">
+                        <span class="label">Wind</span>
+                        <span id="current-wind" class="value">... km/h</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="label">Visibility</span>
+                        <span id="current-visibility" class="value">... km</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="section-title">Hourly Forecast</div>
+            <div id="hourly-grid" class="hourly-grid">
+                </div>
+        </div>
+        
+        <div class="card">
+            <div class="section-title">5-Day Forecast</div>
+            <div id="daily-forecast-grid" class="daily-forecast-grid">
+                </div>
+        </div>
+
+        <div class="card ai-impact-card">
+            <h3><i class="fa-solid fa-brain"></i> AI Weather Impact Analysis</h3>
+            <div class="ai-impact-content">
+                <div id="ai-impact-text" class="ai-impact-text">
+                    <span class="label">Growing Conditions:</span>
+                    Loading analysis...
+                </div>
+                <span id="ai-impact-badge" class="status-badge status-green">...</span>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        async function updateSidebarStatus() {
+            try {
+                const response = await fetch('/api/dashboard-summary/');
+                const summary = await response.json();
+                const sidebarStatus = document.getElementById('sidebar-status');
+                const statusIcon = document.getElementById('status-icon');
+                const statusTitleText = document.getElementById('status-title-text');
+                const statusDesc = document.getElementById('status-desc');
+                sidebarStatus.classList.remove('warning', 'error');
+                if (summary.system_status === 'active') {
+                    statusIcon.className = 'fa-solid fa-circle-check';
+                    statusTitleText.textContent = 'System Active';
+                } else if (summary.system_status === 'warning') {
+                    sidebarStatus.classList.add('warning');
+                    statusIcon.className = 'fa-solid fa-triangle-exclamation';
+                    statusTitleText.textContent = 'System Warning';
+                } else if (summary.system_status === 'error') {
+                    sidebarStatus.classList.add('error');
+                    statusIcon.className = 'fa-solid fa-circle-xmark';
+                    statusTitleText.textContent = 'System Error';
+                }
+                statusDesc.textContent = summary.status_message;
+            } catch (error) {
+                console.error('Failed to update sidebar status:', error);
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', async () => {
+            
+            // --- CONFIGURATION ---
+            // 1. Paste your OpenWeatherMap API key here
+            const API_KEY = '41941981b8b65b529466c97d7241f925'; 
+            
+            // 2. Coordinates for Naujan, Oriental Mindoro
+            const LAT = 13.32;
+            const LON = 121.30;
+            
+            // 3. API URLs
+            const CURRENT_WEATHER_URL = `https://api.openweathermap.org/data/2.5/weather?lat=${LAT}&lon=${LON}&appid=${API_KEY}&units=metric`;
+            const FORECAST_URL = `https://api.openweathermap.org/data/2.5/forecast?lat=${LAT}&lon=${LON}&appid=${API_KEY}&units=metric`;
+
+            // --- Get Elements ---
+            const alertSection = document.getElementById('alert-section');
+            const currentTemp = document.getElementById('current-temp');
+            const currentDesc = document.getElementById('current-desc');
+            const currentFeels = document.getElementById('current-feels');
+            const currentHumidity = document.getElementById('current-humidity');
+            const currentPressure = document.getElementById('current-pressure');
+            const currentWind = document.getElementById('current-wind');
+            const currentVisibility = document.getElementById('current-visibility');
+            const hourlyGrid = document.getElementById('hourly-grid');
+            const dailyGrid = document.getElementById('daily-forecast-grid');
+            const aiImpactText = document.getElementById('ai-impact-text');
+            const aiImpactBadge = document.getElementById('ai-impact-badge');
+
+            // --- Helper Functions ---
+            function getIcon(weatherCode) {
+                if (weatherCode >= 200 && weatherCode < 300) return 'fa-cloud-bolt';
+                if (weatherCode >= 300 && weatherCode < 400) return 'fa-cloud-drizzle';
+                if (weatherCode >= 500 && weatherCode < 600) return 'fa-cloud-rain';
+                if (weatherCode >= 600 && weatherCode < 700) return 'fa-snowflake';
+                if (weatherCode >= 700 && weatherCode < 800) return 'fa-smog';
+                if (weatherCode === 800) return 'fa-sun';
+                if (weatherCode === 801) return 'fa-cloud-sun';
+                if (weatherCode > 801) return 'fa-cloud';
+                return 'fa-question';
+            }
+            
+            function formatTime(timestamp, timezoneOffset) {
+                const date = new Date((timestamp + timezoneOffset) * 1000);
+                return date.toLocaleTimeString('en-US', { hour: 'numeric', hour12: true, timeZone: 'UTC' }).toLowerCase();
+            }
+            
+            function formatDay(timestamp, timezoneOffset) {
+                const date = new Date((timestamp + timezoneOffset) * 1000);
+                return date.toLocaleDateString('en-US', { weekday: 'short', timeZone: 'UTC' });
+            }
+
+            // --- Main Function to Fetch and Populate ---
+            async function loadWeather() {
+                if (API_KEY === 'YOUR_API_KEY_GOES_HERE') {
+                    alertSection.innerHTML = `<div class="alert alert-warning"><span class="alert-title">Configuration Needed</span>Please add your OpenWeatherMap API key to the script in weather.html.</div>`;
+                    return;
+                }
+
+                try {
+                    // --- 1. Fetch Current Weather ---
+                    const currentResponse = await fetch(CURRENT_WEATHER_URL);
+                    if (!currentResponse.ok) throw new Error(`Current weather data not found (${currentResponse.status})`);
+                    const current = await currentResponse.json();
+                    
+                    // Populate Current Conditions
+                    currentTemp.textContent = `${Math.round(current.main.temp)}°C`;
+                    currentDesc.textContent = current.weather[0].description;
+                    currentFeels.textContent = `Feels like ${Math.round(current.main.feels_like)}°C`;
+                    currentHumidity.textContent = `${current.main.humidity}%`;
+                    currentPressure.textContent = `${current.main.pressure} mb`;
+                    currentWind.textContent = `${Math.round(current.wind.speed * 3.6)} km/h`; // m/s to km/h
+                    currentVisibility.textContent = `${current.visibility / 1000} km`;
+
+                    // Simple AI Impact based on current temp
+                    if (current.main.temp > 32) {
+                        aiImpactText.innerHTML = `<span class="label">Growing Conditions:</span> High heat may stress batches. Ensure ventilation is active.`;
+                        aiImpactBadge.textContent = "Caution";
+                        aiImpactBadge.className = "status-badge status-red";
+                    } else {
+                        aiImpactText.innerHTML = `<span class="label">Growing Conditions:</span> Current weather patterns are optimal for cultivation.`;
+                        aiImpactBadge.textContent = "Favorable";
+                        aiImpactBadge.className = "status-badge status-green";
+                    }
+                    
+                    // --- 2. Fetch 5-Day / 3-Hour Forecast ---
+                    const forecastResponse = await fetch(FORECAST_URL);
+                    if (!forecastResponse.ok) throw new Error(`Forecast data not found (${forecastResponse.status})`);
+                    const forecast = await forecastResponse.json();
+                    const tzOffset = forecast.city.timezone;
+
+                    // Populate Alerts (if any, from forecast data)
+                    alertSection.innerHTML = '';
+                    // Note: The free 'forecast' API doesn't have a simple 'alerts' array like OneCall.
+                    // We'll add a default "no advisories" message.
+                    alertSection.innerHTML = `<div class="alert alert-info-highlight"><i class="fa-solid fa-star alert-icon"></i><div><span class="alert-title">No Weather Advisories</span>Conditions are clear.</div></div>`;
+
+
+                    // Populate Hourly Forecast (first 8 3-hour chunks)
+                    hourlyGrid.innerHTML = '';
+                    const hourly = forecast.list.slice(0, 8);
+                    hourly.forEach(hour => {
+                        hourlyGrid.innerHTML += `
+                            <div class="hourly-item">
+                                <div class="time">${formatTime(hour.dt, tzOffset)}</div>
+                                <div class="icon"><i class="fa-solid ${getIcon(hour.weather[0].id)}"></i></div>
+                                <div class="temp">${Math.round(hour.main.temp)}°C</div>
+                                <div class="precip">${Math.round(hour.pop * 100)}%</div>
+                            </div>
+                        `;
+                    });
+
+                    // Populate 5-Day Forecast
+                    dailyGrid.innerHTML = '';
+                    const dailyData = {}; // To store min/max for each day
+                    
+                    forecast.list.forEach(item => {
+                        const day = formatDay(item.dt, tzOffset);
+                        if (!dailyData[day]) {
+                            dailyData[day] = {
+                                dt: item.dt,
+                                min: item.main.temp_min,
+                                max: item.main.temp_max,
+                                precip: 0,
+                                pop: 0
+                            };
+                        }
+                        // Get the max/min temps for the whole day
+                        dailyData[day].min = Math.min(dailyData[day].min, item.main.temp_min);
+                        dailyData[day].max = Math.max(dailyData[day].max, item.main.temp_max);
+                        // Get highest precipitation chance for the day
+                        dailyData[day].pop = Math.max(dailyData[day].pop, item.pop);
+                    });
+
+                    // Find overall min/max for bar scaling
+                    const allMin = Math.min(...Object.values(dailyData).map(d => d.min));
+                    const allMax = Math.max(...Object.values(dailyData).map(d => d.max));
+                    const range = allMax - allMin;
+
+                    Object.values(dailyData).forEach(day => {
+                        const barWidth = (day.max - day.min) / range * 100;
+                        const barMargin = (day.min - allMin) / range * 100;
+                        
+                        dailyGrid.innerHTML += `
+                            <div class="daily-item day">${formatDay(day.dt, tzOffset)}</div>
+                            <div class="daily-item bar">
+                                <div class="temp-bar-container">
+                                    <div class="temp-bar" style="width: ${barWidth}%; margin-left: ${barMargin}%;"></div>
+                                </div>
+                            </div>
+                            <div class="daily-item max">${Math.round(day.max)}°</div>
+                            <div class="daily-item min">${Math.round(day.min)}°</div>
+                            <div class="daily-item precip">${Math.round(day.pop * 100)}%</div>
+                        `;
+                    });
+
+                } catch (error) {
+                    console.error("Failed to load weather data:", error);
+                    alertSection.innerHTML = `<div class="alert alert-warning"><span class="alert-title">Could not load weather data</span>${error.message}</div>`;
+                }
+            }
+            
+            loadWeather();
+            updateSidebarStatus();
+            setInterval(updateSidebarStatus, 60000);
+
+            // --- Logout Modal ---
+            const logoutModal = document.getElementById('logoutModal');
+            const logoutLink = document.getElementById('logout-link');
+            const cancelLogout = document.getElementById('cancelLogout');
+            const confirmLogout = document.getElementById('confirmLogout');
+
+            logoutLink.addEventListener('click', function(e) {
+                e.preventDefault();
+                logoutModal.classList.add('show');
+            });
+
+            cancelLogout.addEventListener('click', function() {
+                logoutModal.classList.remove('show');
+            });
+
+            logoutModal.addEventListener('click', function(e) {
+                if (e.target === logoutModal) {
+                    logoutModal.classList.remove('show');
+                }
+            });
+
+            confirmLogout.addEventListener('click', function() {
+                const csrfToken = document.cookie
+                    .split('; ')
+                    .find(row => row.startsWith('csrftoken='))
+                    ?.split('=')[1];
+                
+                fetch('{% url "logout" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        window.location.href = data.redirect_url;
+                    }
+                })
+                .catch(error => {
+                    console.error('Logout error:', error);
+                    window.location.href = '{% url "logout" %}';
+                });
+            });
+
+            // --- Mobile Menu Toggle ---
+            const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+            const mobileOverlay = document.getElementById('mobileOverlay');
+            const sidebar = document.querySelector('.sidebar');
+            const menuIcon = document.getElementById('menuIcon');
+            
+            function closeMobileMenu() {
+                sidebar.classList.remove('active');
+                mobileOverlay.classList.remove('active');
+                mobileOverlay.style.pointerEvents = 'none';
+                menuIcon.classList.remove('fa-times');
+                menuIcon.classList.add('fa-bars');
+                document.body.style.overflow = '';
+            }
+            
+            function toggleMobileMenu(e) {
+                if (e) e.stopPropagation();
+                sidebar.classList.toggle('active');
+                mobileOverlay.classList.toggle('active');
+                
+                if (sidebar.classList.contains('active')) {
+                    mobileOverlay.style.pointerEvents = 'auto';
+                    menuIcon.classList.remove('fa-bars');
+                    menuIcon.classList.add('fa-times');
+                    document.body.style.overflow = 'hidden';
+                } else {
+                    mobileOverlay.style.pointerEvents = 'none';
+                    menuIcon.classList.remove('fa-times');
+                    menuIcon.classList.add('fa-bars');
+                    document.body.style.overflow = '';
+                }
+            }
+            
+            if (mobileMenuToggle) {
+                mobileMenuToggle.addEventListener('click', toggleMobileMenu);
+            }
+            if (mobileOverlay) {
+                mobileOverlay.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    closeMobileMenu();
+                });
+            }
+            
+            // Close menu when a nav link is clicked on mobile
+            const navLinks = document.querySelectorAll('.sidebar-nav a');
+            navLinks.forEach(link => {
+                link.addEventListener('click', function() {
+                    if (window.innerWidth <= 768 && sidebar.classList.contains('active')) {
+                        closeMobileMenu();
+                    }
+                });
+            });
+            
+            // Handle window resize
+            window.addEventListener('resize', function() {
+                if (window.innerWidth > 768) {
+                    sidebar.classList.remove('active');
+                    mobileOverlay.classList.remove('active');
+                    mobileOverlay.style.pointerEvents = 'none';
+                    menuIcon.classList.remove('fa-times');
+                    menuIcon.classList.add('fa-bars');
+                    document.body.style.overflow = '';
+                }
+            });
+
+            // --- Sidebar Collapse Toggle (Desktop) ---
+            const sidebarToggle = document.getElementById('sidebarToggle');
+            const mainContent = document.querySelector('.main-content');
+            
+            // Check for saved sidebar state
+            const sidebarCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+            if (sidebarCollapsed && window.innerWidth > 768) {
+                sidebar.classList.add('collapsed');
+                document.body.classList.add('sidebar-collapsed');
+            }
+            
+            if (sidebarToggle) {
+                sidebarToggle.addEventListener('click', function() {
+                    if (window.innerWidth > 768) {
+                        sidebar.classList.toggle('collapsed');
+                        document.body.classList.toggle('sidebar-collapsed');
+                        
+                        // Save state to localStorage
+                        const isCollapsed = sidebar.classList.contains('collapsed');
+                        localStorage.setItem('sidebarCollapsed', isCollapsed);
+                    }
+                });
+            }
+        });
+    </script>
+    
+    <script src="{% static 'js/sidebar-tooltip.js' %}"></script>
+</body>
+</html>

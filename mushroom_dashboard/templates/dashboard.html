@@ -1,0 +1,827 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <meta name="theme-color" content="#0c4b33">
+    <title>Mushroom IoT Dashboard</title>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'css/admin.css' %}">
+    <link rel="stylesheet" href="{% static 'css/responsive.css' %}">
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .admin-chat-card {
+            margin-top: 24px;
+        }
+
+        .admin-chat-layout {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 14px;
+        }
+
+        .admin-chat-conversations,
+        .admin-chat-thread {
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            background: #ffffff;
+        }
+
+        .admin-chat-conversations {
+            max-height: 420px;
+            overflow-y: auto;
+        }
+
+        .admin-conversation-item {
+            padding: 12px;
+            border-bottom: 1px solid #f1f5f9;
+            cursor: pointer;
+        }
+
+        .admin-conversation-item:last-child {
+            border-bottom: none;
+        }
+
+        .admin-conversation-item.active {
+            background: #ecfdf5;
+        }
+
+        .admin-convo-top {
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+            font-weight: 700;
+            color: #0f172a;
+        }
+
+        .admin-convo-meta {
+            margin-top: 4px;
+            font-size: 0.85rem;
+            color: #64748b;
+        }
+
+        .admin-unread-dot {
+            background: #ef4444;
+            color: #fff;
+            border-radius: 999px;
+            padding: 0 8px;
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+
+        .admin-chat-thread {
+            display: flex;
+            flex-direction: column;
+            min-height: 420px;
+        }
+
+        .admin-thread-header {
+            padding: 12px;
+            border-bottom: 1px solid #e2e8f0;
+            font-weight: 700;
+            color: #0f172a;
+        }
+
+        .admin-thread-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+            background: #f8fafc;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .admin-chat-bubble {
+            max-width: 78%;
+            padding: 10px 12px;
+            border-radius: 12px;
+            line-height: 1.4;
+        }
+
+        .admin-chat-bubble.from-admin {
+            align-self: flex-end;
+            background: #0c4b33;
+            color: #fff;
+            border-bottom-right-radius: 4px;
+        }
+
+        .admin-chat-bubble.from-customer {
+            align-self: flex-start;
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            color: #111827;
+            border-bottom-left-radius: 4px;
+        }
+
+        .admin-chat-time {
+            margin-top: 4px;
+            font-size: 0.75rem;
+            opacity: 0.8;
+        }
+
+        .admin-chat-reply {
+            display: flex;
+            gap: 10px;
+            border-top: 1px solid #e2e8f0;
+            padding: 10px;
+            background: #fff;
+        }
+
+        .admin-chat-reply input {
+            flex: 1;
+            border: 1px solid #cbd5e1;
+            border-radius: 10px;
+            padding: 10px 12px;
+        }
+
+        .admin-chat-reply button {
+            border: none;
+            border-radius: 10px;
+            background: #0c4b33;
+            color: #fff;
+            font-weight: 700;
+            padding: 10px 14px;
+            cursor: pointer;
+        }
+
+        @media (max-width: 992px) {
+            .admin-chat-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Mobile Menu Toggle Button -->
+    <button class="mobile-menu-toggle" id="mobileMenuToggle" aria-label="Toggle navigation menu">
+        <i class="fa-solid fa-bars" id="menuIcon"></i>
+    </button>
+    
+    <!-- Mobile Overlay -->
+    <div class="mobile-overlay" id="mobileOverlay" style="pointer-events: none;"></div>
+
+    <!-- Logout Confirmation Modal -->
+    <div class="logout-modal" id="logoutModal">
+        <div class="logout-modal-content">
+            <div class="logout-modal-icon">
+                <i class="fa-solid fa-right-from-bracket"></i>
+            </div>
+            <h3 class="logout-modal-title">Confirm Logout</h3>
+            <p class="logout-modal-message">Are you sure you want to logout from your account?</p>
+            <div class="logout-modal-buttons">
+                <button class="logout-modal-btn logout-modal-btn-cancel" id="cancelLogout">Cancel</button>
+                <button class="logout-modal-btn logout-modal-btn-confirm" id="confirmLogout">Logout</button>
+            </div>
+        </div>
+    </div>
+
+    <aside class="sidebar">
+        <!-- Sidebar Toggle Button -->
+        <button class="sidebar-toggle" id="sidebarToggle" title="Toggle Sidebar">
+            <i class="fa-solid fa-chevron-left"></i>
+        </button>
+        
+        <div class="sidebar-logo">
+            <div class="logo">
+                <img src="{% static 'images/Screenshot_2025-11-01_124726-removebg-preview.png' %}" alt="Mushroom Logo">
+            </div>
+            <span>KABUTOMATE</span>
+        </div>
+
+        <nav class="sidebar-nav">
+            <a href="{% url 'dashboard' %}" class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" data-tooltip="Dashboard">
+                <i class="fa-solid fa-gauge-high icon"></i> <span>Dashboard</span>
+            </a>
+            <a href="{% url 'environment' %}" class="{% if request.resolver_match.url_name == 'environment' %}active{% endif %}" data-tooltip="Environmental Control">
+                <i class="fa-solid fa-leaf icon"></i> <span>Environmental Control</span>
+            </a>
+            <a href="{% url 'production' %}" class="{% if request.resolver_match.url_name == 'production' %}active{% endif %}" data-tooltip="Production Records">
+                <i class="fa-solid fa-clipboard-list icon"></i> <span>Production Records</span>
+            </a>
+            <a href="{% url 'inventory' %}" class="{% if request.resolver_match.url_name == 'inventory' %}active{% endif %}" data-tooltip="Inventory and Sales">
+                <i class="fa-solid fa-boxes-stacked icon"></i> <span>Inventory and Sales</span>
+            </a>
+            <a href="{% url 'cooked_products' %}" class="{% if request.resolver_match.url_name == 'cooked_products' %}active{% endif %}" data-tooltip="Cooked Products">
+                <i class="fa-solid fa-utensils icon"></i> <span>Cooked Products</span>
+            </a>
+            <a href="{% url 'pos_system' %}" class="{% if request.resolver_match.url_name == 'pos_system' %}active{% endif %}" data-tooltip="Point of Sale">
+                <i class="fa-solid fa-cash-register icon"></i> <span>Point of Sale</span>
+            </a>
+            <a href="{% url 'manage_orders' %}" class="{% if request.resolver_match.url_name == 'manage_orders' %}active{% endif %}" data-tooltip="Manage Orders">
+                <i class="fa-solid fa-list-check icon"></i> <span>Manage Orders</span>
+            </a>
+            <a href="{% url 'analytics' %}" class="{% if request.resolver_match.url_name == 'analytics' %}active{% endif %}" data-tooltip="Analytics">
+                <i class="fa-solid fa-chart-line icon"></i> <span>Analytics</span>
+            </a>
+            <a href="{% url 'weather' %}" class="{% if request.resolver_match.url_name == 'weather' %}active{% endif %}" data-tooltip="Weather">
+                <i class="fa-solid fa-cloud-sun icon"></i> <span>Weather</span>
+            </a>
+            <a href="{% url 'notifications' %}" class="{% if request.resolver_match.url_name == 'notifications' %}active{% endif %}" data-tooltip="Notifications">
+                <i class="fa-solid fa-bell icon"></i> <span>Notifications</span>
+            </a>
+            <a href="{% url 'store_settings' %}" class="{% if request.resolver_match.url_name == 'store_settings' %}active{% endif %}" data-tooltip="Store Settings">
+                <i class="fa-solid fa-store icon"></i> <span>Store Settings</span>
+            </a>
+            <a href="{% url 'sales_report' %}" class="{% if request.resolver_match.url_name == 'sales_report' %}active{% endif %}" data-tooltip="Sales Report">
+                <i class="fa-solid fa-file-invoice-dollar icon"></i> <span>Sales Report</span>
+            </a>
+            <a href="{% url 'profile' %}" class="{% if request.resolver_match.url_name == 'profile' %}active{% endif %}" data-tooltip="Profile">
+                <i class="fa-solid fa-user icon"></i> <span>Profile</span>
+            </a>
+            <a href="#" id="logout-link" data-tooltip="Logout">
+                <i class="fa-solid fa-right-from-bracket icon"></i> <span>Logout</span>
+            </a>
+        </nav>
+    </aside>
+
+    <main class="main-content">
+        <header>
+            <h1>Dashboard</h1>
+        </header>
+
+        <div id="alerts-section" class="alerts">
+            </div>
+
+        <div class="card-grid">
+            <div class="card">
+                <div class="card-title">Temperature</div>
+                <div class="card-value temp">...<span class="unit">°C</span></div>
+                <div class="card-optimal">Optimal: 20-24°C</div>
+            </div>
+            <div class="card">
+                <div class="card-title">Humidity</div>
+                <div class="card-value humidity">...<span class="unit">%</span></div>
+                <div class="card-optimal">Optimal: 80-90%</div>
+            </div>
+            <div class="card">
+                <div class="card-title">Air Quality (MQ-135)</div>
+                <div class="card-value co2">...<span class="unit">ppm</span></div>
+                <div class="card-optimal">Good: < 400 ppm</div>
+            </div>
+        </div>
+        
+        <div class="card-grid">
+             <div class="card">
+                <div class="card-title">Active Batches</div>
+                <div id="summary-active-batches" class="card-value small">...</div>
+            </div>
+             <div class="card">
+                <div class="card-title">This Month</div>
+                <div id="summary-this-month-yield" class="card-value small">...<span class="unit">kg</span></div>
+            </div>
+             <div class="card">
+                <div class="card-title">System Uptime</div>
+                <div id="summary-system-uptime" class="card-value small">...<span class="unit">%</span></div>
+            </div>
+             <div class="card">
+                <div class="card-title">Devices Online</div>
+                <div id="summary-devices-online" class="card-value small">...</div>
+            </div>
+        </div>
+
+        <div class="charts-status-grid">
+            <div class="card">
+                <h3>Temperature and Humidity</h3>
+                <div class="chart-container">
+                    <canvas id="tempHumidityChart"></canvas>
+                </div>
+            </div>
+            <div class="card">
+                <h3>Air Quality (MQ-135)</h3>
+                 <div class="chart-container">
+                    <canvas id="coLevelsChart"></canvas>
+                 </div>
+            </div>
+        </div>
+        
+        <div class="system-status-card">
+            <h3>System Status</h3>
+            <div class="system-status-grid">
+                <div class="status-item">
+                    <div class="status-item-title">Fan System</div>
+                    <div id="status-fan" class="status-indicator">Active</div>
+                </div>
+                 <div class="status-item">
+                    <div class="status-item-title">Humidifier</div>
+                    <div id="status-humidifier" class="status-indicator">Active</div>
+                </div>
+                 <div class="status-item">
+                    <div class="status-item-title">Sensors</div>
+                    <div id="status-sensors" class="status-indicator">Active</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card admin-chat-card">
+            <h3><i class="fa-solid fa-comments"></i> Customer Inquiries</h3>
+            <div class="admin-chat-layout">
+                <div class="admin-chat-conversations" id="adminChatConversations">
+                    <div style="padding: 12px; color: #64748b;">Loading conversations...</div>
+                </div>
+                <div class="admin-chat-thread">
+                    <div class="admin-thread-header" id="adminThreadHeader">Select a conversation</div>
+                    <div class="admin-thread-messages" id="adminThreadMessages">
+                        <div style="color: #64748b;">Choose a customer from the left to view messages.</div>
+                    </div>
+                    <form class="admin-chat-reply" id="adminReplyForm">
+                        <input type="text" id="adminReplyInput" placeholder="Type your reply..." maxlength="1000" disabled>
+                        <button type="submit" id="adminReplyBtn" disabled>
+                            <i class="fa-solid fa-paper-plane"></i> Reply
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            
+            // --- Chart Instances ---
+            let tempHumidityChart = null;
+            let coLevelsChart = null;
+
+            // --- Elements ---
+            const alertsSection = document.getElementById('alerts-section');
+            const cardTemp = document.querySelector('.card-value.temp');
+            const cardHumidity = document.querySelector('.card-value.humidity');
+            const cardCo2 = document.querySelector('.card-value.co2');
+            const cardActiveBatches = document.getElementById('summary-active-batches');
+            const cardThisMonthYield = document.getElementById('summary-this-month-yield');
+            const cardSystemUptime = document.getElementById('summary-system-uptime');
+            const cardDevicesOnline = document.getElementById('summary-devices-online');
+
+            // --- Chat Elements ---
+            const adminChatConversations = document.getElementById('adminChatConversations');
+            const adminThreadHeader = document.getElementById('adminThreadHeader');
+            const adminThreadMessages = document.getElementById('adminThreadMessages');
+            const adminReplyForm = document.getElementById('adminReplyForm');
+            const adminReplyInput = document.getElementById('adminReplyInput');
+            let selectedCustomerId = null;
+            
+            const ctxTempHumidity = document.getElementById('tempHumidityChart').getContext('2d');
+            const ctxCoLevels = document.getElementById('coLevelsChart').getContext('2d');
+
+            function getCsrfToken() {
+                return document.cookie
+                    .split('; ')
+                    .find(row => row.startsWith('csrftoken='))
+                    ?.split('=')[1] || '';
+            }
+
+            function renderAdminConversations(conversations) {
+                if (!adminChatConversations) return;
+
+                if (!conversations || conversations.length === 0) {
+                    adminChatConversations.innerHTML = '<div style="padding: 12px; color: #64748b;">No customer messages yet.</div>';
+                    return;
+                }
+
+                adminChatConversations.innerHTML = conversations.map(conv => `
+                    <div class="admin-conversation-item ${selectedCustomerId === conv.customer_id ? 'active' : ''}" data-customer-id="${conv.customer_id}">
+                        <div class="admin-convo-top">
+                            <span>${conv.customer_name}</span>
+                            ${conv.unread_count > 0 ? `<span class="admin-unread-dot">${conv.unread_count}</span>` : ''}
+                        </div>
+                        <div class="admin-convo-meta">${conv.customer_email}</div>
+                        <div class="admin-convo-meta">${conv.last_message || ''}</div>
+                    </div>
+                `).join('');
+
+                adminChatConversations.querySelectorAll('.admin-conversation-item').forEach(item => {
+                    item.addEventListener('click', function() {
+                        selectedCustomerId = parseInt(this.dataset.customerId, 10);
+                        loadAdminThread(selectedCustomerId);
+                        loadAdminConversations();
+                    });
+                });
+            }
+
+            function renderAdminThread(customer, messages) {
+                if (!adminThreadHeader || !adminThreadMessages) return;
+
+                adminThreadHeader.textContent = `${customer.name} (${customer.email})`;
+                adminReplyInput.disabled = false;
+                document.getElementById('adminReplyBtn').disabled = false;
+
+                if (!messages || messages.length === 0) {
+                    adminThreadMessages.innerHTML = '<div style="color:#64748b;">No messages in this conversation.</div>';
+                    return;
+                }
+
+                adminThreadMessages.innerHTML = messages.map(msg => `
+                    <div class="admin-chat-bubble ${msg.is_admin ? 'from-admin' : 'from-customer'}">
+                        <div>${msg.message}</div>
+                        <div class="admin-chat-time">${msg.sender_name} • ${msg.created_at}</div>
+                    </div>
+                `).join('');
+                adminThreadMessages.scrollTop = adminThreadMessages.scrollHeight;
+            }
+
+            async function loadAdminConversations() {
+                if (!adminChatConversations) return;
+                try {
+                    const response = await fetch('/api/chat/admin/');
+                    const data = await response.json();
+                    renderAdminConversations(data.conversations || []);
+                } catch (error) {
+                    adminChatConversations.innerHTML = '<div style="padding: 12px; color: #dc2626;">Failed to load conversations.</div>';
+                }
+            }
+
+            async function loadAdminThread(customerId) {
+                if (!customerId || !adminThreadMessages) return;
+                try {
+                    const response = await fetch(`/api/chat/admin/?customer_id=${customerId}`);
+                    const data = await response.json();
+                    if (!response.ok || data.success === false) {
+                        throw new Error(data.error || 'Failed to load thread');
+                    }
+                    renderAdminThread(data.customer, data.messages || []);
+                } catch (error) {
+                    adminThreadMessages.innerHTML = '<div style="color:#dc2626;">Failed to load messages.</div>';
+                }
+            }
+
+            if (adminReplyForm) {
+                adminReplyForm.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    if (!selectedCustomerId) return;
+
+                    const message = adminReplyInput.value.trim();
+                    if (!message) return;
+
+                    try {
+                        const response = await fetch('/api/chat/admin/', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': getCsrfToken()
+                            },
+                            body: JSON.stringify({
+                                customer_id: selectedCustomerId,
+                                message: message
+                            })
+                        });
+                        const result = await response.json();
+                        if (!response.ok || !result.success) {
+                            throw new Error(result.error || 'Failed to send reply');
+                        }
+
+                        adminReplyInput.value = '';
+                        await loadAdminThread(selectedCustomerId);
+                        await loadAdminConversations();
+                    } catch (error) {
+                        alert(error.message || 'Failed to send reply');
+                    }
+                });
+            }
+
+            // --- 1. Function to update sensor charts and cards ---
+            async function updateSensorData() {
+                try {
+                    const response = await fetch('/api/sensor-data/');
+                    const apiData = await response.json();
+
+                    // Update top metric cards (but NOT air quality - it comes from dashboard-summary)
+                    cardTemp.innerHTML = `${apiData.temp[apiData.temp.length - 1]}<span class="unit">°C</span>`;
+                    cardHumidity.innerHTML = `${apiData.humidity[apiData.humidity.length - 1]}<span class="unit">%</span>`;
+                    // Don't update cardCo2 here - it's updated by updateSummaryData() with air_quality_ppm
+
+                    // --- Update Chart 1: Temperature and Humidity ---
+                    const chart1Data = {
+                        labels: apiData.labels,
+                        datasets: [
+                            { label: 'Humidity (%)', data: apiData.humidity, borderColor: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.1)', fill: true, tension: 0.3 },
+                            { label: 'Temp (°C)', data: apiData.temp, borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.1)', fill: true, tension: 0.3 }
+                        ]
+                    };
+                    if (tempHumidityChart) {
+                        tempHumidityChart.data = chart1Data;
+                        tempHumidityChart.update();
+                    } else {
+                        tempHumidityChart = new Chart(ctxTempHumidity, {
+                            type: 'line',
+                            data: chart1Data,
+                            options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: false } }, plugins: { legend: { position: 'top' } } }
+                        });
+                    }
+
+                    // --- Update Chart 2: Air Quality ---
+                    const chart2Data = {
+                        labels: apiData.labels,
+                        datasets: [
+                            { label: 'Air Quality (ppm)', data: apiData.air_quality, borderColor: '#7c3aed', backgroundColor: 'rgba(124, 58, 237, 0.1)', fill: true, tension: 0.3 }
+                        ]
+                    };
+                    if (coLevelsChart) {
+                        coLevelsChart.data = chart2Data;
+                        coLevelsChart.update();
+                    } else {
+                        coLevelsChart = new Chart(ctxCoLevels, {
+                            type: 'line',
+                            data: chart2Data,
+                            options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: false } }, plugins: { legend: { position: 'top' } } }
+                        });
+                    }
+                } catch (error) {
+                    console.error("Failed to load sensor data:", error);
+                }
+            }
+
+            // --- 2. Function to update summary cards and alerts ---
+            async function updateSummaryData() {
+                try {
+                    const response = await fetch('/api/dashboard-summary/');
+                    const summary = await response.json();
+
+                    // Update summary cards
+                    cardActiveBatches.textContent = summary.active_batches;
+                    cardThisMonthYield.innerHTML = `${parseFloat(summary.this_month_yield).toFixed(1)}<span class="unit">kg</span>`;
+                    cardSystemUptime.innerHTML = `${summary.system_uptime}<span class="unit">%</span>`;
+                    cardDevicesOnline.textContent = summary.devices_online;
+                    
+                    // Update sidebar status (if elements exist)
+                    const sidebarStatus = document.getElementById('sidebar-status');
+                    const statusIcon = document.getElementById('status-icon');
+                    const statusTitleText = document.getElementById('status-title-text');
+                    const statusDesc = document.getElementById('status-desc');
+                    
+                    if (sidebarStatus) {
+                        // Reset classes
+                        sidebarStatus.classList.remove('warning', 'error');
+                        
+                        if (summary.system_status === 'active') {
+                            if (statusIcon) statusIcon.className = 'fa-solid fa-circle-check';
+                            if (statusTitleText) statusTitleText.textContent = 'System Active';
+                        } else if (summary.system_status === 'warning') {
+                            sidebarStatus.classList.add('warning');
+                            if (statusIcon) statusIcon.className = 'fa-solid fa-triangle-exclamation';
+                            if (statusTitleText) statusTitleText.textContent = 'System Warning';
+                        } else if (summary.system_status === 'error') {
+                            sidebarStatus.classList.add('error');
+                            if (statusIcon) statusIcon.className = 'fa-solid fa-circle-xmark';
+                            if (statusTitleText) statusTitleText.textContent = 'System Error';
+                        }
+                        
+                        if (statusDesc) statusDesc.textContent = summary.status_message;
+                    }
+                    
+                    // Update real-time sensor readings from DHT22
+                    if (summary.temperature !== undefined) {
+                        cardTemp.innerHTML = `${summary.temperature.toFixed(1)}<span class="unit">°C</span>`;
+                    }
+                    if (summary.humidity !== undefined) {
+                        cardHumidity.innerHTML = `${summary.humidity.toFixed(1)}<span class="unit">%</span>`;
+                    }
+                    // Air Quality Display
+                    console.log('Air Quality PPM:', summary.air_quality_ppm);
+                    if (summary.air_quality_ppm !== undefined && summary.air_quality_ppm !== null) {
+                        cardCo2.innerHTML = `${summary.air_quality_ppm}<span class="unit">ppm</span>`;
+                    } else if (summary.co2_ppm !== undefined && summary.co2_ppm !== null) {
+                        cardCo2.innerHTML = `${summary.co2_ppm}<span class="unit">ppm</span>`;
+                    } else {
+                        cardCo2.innerHTML = `0<span class="unit">ppm</span>`;
+                    }
+                    
+                    // Update system status indicators (if elements exist)
+                    const statusFan = document.getElementById('status-fan');
+                    const statusHumidifier = document.getElementById('status-humidifier');
+                    const statusSensors = document.getElementById('status-sensors');
+                    
+                    if (summary.device_statuses) {
+                        // Fan
+                        if (statusFan) {
+                            if (summary.device_statuses.fan) {
+                                statusFan.className = 'status-indicator';
+                                statusFan.textContent = 'Active';
+                            } else {
+                                statusFan.className = 'status-indicator inactive';
+                                statusFan.textContent = 'Inactive';
+                            }
+                        }
+                        
+                        // Humidifier
+                        if (statusHumidifier) {
+                            if (summary.device_statuses.humidifier) {
+                                statusHumidifier.className = 'status-indicator';
+                                statusHumidifier.textContent = 'Active';
+                            } else {
+                                statusHumidifier.className = 'status-indicator inactive';
+                                statusHumidifier.textContent = 'Inactive';
+                            }
+                        }
+                        
+                        // Sensors
+                        if (statusSensors) {
+                            if (summary.device_statuses.sensors) {
+                                statusSensors.className = 'status-indicator';
+                                statusSensors.textContent = 'Online';
+                            } else {
+                                statusSensors.className = 'status-indicator inactive';
+                                statusSensors.textContent = 'Offline';
+                            }
+                        }
+                    }
+
+                    // Update alerts section
+                    alertsSection.innerHTML = ''; // Clear old alerts
+                    if (summary.alerts.length === 0) {
+                        alertsSection.innerHTML = `
+                            <div class="alert alert-success">
+                                <i class="fa-solid fa-circle-check"></i>
+                                <span>All systems normal. No alerts.</span>
+                            </div>
+                        `;
+                    } else {
+                        summary.alerts.forEach(alert => {
+                            let alertClass = 'alert-info';
+                            let iconClass = 'fa-circle-info';
+                            if (alert.level === 'warning') {
+                                alertClass = 'alert-warning';
+                                iconClass = 'fa-triangle-exclamation';
+                            }
+                            
+                            alertsSection.innerHTML += `
+                                <div class="alert ${alertClass}">
+                                    <i class="fa-solid ${iconClass}"></i>
+                                    <span>${alert.description}</span>
+                                </div>
+                            `;
+                        });
+                    }
+                } catch (error) {
+                    console.error("Failed to load summary data:", error);
+                }
+            }
+
+            // --- 3. Initial Load ---
+            updateSensorData();
+            updateSummaryData();
+            loadAdminConversations();
+
+            // --- 4. Set Intervals to refresh data ---
+            // Refresh sensors (and charts) every 10 seconds
+            setInterval(updateSensorData, 10000); 
+            
+            // Refresh summary cards every 60 seconds
+            setInterval(updateSummaryData, 10000); // Update every 10 seconds to match ESP32
+            setInterval(() => {
+                loadAdminConversations();
+                if (selectedCustomerId) {
+                    loadAdminThread(selectedCustomerId);
+                }
+            }, 10000);
+            
+            // --- 5. Logout Confirmation Modal ---
+            const logoutModal = document.getElementById('logoutModal');
+            const logoutLink = document.getElementById('logout-link');
+            const cancelLogout = document.getElementById('cancelLogout');
+            const confirmLogout = document.getElementById('confirmLogout');
+
+            // Show modal when logout link clicked
+            logoutLink.addEventListener('click', function(e) {
+                e.preventDefault();
+                logoutModal.classList.add('show');
+            });
+
+            // Hide modal when cancel is clicked
+            cancelLogout.addEventListener('click', function() {
+                logoutModal.classList.remove('show');
+            });
+
+            // Hide modal when clicking outside
+            logoutModal.addEventListener('click', function(e) {
+                if (e.target === logoutModal) {
+                    logoutModal.classList.remove('show');
+                }
+            });
+
+            // Confirm logout
+            confirmLogout.addEventListener('click', function() {
+                // Get CSRF token
+                const csrfToken = document.cookie
+                    .split('; ')
+                    .find(row => row.startsWith('csrftoken='))
+                    ?.split('=')[1];
+                
+                // Send POST request to logout
+                fetch('{% url "logout" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        window.location.href = data.redirect_url;
+                    }
+                })
+                .catch(error => {
+                    console.error('Logout error:', error);
+                    // Fallback to regular logout
+                    window.location.href = '{% url "logout" %}';
+                });
+            });
+            
+            // --- 6. Mobile Menu Toggle ---
+            const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+            const mobileOverlay = document.getElementById('mobileOverlay');
+            const sidebar = document.querySelector('.sidebar');
+            const menuIcon = document.getElementById('menuIcon');
+            
+            function closeMobileMenu() {
+                sidebar.classList.remove('active');
+                mobileOverlay.classList.remove('active');
+                mobileOverlay.style.pointerEvents = 'none';
+                menuIcon.classList.remove('fa-times');
+                menuIcon.classList.add('fa-bars');
+                document.body.style.overflow = '';
+            }
+            
+            function toggleMobileMenu(e) {
+                if (e) e.stopPropagation();
+                sidebar.classList.toggle('active');
+                mobileOverlay.classList.toggle('active');
+                
+                if (sidebar.classList.contains('active')) {
+                    mobileOverlay.style.pointerEvents = 'auto';
+                    menuIcon.classList.remove('fa-bars');
+                    menuIcon.classList.add('fa-times');
+                    document.body.style.overflow = 'hidden';
+                } else {
+                    mobileOverlay.style.pointerEvents = 'none';
+                    menuIcon.classList.remove('fa-times');
+                    menuIcon.classList.add('fa-bars');
+                    document.body.style.overflow = '';
+                }
+            }
+            
+            if (mobileMenuToggle) {
+                mobileMenuToggle.addEventListener('click', toggleMobileMenu);
+            }
+            if (mobileOverlay) {
+                mobileOverlay.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    closeMobileMenu();
+                });
+            }
+            
+            // Close menu when a nav link is clicked on mobile
+            const navLinks = document.querySelectorAll('.sidebar-nav a');
+            navLinks.forEach(link => {
+                link.addEventListener('click', function() {
+                    if (window.innerWidth <= 768 && sidebar.classList.contains('active')) {
+                        closeMobileMenu();
+                    }
+                });
+            });
+            
+            // Handle window resize
+            window.addEventListener('resize', function() {
+                if (window.innerWidth > 768) {
+                    sidebar.classList.remove('active');
+                    mobileOverlay.classList.remove('active');
+                    mobileOverlay.style.pointerEvents = 'none';
+                    menuIcon.classList.remove('fa-times');
+                    menuIcon.classList.add('fa-bars');
+                    document.body.style.overflow = '';
+                }
+            });
+            
+            // --- Sidebar Collapse Toggle (Desktop) ---
+            const sidebarToggle = document.getElementById('sidebarToggle');
+            const mainContent = document.querySelector('.main-content');
+            
+            // Check for saved sidebar state
+            const sidebarCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+            if (sidebarCollapsed && window.innerWidth > 768) {
+                sidebar.classList.add('collapsed');
+                document.body.classList.add('sidebar-collapsed');
+            }
+            
+            if (sidebarToggle) {
+                sidebarToggle.addEventListener('click', function() {
+                    if (window.innerWidth > 768) {
+                        sidebar.classList.toggle('collapsed');
+                        document.body.classList.toggle('sidebar-collapsed');
+                        
+                        // Save state to localStorage
+                        const isCollapsed = sidebar.classList.contains('collapsed');
+                        localStorage.setItem('sidebarCollapsed', isCollapsed);
+                    }
+                });
+            }
+        });
+    </script>
+    <script src="{% static 'js/sidebar-tooltip.js' %}"></script>
+
+</body>
+</html>

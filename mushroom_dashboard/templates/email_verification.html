@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Verification - Mushroom Farm</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .verification-container {
+            background: white;
+            padding: 50px;
+            border-radius: 20px;
+            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 500px;
+            width: 100%;
+        }
+        
+        .verification-icon {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0 auto 30px;
+            font-size: 50px;
+        }
+        
+        .verification-icon.success {
+            background: linear-gradient(135deg, #4caf50, #2e7d32);
+            color: white;
+        }
+        
+        .verification-icon.error {
+            background: linear-gradient(135deg, #f44336, #c62828);
+            color: white;
+        }
+        
+        .verification-icon.expired {
+            background: linear-gradient(135deg, #ff9800, #f57c00);
+            color: white;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 28px;
+        }
+        
+        .message {
+            color: #666;
+            font-size: 16px;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 15px 40px;
+            border-radius: 50px;
+            font-size: 16px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: none;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #4caf50, #2e7d32);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(76, 175, 80, 0.3);
+        }
+        
+        .btn-secondary {
+            background: #f5f5f5;
+            color: #333;
+            margin-left: 10px;
+        }
+        
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+        
+        .buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .resend-form {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+        
+        .resend-form input {
+            padding: 12px 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 14px;
+            width: 100%;
+            max-width: 300px;
+            margin-bottom: 15px;
+        }
+        
+        .resend-form input:focus {
+            outline: none;
+            border-color: #4caf50;
+        }
+        
+        .logo {
+            margin-bottom: 30px;
+        }
+        
+        .logo i {
+            font-size: 40px;
+            color: #4caf50;
+        }
+        
+        .logo span {
+            display: block;
+            font-size: 24px;
+            font-weight: 700;
+            color: #2e7d32;
+            margin-top: 10px;
+        }
+        
+        #resend-message {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 8px;
+            display: none;
+        }
+        
+        #resend-message.success {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+        
+        #resend-message.error {
+            background: #ffebee;
+            color: #c62828;
+        }
+    </style>
+</head>
+<body>
+    <div class="verification-container">
+        <div class="logo">
+            <i class="fas fa-seedling"></i>
+            <span>Mushroom Farm</span>
+        </div>
+        
+        {% if success %}
+            <div class="verification-icon success">
+                <i class="fas fa-check"></i>
+            </div>
+            <h1>Email Verified!</h1>
+            <p class="message">{{ message }}</p>
+            <div class="buttons">
+                <a href="{% url 'login' %}" class="btn btn-primary">
+                    <i class="fas fa-sign-in-alt"></i> Log In Now
+                </a>
+            </div>
+        {% elif expired %}
+            <div class="verification-icon expired">
+                <i class="fas fa-clock"></i>
+            </div>
+            <h1>Link Expired</h1>
+            <p class="message">{{ error }}</p>
+            
+            <div class="resend-form">
+                <p style="color: #666; margin-bottom: 15px;">Enter your email to receive a new verification link:</p>
+                <input type="email" id="email-input" placeholder="Enter your email" value="{{ email }}">
+                <br>
+                <button class="btn btn-primary" onclick="resendVerification()">
+                    <i class="fas fa-paper-plane"></i> Send New Link
+                </button>
+                <div id="resend-message"></div>
+            </div>
+            
+            <div class="buttons" style="margin-top: 20px;">
+                <a href="{% url 'login' %}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Login
+                </a>
+            </div>
+        {% else %}
+            <div class="verification-icon error">
+                <i class="fas fa-times"></i>
+            </div>
+            <h1>Verification Failed</h1>
+            <p class="message">{{ error }}</p>
+            <div class="buttons">
+                <a href="{% url 'login' %}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Login
+                </a>
+                <a href="{% url 'register' %}" class="btn btn-primary">
+                    <i class="fas fa-user-plus"></i> Register
+                </a>
+            </div>
+        {% endif %}
+    </div>
+    
+    <script>
+        function resendVerification() {
+            const email = document.getElementById('email-input').value;
+            const messageDiv = document.getElementById('resend-message');
+            
+            if (!email) {
+                messageDiv.textContent = 'Please enter your email address.';
+                messageDiv.className = 'error';
+                messageDiv.style.display = 'block';
+                return;
+            }
+            
+            fetch('{% url "resend_verification" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ email: email })
+            })
+            .then(response => response.json())
+            .then(data => {
+                messageDiv.textContent = data.message || data.error;
+                messageDiv.className = data.success ? 'success' : 'error';
+                messageDiv.style.display = 'block';
+            })
+            .catch(error => {
+                messageDiv.textContent = 'An error occurred. Please try again.';
+                messageDiv.className = 'error';
+                messageDiv.style.display = 'block';
+            });
+        }
+    </script>
+</body>
+</html>
