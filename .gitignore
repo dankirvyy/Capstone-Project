@@ -2,5 +2,19 @@
 .env
 *.env
 
+# Python cache and build artifacts
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+
+# Virtual environments
+.venv/
+venv/
+
+# Local SQLite databases
+*.sqlite3
+
 # Database dumps
 *.sql
