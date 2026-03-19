@@ -11,6 +11,9 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+import os
+
+import dj_database_url
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -20,12 +23,25 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-cz2r&p3syt11p5$7v&ijb!1)cr$)!xcb$(^64mun$rajsg2#4s'
+SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'unsafe-dev-only-change-me')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DEBUG', 'True').lower() == 'true'
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', '10.111.94.56', '*']
+ALLOWED_HOSTS = [
+    host.strip()
+    for host in os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+    if host.strip()
+]
+
+CSRF_TRUSTED_ORIGINS = [
+    origin.strip()
+    for origin in os.getenv(
+        'CSRF_TRUSTED_ORIGINS',
+        'http://localhost,http://127.0.0.1'
+    ).split(',')
+    if origin.strip()
+]
 
 
 # Application definition
@@ -88,6 +104,7 @@ SOCIALACCOUNT_PROVIDERS = {
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -98,8 +115,6 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'mushroom_dashboard.urls'
-
-import os
 
 TEMPLATES = [
     {
@@ -122,20 +137,27 @@ WSGI_APPLICATION = 'mushroom_dashboard.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'mushroom_db',     # The database name you just created
-        'USER': 'root',               # Your MySQL username (often 'root')
-        'PASSWORD': '',             # Your MySQL password (often empty on local)
-        'HOST': '127.0.0.1',          # Or 'localhost'
-        'PORT': '3306',               # Default MySQL port
-        'OPTIONS': {
-            'sql_mode': 'STRICT_TRANS_TABLES',
-            'charset': 'utf8',
-        },
+DATABASE_URL = os.getenv('DATABASE_URL')
+
+if DATABASE_URL:
+    DATABASES = {
+        'default': dj_database_url.parse(DATABASE_URL, conn_max_age=600, ssl_require=True),
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.mysql',
+            'NAME': os.getenv('MYSQL_DB_NAME', 'mushroom_db'),
+            'USER': os.getenv('MYSQL_DB_USER', 'root'),
+            'PASSWORD': os.getenv('MYSQL_DB_PASSWORD', ''),
+            'HOST': os.getenv('MYSQL_DB_HOST', '127.0.0.1'),
+            'PORT': os.getenv('MYSQL_DB_PORT', '3306'),
+            'OPTIONS': {
+                'sql_mode': 'STRICT_TRANS_TABLES',
+                'charset': 'utf8',
+            },
+        }
+    }
 
 
 # Password validation
@@ -172,10 +194,12 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, "static"), 
+    os.path.join(BASE_DIR, 'static'),
 ]
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Media files (User uploaded content)
 MEDIA_URL = '/media/'
@@ -205,17 +229,24 @@ EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'dankirvymanongsong@gmail.com'  # Your Gmail address
-EMAIL_HOST_PASSWORD = 'kced llvv iglm orqn'  # Replace with your 16-char app password
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
 
 # Default from email address
-DEFAULT_FROM_EMAIL = 'Mushroom Farm <dankirvymanongsong@gmail.com>'
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', f'Mushroom Farm <{EMAIL_HOST_USER}>')
 
 # Admin email for order notifications
-ADMIN_EMAIL = 'dankirvymanongsong@gmail.com'  # Change this to your admin email
+ADMIN_EMAIL = os.getenv('ADMIN_EMAIL', EMAIL_HOST_USER)
 
 # Site URL for building absolute URLs in emails
-SITE_URL = 'http://localhost:8000'  # Change this in production
+SITE_URL = os.getenv('SITE_URL', 'http://localhost:8000')
 
 # Email verification token expiry (hours)
 EMAIL_VERIFICATION_TOKEN_EXPIRY = 24
+
+# Proxy SSL header required when app is behind Render's reverse proxy.
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+if not DEBUG:
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
