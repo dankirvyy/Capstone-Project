@@ -348,9 +348,11 @@
     .logout-modal-content {
         background: white;
         border-radius: 20px;
-        padding: 2.5rem;
-        max-width: 400px;
-        width: 90%;
+        padding: 1.25rem !important;
+        width: min(340px, 92vw) !important;
+        max-width: 340px !important;
+        min-width: 0 !important;
+        flex: 0 1 340px;
         box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
         animation: modalSlideIn 0.3s ease;
     }
@@ -832,6 +834,7 @@
                         labels: apiChartData.production_bar.labels,
                         datasets: apiChartData.production_bar.datasets.map(ds => ({
                             ...ds,
+                            data: (ds.data || []).map(v => Number.parseFloat(v) || 0),
                             backgroundColor: ds.borderColor, // Use solid color for bar
                             borderRadius: 5
                         }))
@@ -899,17 +902,28 @@
                     type: 'line',
                     data: {
                         labels: apiChartData.total_production.labels,
-                        datasets: apiChartData.total_production.datasets
+                        datasets: apiChartData.total_production.datasets.map(ds => ({
+                            ...ds,
+                            data: (ds.data || []).map(v => Number.parseFloat(v) || 0)
+                        }))
                     },
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
                         plugins: {
                             title: { display: true, text: 'Total Production Over Time', align: 'start', font: { size: 16 } },
-                            legend: { position: 'bottom', align: 'start' }
+                            legend: { position: 'bottom', align: 'start' },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const value = Number.parseFloat(context.parsed.y) || 0;
+                                        return `${context.dataset.label}: ${value.toFixed(2)} kg`;
+                                    }
+                                }
+                            }
                         },
                         scales: { 
-                            y: { stacked: true, beginAtZero: true } // This one remains stacked
+                            y: { stacked: false, beginAtZero: true }
                         }
                     }
                 };

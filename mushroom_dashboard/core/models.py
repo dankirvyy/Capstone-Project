@@ -3,6 +3,7 @@ from django.utils import timezone
 from django.contrib.auth.models import User
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+from datetime import date
 
 
 # User Profile for role-based access control
@@ -229,6 +230,34 @@ class ProductionBatch(models.Model):
     # --- NEW FIELD ---
     # This will store the cost for the financial chart
     cost = models.DecimalField(max_digits=7, decimal_places=2, null=True, blank=True, help_text="Total cost for this batch")
+
+    @classmethod
+    def generate_batch_number(cls, start_date=None):
+        """Generate the next batch number in BATCH-YYYYMMDD-XXX format."""
+        date_value = start_date or timezone.now().date()
+        if isinstance(date_value, str):
+            try:
+                date_value = date.fromisoformat(date_value)
+            except ValueError:
+                date_value = timezone.now().date()
+        date_part = date_value.strftime('%Y%m%d')
+        prefix = f"BATCH-{date_part}-"
+
+        latest_batch = cls.objects.filter(batch_number__startswith=prefix).order_by('-batch_number').first()
+        next_sequence = 1
+
+        if latest_batch:
+            try:
+                next_sequence = int(latest_batch.batch_number.split('-')[-1]) + 1
+            except (ValueError, IndexError):
+                next_sequence = 1
+
+        return f"{prefix}{next_sequence:03d}"
+
+    def save(self, *args, **kwargs):
+        if not self.batch_number:
+            self.batch_number = self.generate_batch_number(self.start_date)
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.batch_number
@@ -614,6 +643,13 @@ class Order(models.Model):
     # Notes
     customer_notes = models.TextField(blank=True)
     admin_notes = models.TextField(blank=True)
+
+    # Live order location tracking (updated by admin)
+    current_location_status = models.CharField(max_length=120, blank=True, help_text="Current delivery status/location note")
+    current_location_address = models.TextField(blank=True, help_text="Current delivery address/area update")
+    current_latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    current_longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    location_updated_at = models.DateTimeField(null=True, blank=True)
     
     class Meta:
         ordering = ['-created_at']

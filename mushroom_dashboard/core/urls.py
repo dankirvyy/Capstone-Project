@@ -97,6 +97,8 @@ urlpatterns = [
     path('api/summary/', views.summary_api, name='summary-api'),
 
     path('api/production/', views.production_api, name='production-api'),
+    path('api/production/predict/', views.production_predict_api, name='production-predict-api'),
+    path('api/production/next-batch-number/', views.production_next_batch_number_api, name='production-next-batch-number-api'),
     path('api/production/<int:pk>/', views.production_api_detail, name='production-api-detail'),
     path('api/production-summary/', views.production_summary_api, name='production-summary-api'),
     
@@ -108,6 +110,7 @@ urlpatterns = [
     path('api/store-settings/', views.store_settings_api, name='store-settings-api'),
     path('api/chat/customer/', views.customer_chat_api, name='customer-chat-api'),
     path('api/chat/admin/', views.admin_chat_api, name='admin-chat-api'),
+    path('api/customer/order-tracking/', views.customer_order_tracking_api, name='customer-order-tracking-api'),
     
     path('api/notifications/', views.notifications_api, name='notifications-api'),
     path('api/notifications/<int:pk>/', views.notifications_api, name='notifications-api-detail'),

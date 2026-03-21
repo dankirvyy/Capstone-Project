@@ -1138,6 +1138,33 @@
                                         </select>
                                     </div>
                                 </div>
+                                <div style="margin-top: 1rem; display:grid; grid-template-columns:1fr; gap:0.8rem;">
+                                    <div>
+                                        <label style="display:block; font-size:0.7rem; font-weight:800; margin-bottom:5px;">Current Delivery Status</label>
+                                        <input type="text" name="current_location_status" class="filter-input" maxlength="120" placeholder="e.g., Out for delivery / Near destination" value="${order.current_location_status || ''}">
+                                    </div>
+                                    <div>
+                                        <label style="display:block; font-size:0.7rem; font-weight:800; margin-bottom:5px;">Current Location / Address Update</label>
+                                        <input type="text" name="current_location_address" class="filter-input" placeholder="e.g., Brgy. San Isidro, near municipal hall" value="${order.current_location_address || ''}">
+                                    </div>
+                                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+                                        <div>
+                                            <label style="display:block; font-size:0.7rem; font-weight:800; margin-bottom:5px;">Current Latitude</label>
+                                            <input type="number" step="0.000001" name="current_latitude" class="filter-input" placeholder="14.123456" value="${order.current_latitude ?? ''}">
+                                        </div>
+                                        <div>
+                                            <label style="display:block; font-size:0.7rem; font-weight:800; margin-bottom:5px;">Current Longitude</label>
+                                            <input type="number" step="0.000001" name="current_longitude" class="filter-input" placeholder="121.123456" value="${order.current_longitude ?? ''}">
+                                        </div>
+                                    </div>
+                                    <div style="display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap;">
+                                        <button type="button" class="action-btn" onclick="getCurrentLocationForOrder(this)">
+                                            <i class="fa-solid fa-location-crosshairs"></i> Get Current Location
+                                        </button>
+                                        <small class="geo-location-status" style="color:#64748b;"></small>
+                                    </div>
+                                    ${order.location_updated_at ? `<small style="color:#64748b;">Last location update: ${order.location_updated_at}</small>` : ''}
+                                </div>
                                 <button type="submit" class="submit-btn">Update Entry</button>
                             </form>
                         </div>
@@ -1155,6 +1182,72 @@
         function closeModal() { 
             document.getElementById('orderModal').classList.remove('show');
             cleanupDeliveryMap();
+        }
+
+        function getCurrentLocationForOrder(button) {
+            const form = button.closest('form');
+            if (!form) return;
+
+            const latInput = form.querySelector('input[name="current_latitude"]');
+            const lngInput = form.querySelector('input[name="current_longitude"]');
+            const statusNode = form.querySelector('.geo-location-status');
+
+            if (!navigator.geolocation) {
+                if (statusNode) {
+                    statusNode.textContent = 'Geolocation is not supported by this browser.';
+                    statusNode.style.color = '#dc2626';
+                }
+                return;
+            }
+
+            const originalText = button.innerHTML;
+            button.disabled = true;
+            button.style.opacity = '0.7';
+            button.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Getting location...';
+            if (statusNode) {
+                statusNode.textContent = 'Requesting location permission...';
+                statusNode.style.color = '#64748b';
+            }
+
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    if (latInput) latInput.value = Number(position.coords.latitude).toFixed(6);
+                    if (lngInput) lngInput.value = Number(position.coords.longitude).toFixed(6);
+
+                    if (statusNode) {
+                        statusNode.textContent = 'Location captured successfully.';
+                        statusNode.style.color = '#16a34a';
+                    }
+
+                    button.disabled = false;
+                    button.style.opacity = '1';
+                    button.innerHTML = originalText;
+                },
+                (error) => {
+                    let message = 'Unable to retrieve current location.';
+                    if (error.code === error.PERMISSION_DENIED) {
+                        message = 'Location permission denied. Please allow location access.';
+                    } else if (error.code === error.POSITION_UNAVAILABLE) {
+                        message = 'Location unavailable. Please try again.';
+                    } else if (error.code === error.TIMEOUT) {
+                        message = 'Location request timed out. Please retry.';
+                    }
+
+                    if (statusNode) {
+                        statusNode.textContent = message;
+                        statusNode.style.color = '#dc2626';
+                    }
+
+                    button.disabled = false;
+                    button.style.opacity = '1';
+                    button.innerHTML = originalText;
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 15000,
+                    maximumAge: 0,
+                }
+            );
         }
         
         function getCookie(name) {

@@ -57,6 +57,13 @@ Django Settings:
 □ ALLOWED_HOSTS includes your server IP
 □ Server running: python manage.py runserver 0.0.0.0:8000
 
+LAN Access (mobile/other devices):
+□ Get local IP on server: ipconfig
+□ Open app from phone: http://<local-ip>:8000
+□ Allow Python/port 8000 in Windows Firewall (private network)
+□ Optional firewall rule (PowerShell as Admin):
+  New-NetFirewallRule -DisplayName "Django 8000" -Direction Inbound -LocalPort 8000 -Protocol TCP -Action Allow
+
 
 # ============================================
 # TESTING COMMANDS

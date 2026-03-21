@@ -403,9 +403,11 @@
     .logout-modal-content {
         background: white;
         border-radius: 20px;
-        padding: 2.5rem;
-        max-width: 400px;
-        width: 90%;
+        padding: 1.25rem !important;
+        width: min(340px, 92vw) !important;
+        max-width: 340px !important;
+        min-width: 0 !important;
+        flex: 0 1 340px;
         box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
         animation: modalSlideIn 0.3s ease;
     }
@@ -776,11 +778,16 @@
                     </div>
                     <div class="form-group">
                         <label for="batch_number">Batch Number</label>
-                        <input type="text" id="batch_number" name="batch_number" required>
+                        <input type="text" id="batch_number" name="batch_number" readonly>
+                        <small style="color:#64748b; margin-top:6px;">Automatically generated and locked.</small>
                     </div>
                     <div class="form-group">
                         <label for="start_date">Start Date</label>
                         <input type="date" id="start_date" name="start_date" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="predicted_yield_display">Predicted (kg)</label>
+                        <input type="text" id="predicted_yield_display" readonly value="Calculating...">
                     </div>
                     <div class="form-group">
                         <label for="status">Status</label>
@@ -814,7 +821,7 @@
                     </div>
                     <div class="form-group">
                         <label for="edit-batch_number">Batch Number</label>
-                        <input type="text" id="edit-batch_number" name="batch_number" required>
+                        <input type="text" id="edit-batch_number" name="batch_number" readonly>
                     </div>
                     <div class="form-group">
                         <label for="edit-start_date">Start Date</label>
@@ -929,6 +936,10 @@
         const addModal = document.getElementById('addRecordModal');
         const addRecordBtn = document.getElementById('addRecordBtn');
         const addRecordForm = document.getElementById('addRecordForm');
+        const addProductInput = document.getElementById('product');
+        const addBatchNumberInput = document.getElementById('batch_number');
+        const addStartDateInput = document.getElementById('start_date');
+        const predictedYieldDisplay = document.getElementById('predicted_yield_display');
         
         const editModal = document.getElementById('editRecordModal');
         const editRecordForm = document.getElementById('editRecordForm');
@@ -1064,6 +1075,46 @@
             loadProductionTable();
         }
 
+        function formatPredicted(predicted) {
+            const value = Number.parseFloat(predicted);
+            if (Number.isNaN(value)) {
+                return '-';
+            }
+            return `${value.toFixed(2)} kg`;
+        }
+
+        async function updateBatchNumberPreview() {
+            try {
+                const query = addStartDateInput.value ? `?start_date=${encodeURIComponent(addStartDateInput.value)}` : '';
+                const response = await fetch(`/api/production/next-batch-number/${query}`);
+                const result = await response.json();
+                addBatchNumberInput.value = result.success ? result.batch_number : 'Auto-generated on save';
+            } catch (error) {
+                console.error('Failed to get batch number preview:', error);
+                addBatchNumberInput.value = 'Auto-generated on save';
+            }
+        }
+
+        async function refreshPredictedYield() {
+            predictedYieldDisplay.value = 'Calculating...';
+            const payload = {
+                start_date: addStartDateInput.value || null
+            };
+
+            try {
+                const response = await fetch('/api/production/predict/', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrfToken},
+                    body: JSON.stringify(payload)
+                });
+                const result = await response.json();
+                predictedYieldDisplay.value = result.success ? formatPredicted(result.predicted_yield) : '-';
+            } catch (error) {
+                console.error('Failed to update predicted yield:', error);
+                predictedYieldDisplay.value = '-';
+            }
+        }
+
         // --- 2. Modal Listeners ---
         function setupModalListeners(modalId) {
             const modal = document.getElementById(modalId);
@@ -1076,6 +1127,8 @@
         addRecordBtn.onclick = () => {
             populateProductDropdown(document.getElementById('product')); // Populate dropdown
             addModal.style.display = 'block';
+            updateBatchNumberPreview();
+            refreshPredictedYield();
         }
 
         window.onclick = (event) => {
@@ -1089,7 +1142,6 @@
             const formData = new FormData(addRecordForm);
             const data = {
                 product_id: formData.get('product_id'),
-                batch_number: formData.get('batch_number'),
                 start_date: formData.get('start_date'),
                 status: formData.get('status'),
                 cost: formData.get('cost') || null
@@ -1146,9 +1198,9 @@
                 document.getElementById('edit-batch_number').value = batch.batch_number;
                 document.getElementById('edit-start_date').value = batch.start_date;
                 document.getElementById('edit-status').value = batch.status;
-                document.getElementById('edit-harvest_date').value = batch.harvest_date;
-                document.getElementById('edit-yield_kg').value = batch.yield_kg;
-                document.getElementById('edit-cost').value = batch.cost;
+                document.getElementById('edit-harvest_date').value = batch.harvest_date || '';
+                document.getElementById('edit-yield_kg').value = batch.yield_kg || '';
+                document.getElementById('edit-cost').value = batch.cost || '';
                 editRecordForm.dataset.id = batch.id;
                 
                 editModal.style.display = 'block';
@@ -1163,7 +1215,6 @@
             
             const data = {
                 product_id: formData.get('product_id'),
-                batch_number: formData.get('batch_number'),
                 start_date: formData.get('start_date'),
                 status: formData.get('status'),
                 harvest_date: formData.get('harvest_date') || null,
@@ -1191,6 +1242,12 @@
         });
 
         // --- 6. Initial Load ---
+        addStartDateInput.addEventListener('change', () => {
+            updateBatchNumberPreview();
+            refreshPredictedYield();
+        });
+        addProductInput.addEventListener('change', refreshPredictedYield);
+
         reloadAllData();
         updateSidebarStatus();
         setInterval(updateSidebarStatus, 60000);

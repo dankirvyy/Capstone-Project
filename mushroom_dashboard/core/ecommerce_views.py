@@ -725,6 +725,11 @@ def order_detail(request, order_id):
         'status': order.status,
         'is_paid': order.is_paid,
         'created_at': order.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+        'current_location_status': order.current_location_status or '',
+        'current_location_address': order.current_location_address or '',
+        'current_latitude': float(order.current_latitude) if order.current_latitude is not None else None,
+        'current_longitude': float(order.current_longitude) if order.current_longitude is not None else None,
+        'location_updated_at': order.location_updated_at.strftime('%Y-%m-%d %H:%M:%S') if order.location_updated_at else None,
     }
     
     items_data = [{
@@ -763,6 +768,21 @@ def update_order_status(request, order_id):
         old_status = order.status  # Store old status for comparison
         new_status = request.POST.get('status')
         is_paid = request.POST.get('is_paid')
+        location_status = (request.POST.get('current_location_status') or '').strip()
+        location_address = (request.POST.get('current_location_address') or '').strip()
+        raw_latitude = (request.POST.get('current_latitude') or '').strip()
+        raw_longitude = (request.POST.get('current_longitude') or '').strip()
+
+        def parse_decimal_or_none(raw_value):
+            if raw_value == '':
+                return None
+            try:
+                return Decimal(raw_value)
+            except (InvalidOperation, TypeError):
+                return None
+
+        parsed_latitude = parse_decimal_or_none(raw_latitude)
+        parsed_longitude = parse_decimal_or_none(raw_longitude)
         
         status_changed = False
         if new_status and new_status in dict(Order.STATUS_CHOICES):
@@ -772,6 +792,20 @@ def update_order_status(request, order_id):
         
         if is_paid is not None:
             order.is_paid = (is_paid == 'true' or is_paid == 'True' or is_paid == '1')
+
+        location_changed = (
+            (order.current_location_status or '') != location_status or
+            (order.current_location_address or '') != location_address or
+            order.current_latitude != parsed_latitude or
+            order.current_longitude != parsed_longitude
+        )
+
+        order.current_location_status = location_status
+        order.current_location_address = location_address
+        order.current_latitude = parsed_latitude
+        order.current_longitude = parsed_longitude
+        if location_changed:
+            order.location_updated_at = timezone.now()
         
         order.save()
         

@@ -14,7 +14,7 @@ from .email_service import send_verification_email, send_email_async, resend_ver
 import json
 from decimal import Decimal 
 from django.utils import timezone
-from datetime import timedelta
+from datetime import timedelta, date
 import time 
 import pickle
 import pandas as pd
@@ -87,17 +87,40 @@ def predict_yield(temperature=None, humidity=None, co2=None, growth_days=None):
     try:
         # Get default values from current conditions if not provided
         if any(param is None for param in [temperature, humidity, co2]):
-            # Get average of last 20 sensor readings for stable estimate
-            recent_readings = SensorReading.objects.order_by('-timestamp')[:20]
-            if recent_readings:
-                temperature = temperature or sum(float(r.temperature) for r in recent_readings) / len(recent_readings)
-                humidity = humidity or sum(float(r.humidity) for r in recent_readings) / len(recent_readings)
-                co2 = co2 or sum(r.co2_ppm for r in recent_readings) / len(recent_readings)
-            else:
-                # Fallback to optimal values if no sensor data
-                temperature = temperature or 23.0
-                humidity = humidity or 85.0
-                co2 = co2 or 900
+            latest = SensorReading.objects.order_by('-timestamp').first()
+
+            if latest:
+                latest_co2 = latest.co2_ppm if latest.co2_ppm is not None else latest.air_quality_ppm
+                if temperature is None and latest.temperature is not None:
+                    temperature = float(latest.temperature)
+                if humidity is None and latest.humidity is not None:
+                    humidity = float(latest.humidity)
+                if co2 is None and latest_co2 is not None:
+                    co2 = float(latest_co2)
+
+            # Fill any still-missing fields from recent averages.
+            if any(param is None for param in [temperature, humidity, co2]):
+                recent_readings = list(SensorReading.objects.order_by('-timestamp')[:20])
+                if recent_readings:
+                    temperature_values = [float(r.temperature) for r in recent_readings if r.temperature is not None]
+                    humidity_values = [float(r.humidity) for r in recent_readings if r.humidity is not None]
+                    co2_values = [
+                        float(r.co2_ppm if r.co2_ppm is not None else r.air_quality_ppm)
+                        for r in recent_readings
+                        if (r.co2_ppm is not None or r.air_quality_ppm is not None)
+                    ]
+
+                    if temperature is None:
+                        temperature = (sum(temperature_values) / len(temperature_values)) if temperature_values else 23.0
+                    if humidity is None:
+                        humidity = (sum(humidity_values) / len(humidity_values)) if humidity_values else 85.0
+                    if co2 is None:
+                        co2 = (sum(co2_values) / len(co2_values)) if co2_values else 900
+                else:
+                    # Fallback to defaults if no sensor data exists.
+                    temperature = temperature if temperature is not None else 23.0
+                    humidity = humidity if humidity is not None else 85.0
+                    co2 = co2 if co2 is not None else 900
         
         # Default growth days to optimal if not provided
         growth_days = growth_days or 33
@@ -126,6 +149,27 @@ def predict_yield(temperature=None, humidity=None, co2=None, growth_days=None):
     except Exception as e:
         print(f"Prediction error: {e}")
         return None
+
+
+def calculate_predicted_yield(start_date=None):
+    """Calculate predicted yield using ML prediction."""
+    parsed_start_date = None
+    if isinstance(start_date, str) and start_date:
+        parsed_start_date = date.fromisoformat(start_date)
+    elif isinstance(start_date, date):
+        parsed_start_date = start_date
+
+    growth_days = None
+    if parsed_start_date:
+        elapsed_days = max((timezone.now().date() - parsed_start_date).days + 1, 1)
+        # For newly-created batches, estimate yield at typical harvest maturity.
+        growth_days = elapsed_days if elapsed_days > 1 else 33
+
+    predicted = predict_yield(growth_days=growth_days)
+    if predicted is None:
+        return None
+
+    return round(float(predicted), 2)
 
 
 # --- NEW: Predictive Maintenance Function ---
@@ -423,10 +467,26 @@ def profile_view(request):
             for product_id, order_id in user_reviews:
                 if order_id:
                     reviewed_items.add(f"{product_id}-{order_id}")
+
+            pending_review_order_ids = set()
+            for order in orders:
+                if order.status != 'DELIVERED':
+                    continue
+
+                has_pending_review = False
+                for item in order.items.all():
+                    review_key = f"{item.product_id}-{order.id}"
+                    if review_key not in reviewed_items:
+                        has_pending_review = True
+                        break
+
+                if has_pending_review:
+                    pending_review_order_ids.add(order.id)
             
             context = {
                 'orders': orders,
                 'reviewed_items': reviewed_items,
+                'pending_review_order_ids': pending_review_order_ids,
             }
             return render(request, 'customer_profile.html', context)
     except UserProfile.DoesNotExist:
@@ -436,8 +496,42 @@ def profile_view(request):
         context = {
             'orders': orders,
             'reviewed_items': set(),
+            'pending_review_order_ids': set(),
         }
         return render(request, 'customer_profile.html', context)
+
+
+@login_required(login_url='login')
+def customer_order_tracking_api(request):
+    from .models import Order, StoreSettings
+
+    orders = Order.objects.filter(customer_email=request.user.email).order_by('-created_at')
+    order_locations = []
+    store_settings = StoreSettings.load()
+
+    store_location = {
+        'latitude': float(store_settings.store_latitude) if store_settings.store_latitude is not None else None,
+        'longitude': float(store_settings.store_longitude) if store_settings.store_longitude is not None else None,
+        'name': store_settings.store_name,
+        'address': store_settings.store_address,
+    }
+
+    for order in orders:
+        order_locations.append({
+            'order_id': order.id,
+            'order_number': order.order_number,
+            'status': order.status,
+            'current_location_status': order.current_location_status or '',
+            'current_location_address': order.current_location_address or '',
+            'current_latitude': float(order.current_latitude) if order.current_latitude is not None else None,
+            'current_longitude': float(order.current_longitude) if order.current_longitude is not None else None,
+            'customer_latitude': float(order.customer_latitude) if order.customer_latitude is not None else None,
+            'customer_longitude': float(order.customer_longitude) if order.customer_longitude is not None else None,
+            'location_updated_at': order.location_updated_at.strftime('%Y-%m-%d %H:%M:%S') if order.location_updated_at else None,
+            'updated_at': order.updated_at.strftime('%Y-%m-%d %H:%M:%S'),
+        })
+
+    return JsonResponse({'orders': order_locations, 'store': store_location})
 
 
 @login_required(login_url='login')
@@ -1200,13 +1294,25 @@ def production_api(request):
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
-            
-            # Calculate predicted yield using current conditions
-            predicted = predict_yield()
-            
+
+            product_id = data.get('product_id')
+            if not product_id:
+                return JsonResponse({'success': False, 'error': 'Product is required.'}, status=400)
+
+            product = Product.objects.filter(id=product_id).first()
+            if not product:
+                return JsonResponse({'success': False, 'error': 'Selected product does not exist.'}, status=400)
+
+            if product.product_type != 'fresh':
+                return JsonResponse({'success': False, 'error': 'Only fresh products can be used for production batches.'}, status=400)
+
+            predicted = calculate_predicted_yield(
+                start_date=data.get('start_date')
+            )
+
             ProductionBatch.objects.create(
-                product_id=data.get('product_id'),
-                batch_number=data.get('batch_number'),
+                product=product,
+                batch_number='',
                 start_date=data.get('start_date'),
                 status=data.get('status'),
                 cost=data.get('cost') or None,
@@ -1224,19 +1330,43 @@ def production_api(request):
             'product_name': batch.product.name if batch.product else 'N/A',
             'start_date': batch.start_date.strftime('%Y-%m-%d'),
             'harvest_date': batch.harvest_date.strftime('%Y-%m-%d') if batch.harvest_date else '-',
-            'yield_kg': batch.yield_kg if batch.yield_kg else '-',
-            'predicted_yield_kg': batch.predicted_yield_kg if batch.predicted_yield_kg else '-',
+            'yield_kg': batch.yield_kg if batch.yield_kg is not None else '-',
+            'predicted_yield_kg': batch.predicted_yield_kg if batch.predicted_yield_kg is not None else '-',
             'status': batch.get_status_display()
         }
         for batch in batches
     ]
-    products = Product.objects.all()
+    products = Product.objects.filter(product_type='fresh')
     product_list = [{'id': p.id, 'name': p.name} for p in products]
     
     return JsonResponse({
         'batches': batch_list,
         'products': product_list
     })
+
+
+@login_required(login_url='login')
+@require_http_methods(["POST"])
+def production_predict_api(request):
+    try:
+        data = json.loads(request.body)
+        predicted = calculate_predicted_yield(
+            start_date=data.get('start_date')
+        )
+        return JsonResponse({'success': True, 'predicted_yield': predicted})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+@login_required(login_url='login')
+def production_next_batch_number_api(request):
+    try:
+        start_date_raw = request.GET.get('start_date')
+        parsed_start_date = date.fromisoformat(start_date_raw) if start_date_raw else timezone.now().date()
+        batch_number = ProductionBatch.generate_batch_number(parsed_start_date)
+        return JsonResponse({'success': True, 'batch_number': batch_number})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
 @login_required(login_url='login')
 @require_http_methods(["GET", "PUT", "DELETE"])
@@ -1275,8 +1405,14 @@ def production_api_detail(request, pk):
                 )
             
             # Update basic fields
-            batch.product_id = data.get('product_id', batch.product_id)
-            batch.batch_number = data.get('batch_number', batch.batch_number)
+            product_id = data.get('product_id', batch.product_id)
+            selected_product = Product.objects.filter(id=product_id).first()
+            if not selected_product:
+                return JsonResponse({'success': False, 'error': 'Selected product does not exist.'}, status=400)
+            if selected_product.product_type != 'fresh':
+                return JsonResponse({'success': False, 'error': 'Only fresh products can be used for production batches.'}, status=400)
+
+            batch.product = selected_product
             batch.start_date = data.get('start_date', batch.start_date)
             batch.status = status_after
             batch.cost = data.get('cost') or None
@@ -1404,7 +1540,7 @@ def analytics_api(request):
             yield_val = 0
             for item in yield_by_month_product:
                 if item['month'] == month and item['product__name'] == product_name:
-                    yield_val = item['total_yield'] 
+                    yield_val = float(item['total_yield'])
                     break
             dataset['data'].append(yield_val)
         datasets_production.append(dataset)
@@ -1481,6 +1617,8 @@ def analytics_api(request):
         month_str = month.strftime('%Y-%m')
         revenue = financials.get(month_str, {}).get('revenue', 0)
         cost = financials.get(month_str, {}).get('cost', 0)
+        revenue = float(revenue)
+        cost = float(cost)
         profit = revenue - cost
         
         revenue_data_list.append(revenue)
@@ -1507,8 +1645,8 @@ def analytics_api(request):
     
     data = {
         'summary_cards': {
-            'avg_yield': yield_data['avg_yield'] or 0,
-            'avg_revenue': revenue_data['avg_revenue'] or 0,
+            'avg_yield': float(yield_data['avg_yield']) if yield_data['avg_yield'] is not None else 0.0,
+            'avg_revenue': float(revenue_data['avg_revenue']) if revenue_data['avg_revenue'] is not None else 0.0,
             'success_rate': success_rate,
             'env_stability': env_stability
         },
