@@ -1396,7 +1396,7 @@
                         <div class="order-item">
                             <div class="item-info">
                                 <h4>{{ item.product.name }}</h4>
-                                <p class="item-details">{{ item.quantity_kg }}kg × ₱{{ item.product.price_per_kg }} = ₱{{ item.total_price }}</p>
+                                <p class="item-details">{{ item.quantity_kg }} {{ item.unit }} × ₱{{ item.price_per_kg }} = ₱{{ item.subtotal }}</p>
                             </div>
                             {% if order.status == 'DELIVERED' %}
                                 {% with product_id_str=item.product.id|stringformat:"d" order_id_str=order.id|stringformat:"d" %}

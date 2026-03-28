@@ -378,17 +378,17 @@
                     <div class="stock-tag">
                         <i class="fa-solid fa-layer-group"></i>
                         {% if item.product.stock_kg > 0 %}
-                            {{ item.product.stock_kg }} kg in stock
+                            {{ item.product.stock_kg }} {{ item.product.unit }} in stock
                         {% else %}
                             Out of stock
                         {% endif %}
                     </div>
 
-                    <div class="product-price">₱{{ item.product.price_per_kg }}<small style="font-size: 1rem; color: #888;">/kg</small></div>
+                    <div class="product-price">₱{{ item.product.price_per_kg }}<small style="font-size: 1rem; color: #888;">/{{ item.product.unit }}</small></div>
                     
                     <form method="POST" action="{% url 'add_to_cart' item.product.id %}">
                         {% csrf_token %}
-                        <input type="hidden" name="quantity_kg" value="1">
+                        <input type="hidden" name="quantity_kg" value="{% if item.product.unit == 'kg' %}0.1{% else %}1{% endif %}">
                         <button type="submit" class="add-to-cart-btn" {% if item.product.stock_kg == 0 %}disabled{% endif %}>
                             <i class="fa-solid fa-cart-plus"></i>
                             Add to Cart

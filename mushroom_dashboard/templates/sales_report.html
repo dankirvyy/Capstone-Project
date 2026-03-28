@@ -143,6 +143,82 @@
             background: #2563eb;
         }
 
+        .preview-modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.45);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .preview-modal.show {
+            display: flex;
+        }
+
+        .preview-modal-content {
+            width: min(1024px, 100%);
+            max-height: 90vh;
+            overflow: hidden;
+            border-radius: 12px;
+            background: #ffffff;
+            box-shadow: 0 20px 45px rgba(15, 23, 42, 0.25);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .preview-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .preview-modal-body {
+            padding: 18px 20px;
+            overflow: auto;
+        }
+
+        .preview-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 10px;
+            margin: 12px 0 16px;
+        }
+
+        .preview-summary-card {
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 10px;
+            background: #f8fafc;
+        }
+
+        .preview-summary-label {
+            font-size: 0.75rem;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            margin-bottom: 4px;
+        }
+
+        .preview-summary-value {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #0f172a;
+        }
+
+        .preview-modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            padding: 14px 20px;
+            border-top: 1px solid #e5e7eb;
+            background: #f8fafc;
+        }
+
         /* --- Stats Cards --- */
         .stats-grid {
             display: grid;
@@ -427,9 +503,9 @@
         <div class="page-header">
             <h1><i class="fa-solid fa-file-invoice-dollar"></i> Sales Report</h1>
             <div class="header-actions">
-                <a href="{% url 'sales_report_export' %}?start_date={{ start_date|date:'Y-m-d' }}&end_date={{ end_date|date:'Y-m-d' }}" class="btn btn-export">
-                    <i class="fa-solid fa-download"></i> Export CSV
-                </a>
+                <button type="button" class="btn btn-export" id="openExportPreviewBtn">
+                    <i class="fa-solid fa-file-pdf"></i> Export PDF
+                </button>
             </div>
         </div>
 
@@ -541,7 +617,7 @@
                     <tr>
                         <th>Rank</th>
                         <th>Product</th>
-                        <th>Quantity Sold (kg)</th>
+                        <th>Quantity Sold</th>
                         <th>Revenue</th>
                     </tr>
                 </thead>
@@ -560,7 +636,7 @@
                             {% endif %}
                         </td>
                         <td>{{ product.product__name }}</td>
-                        <td>{{ product.total_qty|floatformat:2 }} kg</td>
+                        <td>{{ product.total_qty|floatformat:2 }}</td>
                         <td>₱{{ product.total_revenue|floatformat:2 }}</td>
                     </tr>
                     {% empty %}
@@ -622,6 +698,72 @@
         </div>
     </main>
 
+    <div class="preview-modal" id="exportPreviewModal" aria-hidden="true">
+        <div class="preview-modal-content">
+            <div class="preview-modal-header">
+                <h3 style="margin: 0; color: #0c4b33;"><i class="fa-solid fa-file-pdf"></i> Sales Report Preview</h3>
+                <button type="button" id="closeExportPreviewBtn" class="btn btn-secondary" style="padding: 8px 12px;">Close</button>
+            </div>
+            <div class="preview-modal-body">
+                <div style="font-size: 0.95rem; color: #334155;">
+                    <strong>Date Range:</strong> {{ start_date|date:"M d, Y" }} to {{ end_date|date:"M d, Y" }}
+                </div>
+
+                <div class="preview-summary">
+                    <div class="preview-summary-card">
+                        <div class="preview-summary-label">Total Sales</div>
+                        <div class="preview-summary-value">₱{{ total_sales|floatformat:2 }}</div>
+                    </div>
+                    <div class="preview-summary-card">
+                        <div class="preview-summary-label">Total Orders</div>
+                        <div class="preview-summary-value">{{ total_orders }}</div>
+                    </div>
+                    <div class="preview-summary-card">
+                        <div class="preview-summary-label">Average Order Value</div>
+                        <div class="preview-summary-value">₱{{ avg_order_value|floatformat:2 }}</div>
+                    </div>
+                </div>
+
+                <div class="table-card" style="margin-bottom: 0; padding: 0; box-shadow: none; border: 1px solid #e5e7eb;">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Order #</th>
+                                <th>Date</th>
+                                <th>Customer</th>
+                                <th>Payment</th>
+                                <th>Status</th>
+                                <th>Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for order in report_orders %}
+                            <tr>
+                                <td>{{ order.order_number }}</td>
+                                <td>{{ order.created_at|date:"M d, Y H:i" }}</td>
+                                <td>{{ order.customer_name }}</td>
+                                <td>{{ order.payment_method }}</td>
+                                <td>{{ order.status }}</td>
+                                <td>₱{{ order.total_amount|floatformat:2 }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="6" style="text-align: center; color: #64748b;">No sales data in selected date range.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="preview-modal-footer">
+                <button type="button" class="btn btn-secondary" id="cancelExportPreviewBtn">Cancel</button>
+                <a href="{% url 'sales_report_export' %}?start_date={{ start_date|date:'Y-m-d' }}&end_date={{ end_date|date:'Y-m-d' }}" class="btn btn-export">
+                    <i class="fa-solid fa-download"></i> Confirm Export PDF
+                </a>
+            </div>
+        </div>
+    </div>
+
     <!-- Data passed from Django (already JSON serialized in view) -->
     <script type="application/json" id="salesDataJson">{{ sales_by_period|safe }}</script>
     <script type="application/json" id="paymentDataJson">{{ sales_by_payment|safe }}</script>
@@ -632,6 +774,39 @@
         const salesData = JSON.parse(document.getElementById('salesDataJson').textContent);
         const paymentData = JSON.parse(document.getElementById('paymentDataJson').textContent);
         const period = document.getElementById('periodValue').textContent.trim();
+        const exportPreviewModal = document.getElementById('exportPreviewModal');
+        const openExportPreviewBtn = document.getElementById('openExportPreviewBtn');
+        const closeExportPreviewBtn = document.getElementById('closeExportPreviewBtn');
+        const cancelExportPreviewBtn = document.getElementById('cancelExportPreviewBtn');
+
+        function closeExportPreview() {
+            exportPreviewModal.classList.remove('show');
+            exportPreviewModal.setAttribute('aria-hidden', 'true');
+            document.body.style.overflow = '';
+        }
+
+        function openExportPreview() {
+            exportPreviewModal.classList.add('show');
+            exportPreviewModal.setAttribute('aria-hidden', 'false');
+            document.body.style.overflow = 'hidden';
+        }
+
+        if (openExportPreviewBtn) {
+            openExportPreviewBtn.addEventListener('click', openExportPreview);
+        }
+        if (closeExportPreviewBtn) {
+            closeExportPreviewBtn.addEventListener('click', closeExportPreview);
+        }
+        if (cancelExportPreviewBtn) {
+            cancelExportPreviewBtn.addEventListener('click', closeExportPreview);
+        }
+        if (exportPreviewModal) {
+            exportPreviewModal.addEventListener('click', (event) => {
+                if (event.target === exportPreviewModal) {
+                    closeExportPreview();
+                }
+            });
+        }
 
         // Sales Chart
         const salesLabels = salesData.map(item => {

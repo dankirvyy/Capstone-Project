@@ -331,6 +331,7 @@
                      data-product-id="{{ product.id }}"
                      data-product-name="{{ product.name }}"
                      data-price="{{ product.price_per_kg }}"
+                     data-unit="{{ product.unit }}"
                      data-stock="{{ product.stock_kg }}"
                      {% if product.stock_kg > 0 %}onclick="addToCartFromData(this)"{% endif %}>
 
@@ -342,9 +343,9 @@
                         {% endif %}
                     </div>
                     <div style="font-weight: 700;">{{ product.name }}</div>
-                    <div style="color: var(--primary); font-weight: 800;">₱{{ product.price_per_kg }}</div>
+                    <div style="color: var(--primary); font-weight: 800;">₱{{ product.price_per_kg }} / {{ product.unit }}</div>
                     <div style="font-size: 0.8rem; color: #64748b;">
-                        {% if product.stock_kg == 0 %}OUT OF STOCK{% else %}{{ product.stock_kg }} kg available{% endif %}
+                        {% if product.stock_kg == 0 %}OUT OF STOCK{% else %}{{ product.stock_kg }} {{ product.unit }} available{% endif %}
                     </div>
                 </div>
                 {% endfor %}
@@ -385,16 +386,18 @@
             const productId = element.getAttribute('data-product-id');
             const productName = element.getAttribute('data-product-name');
             const pricePerKg = parseFloat(element.getAttribute('data-price'));
+            const unit = element.getAttribute('data-unit') || 'kg';
             const maxStock = parseFloat(element.getAttribute('data-stock'));
-            addToCart(productId, productName, pricePerKg, maxStock);
+            addToCart(productId, productName, pricePerKg, maxStock, unit);
         }
 
-        function addToCart(productId, productName, pricePerKg, maxStock) {
+        function addToCart(productId, productName, pricePerKg, maxStock, unit) {
+            const increment = unit === 'kg' ? 0.5 : 1;
             const item = cart.find(i => i.id === productId);
             if (item) {
-                if (item.quantity + 0.5 <= maxStock) item.quantity += 0.5;
+                if (item.quantity + increment <= maxStock) item.quantity += increment;
             } else {
-                cart.push({ id: productId, name: productName, price: pricePerKg, quantity: 0.5, maxStock: maxStock });
+                cart.push({ id: productId, name: productName, price: pricePerKg, quantity: increment, maxStock: maxStock, unit: unit });
             }
             updateCartDisplay();
         }
@@ -432,16 +435,18 @@
             let total = 0;
             container.innerHTML = cart.map(item => {
                 total += (item.price * item.quantity);
+                const itemStep = item.unit === 'kg' ? 0.5 : 1;
+                const displayQty = item.unit === 'kg' ? item.quantity.toFixed(1) : item.quantity.toFixed(0);
                 return `
                     <div class="cart-item">
                         <div>
                             <div style="font-weight:700;">${item.name}</div>
-                            <div style="font-size:0.8rem;">₱${item.price}/kg</div>
+                            <div style="font-size:0.8rem;">₱${item.price}/${item.unit}</div>
                         </div>
                         <div class="qty-controls">
-                            <button class="qty-btn" onclick="updateQuantity('${item.id}', ${item.quantity - 0.5})">-</button>
-                            <span style="font-weight:800; width:40px; text-align:center;">${item.quantity}</span>
-                            <button class="qty-btn" onclick="updateQuantity('${item.id}', ${item.quantity + 0.5})">+</button>
+                            <button class="qty-btn" onclick="updateQuantity('${item.id}', ${item.quantity - itemStep})">-</button>
+                            <span style="font-weight:800; width:70px; text-align:center;">${displayQty} ${item.unit}</span>
+                            <button class="qty-btn" onclick="updateQuantity('${item.id}', ${item.quantity + itemStep})">+</button>
                             <i class="fa-solid fa-trash" style="color:#ef4444; cursor:pointer; margin-left:10px;" onclick="removeFromCart('${item.id}')"></i>
                         </div>
                     </div>`;

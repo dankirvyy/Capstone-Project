@@ -372,6 +372,7 @@ def sales_report_view(request):
     
     # Recent orders
     recent_orders = orders.order_by('-created_at')[:10]
+    report_orders = orders.order_by('-created_at')
     
     # Store settings for min order display
     store_settings = StoreSettings.load()
@@ -384,6 +385,7 @@ def sales_report_view(request):
         'best_sellers': list(best_sellers),
         'sales_by_payment': json.dumps(sales_by_payment_list),
         'recent_orders': recent_orders,
+        'report_orders': report_orders,
         'period': period,
         'start_date': start_date,
         'end_date': end_date,
@@ -393,11 +395,15 @@ def sales_report_view(request):
 
 @admin_required
 def sales_report_export(request):
-    """Export sales report as CSV"""
-    import csv
+    """Export sales report as PDF"""
     from django.http import HttpResponse
     from .models import Order
     from datetime import datetime, timedelta
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.styles import getSampleStyleSheet
+    from reportlab.lib.units import mm
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
     
     # Get filter parameters
     start_date = request.GET.get('start_date')
@@ -419,23 +425,66 @@ def sales_report_export(request):
         created_at__date__lte=end_date,
         status__in=['DELIVERED', 'PROCESSING', 'SHIPPED', 'PAID']
     ).order_by('-created_at')
+
+    total_sales = orders.aggregate(total=Sum('total_amount'))['total'] or Decimal('0.00')
+    total_orders = orders.count()
+    avg_order_value = total_sales / total_orders if total_orders > 0 else Decimal('0.00')
     
-    response = HttpResponse(content_type='text/csv')
-    response['Content-Disposition'] = f'attachment; filename="sales_report_{start_date}_to_{end_date}.csv"'
-    
-    writer = csv.writer(response)
-    writer.writerow(['Order Number', 'Date', 'Customer', 'Total Amount', 'Payment Method', 'Status'])
-    
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="sales_report_{start_date}_to_{end_date}.pdf"'
+
+    doc = SimpleDocTemplate(
+        response,
+        pagesize=A4,
+        rightMargin=14 * mm,
+        leftMargin=14 * mm,
+        topMargin=12 * mm,
+        bottomMargin=12 * mm,
+    )
+
+    styles = getSampleStyleSheet()
+    story = []
+
+    story.append(Paragraph('KABUTOMATE Sales Report', styles['Title']))
+    story.append(Paragraph(f'Date Range: {start_date} to {end_date}', styles['Normal']))
+    story.append(Spacer(1, 6))
+    story.append(Paragraph(f'Total Sales: ₱{total_sales:,.2f}', styles['Normal']))
+    story.append(Paragraph(f'Total Orders: {total_orders}', styles['Normal']))
+    story.append(Paragraph(f'Average Order Value: ₱{avg_order_value:,.2f}', styles['Normal']))
+    story.append(Spacer(1, 10))
+
+    table_rows = [['Order #', 'Date', 'Customer', 'Payment', 'Status', 'Amount (PHP)']]
     for order in orders:
-        writer.writerow([
+        table_rows.append([
             order.order_number,
             order.created_at.strftime('%Y-%m-%d %H:%M'),
             order.customer_name,
-            float(order.total_amount),
             order.payment_method,
-            order.status
+            order.status,
+            f"{order.total_amount:,.2f}",
         ])
-    
+
+    if len(table_rows) == 1:
+        table_rows.append(['-', '-', 'No orders in selected date range', '-', '-', '0.00'])
+
+    table = Table(table_rows, repeatRows=1, colWidths=[30 * mm, 30 * mm, 42 * mm, 20 * mm, 22 * mm, 28 * mm])
+    table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#0c4b33')),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 9),
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#d1d5db')),
+        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.whitesmoke, colors.HexColor('#f9fafb')]),
+        ('FONTSIZE', (0, 1), (-1, -1), 8),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 5),
+        ('LEFTPADDING', (0, 0), (-1, -1), 5),
+    ]))
+
+    story.append(table)
+    doc.build(story)
+
     return response
 
 @admin_required
@@ -1050,6 +1099,7 @@ def dashboard_summary_api(request):
     device_statuses = {
         'fan': env_settings.fan_on,
         'humidifier': env_settings.humidifier_on,
+        'heater': env_settings.heater_on,
         'watering': False,  # Set to False by default, will be True only during watering cycle
         'sensors': sensors_online
     }
@@ -1084,7 +1134,15 @@ def inventory_api(request):
             description = request.POST.get('description', '')
             product_image = request.FILES.get('product_image')
             product_type = request.POST.get('product_type', 'fresh')
+            unit = request.POST.get('unit', 'kg')
             is_active = request.POST.get('is_active', 'true').lower() == 'true'
+
+            valid_types = {choice[0] for choice in Product.PRODUCT_TYPE_CHOICES}
+            valid_units = {choice[0] for choice in Product.UNIT_CHOICES}
+            if product_type not in valid_types:
+                return JsonResponse({'success': False, 'error': 'Invalid product type'}, status=400)
+            if unit not in valid_units:
+                return JsonResponse({'success': False, 'error': 'Invalid product unit'}, status=400)
             
             # Nutrition fields
             serving_size = request.POST.get('serving_size', '')
@@ -1103,6 +1161,7 @@ def inventory_api(request):
                 price_per_kg=price_per_kg,
                 description=description,
                 product_type=product_type,
+                unit=unit,
                 is_active=is_active,
                 serving_size=serving_size,
                 calories=calories,
@@ -1144,7 +1203,8 @@ def inventory_api(request):
     
     product_list = [{'id': p.id, 'name': p.name, 'batch_id': p.batch_id, 'stock_kg': p.stock_kg, 
                      'price_per_kg': str(p.price_per_kg), 'description': p.description, 
-                     'is_active': p.is_active, 'product_type': p.product_type,
+                     'is_active': p.is_active, 'product_type': p.product_type, 'unit': p.unit,
+                     'unit_label': p.get_unit_display(),
                      'image_url': get_product_image_url(p),
                      'serving_size': p.serving_size or '',
                      'calories': str(p.calories) if p.calories else '',
@@ -1163,7 +1223,15 @@ def inventory_api_detail(request, pk):
         return JsonResponse({'success': False, 'error': 'Product not found'}, status=404)
     
     if request.method == 'GET':
-        return JsonResponse({'id': product.id, 'name': product.name, 'batch_id': product.batch_id, 'stock_kg': product.stock_kg})
+        return JsonResponse({
+            'id': product.id,
+            'name': product.name,
+            'batch_id': product.batch_id,
+            'stock_kg': product.stock_kg,
+            'price_per_kg': str(product.price_per_kg),
+            'product_type': product.product_type,
+            'unit': product.unit,
+        })
     
     elif request.method == 'POST':
         # Handle UPDATE with multipart form data for file upload
@@ -1173,7 +1241,18 @@ def inventory_api_detail(request, pk):
             product.stock_kg = request.POST.get('stock_kg', product.stock_kg)
             product.price_per_kg = request.POST.get('price_per_kg', product.price_per_kg)
             product.description = request.POST.get('description', product.description)
-            product.product_type = request.POST.get('product_type', product.product_type)
+            requested_type = request.POST.get('product_type', product.product_type)
+            requested_unit = request.POST.get('unit', product.unit)
+
+            valid_types = {choice[0] for choice in Product.PRODUCT_TYPE_CHOICES}
+            valid_units = {choice[0] for choice in Product.UNIT_CHOICES}
+            if requested_type not in valid_types:
+                return JsonResponse({'success': False, 'error': 'Invalid product type'}, status=400)
+            if requested_unit not in valid_units:
+                return JsonResponse({'success': False, 'error': 'Invalid product unit'}, status=400)
+
+            product.product_type = requested_type
+            product.unit = requested_unit
             
             is_active_str = request.POST.get('is_active')
             if is_active_str is not None:
@@ -1260,7 +1339,7 @@ def sales_api(request):
             stock_before_sale = product.stock_kg
             stock_after_sale = stock_before_sale - quantity_kg
             if stock_after_sale < 10 and stock_before_sale >= 10:
-                Notification.objects.create(title="Low Stock Alert", description=f"{product.name} inventory below minimum threshold ({stock_after_sale} kg).", category="production", level="warning")
+                Notification.objects.create(title="Low Stock Alert", description=f"{product.name} inventory below minimum threshold ({stock_after_sale} {product.unit}).", category="production", level="warning")
             product.stock_kg = F('stock_kg') - quantity_kg
             product.save()
             Sale.objects.create(product=product, quantity_kg=quantity_kg, total_price=total_price, sale_date=timezone.now())
@@ -1276,6 +1355,8 @@ def sales_api(request):
             'sale_date': s.sale_date.strftime('%Y-%m-%d %H:%M'),
             'product_name': s.product.name,
             'quantity_kg': s.quantity_kg,
+            'unit': s.product.unit,
+            'unit_label': s.product.get_unit_display(),
             'total_price': s.total_price,
             'sale_type': s.sale_type,
         }

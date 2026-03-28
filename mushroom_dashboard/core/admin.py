@@ -16,7 +16,7 @@ class ProductImageInline(admin.TabularInline):
 # Enhanced Product Admin with image upload inline
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ('name', 'product_type', 'stock_kg', 'price_per_kg', 'is_active', 'has_image')
+    list_display = ('name', 'product_type', 'unit', 'stock_kg', 'price_per_kg', 'is_active', 'has_image')
     list_filter = ('product_type', 'is_active')
     search_fields = ('name', 'description')
     list_editable = ('is_active',)
@@ -27,7 +27,7 @@ class ProductAdmin(admin.ModelAdmin):
             'fields': ('name', 'product_type', 'description')
         }),
         ('Inventory', {
-            'fields': ('batch_id', 'stock_kg', 'price_per_kg')
+            'fields': ('batch_id', 'stock_kg', 'unit', 'price_per_kg')
         }),
         ('Publishing', {
             'fields': ('is_active',)

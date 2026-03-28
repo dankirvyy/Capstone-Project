@@ -605,7 +605,7 @@
                         <span class="rating-text">({{ product.review_count }} reviews)</span>
                     </div>
 
-                    <div class="product-price">₱{{ product.price_per_kg }}<span style="font-size: 1.2rem; color: #6b7280;">/kg</span></div>
+                    <div class="product-price">₱{{ product.price_per_kg }}<span style="font-size: 1.2rem; color: #6b7280;">/{{ product.unit }}</span></div>
                 </div>
 
                 <div class="product-description">
@@ -619,11 +619,11 @@
                 <div class="product-meta">
                     <div class="meta-item">
                         <div class="meta-label">Category</div>
-                        <div class="meta-value">{{ product.category|default:"Fresh Mushrooms" }}</div>
+                        <div class="meta-value">{{ product.get_product_type_display }}</div>
                     </div>
                     <div class="meta-item">
                         <div class="meta-label">Available Stock</div>
-                        <div class="meta-value">{{ product.stock_kg }} kg</div>
+                        <div class="meta-value">{{ product.stock_kg }} {{ product.unit }}</div>
                     </div>
                 </div>
 
@@ -678,7 +678,7 @@
 
                 {% if product.stock_kg > 0 %}
                 <div class="quantity-selector">
-                    <span class="quantity-label">Quantity (kg):</span>
+                    <span class="quantity-label">Quantity ({{ product.unit }}):</span>
                     <div class="quantity-controls">
                         <button class="qty-btn" id="decreaseQty">−</button>
                         <span class="qty-display" id="qtyDisplay">1</span>
@@ -712,9 +712,11 @@
 
     <script>
         const productId = parseInt('{{ product.id }}');
+        const productUnit = '{{ product.unit }}';
+        const quantityStep = productUnit === 'kg' ? 0.1 : 1;
         const maxStock = parseFloat('{{ product.stock_kg }}');
         const initialReviewLimit = 3;
-        let quantity = 1;
+        let quantity = quantityStep;
         let allReviews = [];
         let showingAllReviews = false;
         
@@ -733,21 +735,24 @@
         const decreaseBtn = document.getElementById('decreaseQty');
         const increaseBtn = document.getElementById('increaseQty');
         const qtyDisplay = document.getElementById('qtyDisplay');
+        if (qtyDisplay) {
+            qtyDisplay.textContent = quantity.toFixed(productUnit === 'kg' ? 1 : 0);
+        }
 
         if (decreaseBtn) {
             decreaseBtn.addEventListener('click', () => {
-                if (quantity > 1) {
-                    quantity--;
-                    qtyDisplay.textContent = quantity;
+                if (quantity - quantityStep >= quantityStep) {
+                    quantity = Math.max(quantityStep, quantity - quantityStep);
+                    qtyDisplay.textContent = quantity.toFixed(productUnit === 'kg' ? 1 : 0);
                 }
             });
         }
 
         if (increaseBtn) {
             increaseBtn.addEventListener('click', () => {
-                if (quantity < maxStock) {
-                    quantity++;
-                    qtyDisplay.textContent = quantity;
+                if (quantity + quantityStep <= maxStock) {
+                    quantity = quantity + quantityStep;
+                    qtyDisplay.textContent = quantity.toFixed(productUnit === 'kg' ? 1 : 0);
                 }
             });
         }

@@ -161,8 +161,8 @@ def send_order_status_email(order, old_status=None):
         items_html = ""
         items_plain = ""
         for item in order_items:
-            items_html += f"<tr><td>{item.product.name}</td><td>{item.quantity_kg}kg</td><td>₱{item.subtotal:.2f}</td></tr>"
-            items_plain += f"  - {item.product.name}: {item.quantity_kg}kg - ₱{item.subtotal:.2f}\n"
+            items_html += f"<tr><td>{item.product.name}</td><td>{item.quantity_kg} {item.unit}</td><td>₱{item.subtotal:.2f}</td></tr>"
+            items_plain += f"  - {item.product.name}: {item.quantity_kg} {item.unit} - ₱{item.subtotal:.2f}\n"
         
         subject = f"Order {order.order_number} Status Update: {current_status['name']}"
         
@@ -293,8 +293,8 @@ def send_new_order_admin_notification(order):
         items_html = ""
         items_plain = ""
         for item in order_items:
-            items_html += f"<tr><td>{item.product.name}</td><td>{item.quantity_kg}kg</td><td>₱{item.subtotal:.2f}</td></tr>"
-            items_plain += f"  - {item.product.name}: {item.quantity_kg}kg - ₱{item.subtotal:.2f}\n"
+            items_html += f"<tr><td>{item.product.name}</td><td>{item.quantity_kg} {item.unit}</td><td>₱{item.subtotal:.2f}</td></tr>"
+            items_plain += f"  - {item.product.name}: {item.quantity_kg} {item.unit} - ₱{item.subtotal:.2f}\n"
         
         subject = f"🛒 New Order Received: {order.order_number} - ₱{order.total_amount:.2f}"
         
@@ -423,8 +423,8 @@ def send_order_confirmation_email(order):
         items_html = ""
         items_plain = ""
         for item in order_items:
-            items_html += f"<tr><td>{item.product.name}</td><td>{item.quantity_kg}kg</td><td>₱{item.subtotal:.2f}</td></tr>"
-            items_plain += f"  - {item.product.name}: {item.quantity_kg}kg - ₱{item.subtotal:.2f}\n"
+            items_html += f"<tr><td>{item.product.name}</td><td>{item.quantity_kg} {item.unit}</td><td>₱{item.subtotal:.2f}</td></tr>"
+            items_plain += f"  - {item.product.name}: {item.quantity_kg} {item.unit} - ₱{item.subtotal:.2f}\n"
         
         subject = f"Order Confirmed: {order.order_number} - Mushroom Farm"
         

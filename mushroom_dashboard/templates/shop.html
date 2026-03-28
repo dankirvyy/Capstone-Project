@@ -974,6 +974,7 @@
                     <option value="">All Product Types</option>
                     <option value="fresh">Fresh Mushrooms</option>
                     <option value="cooked">Cooked / Ready-to-Eat</option>
+                    <option value="fruit_bags">Fruit Bags</option>
                 </select>
             </div>
 
@@ -997,12 +998,20 @@
             {% for product in products %}
             <div class="product-card" data-product-id="{{ product.id }}" data-product-type="{{ product.product_type }}" style="cursor: pointer;">
                 <div class="product-image-container">
-                    <span class="badge">{% if product.product_type == 'cooked' %}Ready-to-Eat{% else %}Fresh{% endif %}</span>
+                    <span class="badge">
+                        {% if product.product_type == 'cooked' %}
+                            Ready-to-Eat
+                        {% elif product.product_type == 'fruit_bags' %}
+                            Fruit Bags
+                        {% else %}
+                            Fresh
+                        {% endif %}
+                    </span>
                     
                     <!-- Stock Urgency -->
                     {% if product.stock_kg > 0 and product.stock_kg <= 5 %}
                     <div class="stock-urgency">
-                        <i class="fa-solid fa-fire"></i> Only {{ product.stock_kg }} kg left!
+                        <i class="fa-solid fa-fire"></i> Only {{ product.stock_kg }} {{ product.unit }} left!
                     </div>
                     {% elif product.stock_kg > 5 and product.stock_kg <= 10 %}
                     <div class="stock-urgency" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
@@ -1043,18 +1052,18 @@
                     <div class="stock-tag {% if product.stock_kg < 5 %}stock-critical{% endif %}">
                         <i class="fa-solid fa-layer-group"></i>
                         {% if product.stock_kg > 0 %}
-                            {{ product.stock_kg }} kg in stock
+                            {{ product.stock_kg }} {{ product.unit }} in stock
                         {% else %}
                             Out of stock
                         {% endif %}
                     </div>
 
-                    <div class="product-price">₱{{ product.price_per_kg }}<small style="font-size: 1rem; color: #888;">/kg</small></div>
+                    <div class="product-price">₱{{ product.price_per_kg }}<small style="font-size: 1rem; color: #888;">/{{ product.unit }}</small></div>
                     
                     <form method="POST" action="{% url 'add_to_cart' product.id %}" class="add-to-cart-form">
                         {% csrf_token %}
                         <input type="number" name="quantity_kg" class="quantity-input" 
-                               min="0.1" max="{{ product.stock_kg }}" step="0.1" value="1" 
+                               min="{% if product.unit == 'kg' %}0.1{% else %}1{% endif %}" max="{{ product.stock_kg }}" step="{% if product.unit == 'kg' %}0.1{% else %}1{% endif %}" value="1" 
                                {% if product.stock_kg == 0 %}disabled{% endif %}>
                         
                         <button type="submit" class="add-btn" {% if product.stock_kg == 0 %}disabled{% endif %}>

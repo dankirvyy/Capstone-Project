@@ -406,14 +406,14 @@
                     
                     <div class="item-info">
                         <div class="item-name">{{ item.product.name }}</div>
-                        <div class="item-price">₱{{ item.product.price_per_kg }} per kg</div>
+                        <div class="item-price">₱{{ item.product.price_per_kg }} per {{ item.product.unit }}</div>
                         
                         <div class="item-controls">
                             <form method="POST" action="{% url 'update_cart_item' item.id %}" style="display: flex; gap: 8px;">
                                 {% csrf_token %}
                                 <input type="number" name="quantity_kg" class="qty-input" 
-                                       value="{{ item.quantity_kg }}" min="0.1" 
-                                       max="{{ item.product.stock_kg }}" step="0.1">
+                                        value="{{ item.quantity_kg }}" min="{% if item.product.unit == 'kg' %}0.1{% else %}1{% endif %}" 
+                                        max="{{ item.product.stock_kg }}" step="{% if item.product.unit == 'kg' %}0.1{% else %}1{% endif %}">
                                 <button type="submit" class="btn-icon" title="Update Quantity">
                                     <i class="fa-solid fa-rotate"></i>
                                 </button>

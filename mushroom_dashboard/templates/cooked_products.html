@@ -761,10 +761,25 @@
                 <span class="close-btn">&times;</span>
             </div>
             <form id="addProductForm" class="modal-form" enctype="multipart/form-data">
-                <input type="hidden" name="product_type" value="cooked">
+                <div class="form-group">
+                    <label for="add-product_type">Product Category *</label>
+                    <select id="add-product_type" name="product_type" required>
+                        <option value="cooked">Cooked / Ready-to-Eat</option>
+                        <option value="fruit_bags">Fruit Bags</option>
+                    </select>
+                </div>
                 <div class="form-group">
                     <label for="add-name">Product Name *</label>
                     <input type="text" id="add-name" name="name" placeholder="e.g., Mushroom Sisig, Crispy Mushroom Chips" required>
+                </div>
+                <div class="form-group">
+                    <label for="add-unit">Pricing Unit *</label>
+                    <select id="add-unit" name="unit" required>
+                        <option value="kg">per kg</option>
+                        <option value="pack">per pack</option>
+                        <option value="bag">per bag</option>
+                        <option value="piece">per piece</option>
+                    </select>
                 </div>
                 <div class="form-group">
                     <label for="add-price_per_kg">Price (₱) *</label>
@@ -795,10 +810,25 @@
                 <span class="close-btn">&times;</span>
             </div>
             <form id="editProductForm" class="modal-form" enctype="multipart/form-data">
-                <input type="hidden" name="product_type" value="cooked">
+                <div class="form-group">
+                    <label for="edit-product_type">Product Category *</label>
+                    <select id="edit-product_type" name="product_type" required>
+                        <option value="cooked">Cooked / Ready-to-Eat</option>
+                        <option value="fruit_bags">Fruit Bags</option>
+                    </select>
+                </div>
                 <div class="form-group">
                     <label for="edit-name">Product Name *</label>
                     <input type="text" id="edit-name" name="name" required>
+                </div>
+                <div class="form-group">
+                    <label for="edit-unit">Pricing Unit *</label>
+                    <select id="edit-unit" name="unit" required>
+                        <option value="kg">per kg</option>
+                        <option value="pack">per pack</option>
+                        <option value="bag">per bag</option>
+                        <option value="piece">per piece</option>
+                    </select>
                 </div>
                 <div class="form-group">
                     <label for="edit-price_per_kg">Price (₱) *</label>
@@ -1023,8 +1053,9 @@
 
             async function loadProducts() {
                 try {
-                    const response = await fetch('/api/inventory/?product_type=cooked');
-                    allProductItems = await response.json();
+                    const response = await fetch('/api/inventory/');
+                    const allItems = await response.json();
+                    allProductItems = allItems.filter(p => p.product_type === 'cooked' || p.product_type === 'fruit_bags');
                     currentProducts = allProductItems;
                     currentPage = 1;
                     
@@ -1054,7 +1085,7 @@
                         const emptyRow = document.createElement('div');
                         emptyRow.className = 'table-row';
                         if (i === 0) {
-                            emptyRow.innerHTML = '<span style="color: #94a3b8;">No cooked products yet. Add your first product!</span>';
+                            emptyRow.innerHTML = '<span style="color: #94a3b8;">No cooked products or fruit bags yet. Add your first product!</span>';
                         }
                         productsTableGrid.appendChild(emptyRow);
                     }
@@ -1078,12 +1109,12 @@
 
                         const priceRow = document.createElement('div');
                         priceRow.className = 'table-row';
-                        priceRow.textContent = `₱${parseFloat(product.price_per_kg).toFixed(2)}`;
+                        priceRow.textContent = `₱${parseFloat(product.price_per_kg).toFixed(2)} / ${product.unit || 'kg'}`;
                         productsTableGrid.appendChild(priceRow);
 
                         const stockRow = document.createElement('div');
                         stockRow.className = 'table-row';
-                        stockRow.textContent = product.stock_kg;
+                        stockRow.textContent = `${product.stock_kg} ${product.unit || 'kg'}`;
                         productsTableGrid.appendChild(stockRow);
 
                         const statusRow = document.createElement('div');
@@ -1264,6 +1295,8 @@
                     if (product) {
                         // Populate the edit form
                         document.getElementById('edit-name').value = product.name;
+                        document.getElementById('edit-product_type').value = product.product_type || 'cooked';
+                        document.getElementById('edit-unit').value = product.unit || 'kg';
                         document.getElementById('edit-stock_kg').value = product.stock_kg;
                         document.getElementById('edit-price_per_kg').value = product.price_per_kg || 0;
                         document.getElementById('edit-description').value = product.description || '';

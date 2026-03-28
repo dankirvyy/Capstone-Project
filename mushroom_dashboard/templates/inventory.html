@@ -277,6 +277,35 @@
         .table-row:hover {
             background: #fafafa;
         }
+
+        .inventory-product-cell {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .inventory-product-thumb {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            object-fit: cover;
+            border: 1px solid #e5e7eb;
+            background: #f8fafc;
+            flex-shrink: 0;
+        }
+
+        .inventory-product-fallback {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            background: #f8fafc;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: #94a3b8;
+            flex-shrink: 0;
+        }
         
         .table-row:last-child {
             border-bottom: none;
@@ -861,6 +890,14 @@
                         <input type="text" id="name" name="name" required>
                     </div>
                     <div class="form-group">
+                        <label for="product_type">Product Category</label>
+                        <select id="product_type" name="product_type" required>
+                            <option value="fresh">Fresh Mushrooms</option>
+                            <option value="cooked">Cooked / Ready-to-Eat</option>
+                            <option value="fruit_bags">Fruit Bags</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
                         <label for="batch_id">Batch ID</label>
                         <input type="text" id="batch_id" name="batch_id" required>
                     </div>
@@ -869,7 +906,16 @@
                         <input type="number" step="0.1" id="stock_kg" name="stock_kg" required>
                     </div>
                     <div class="form-group">
-                        <label for="price_per_kg">Price per kg (₱)</label>
+                        <label for="unit">Pricing Unit</label>
+                        <select id="unit" name="unit" required>
+                            <option value="kg">per kg</option>
+                            <option value="pack">per pack</option>
+                            <option value="bag">per bag</option>
+                            <option value="piece">per piece</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="price_per_kg">Price per unit (₱)</label>
                         <input type="number" step="0.01" id="price_per_kg" name="price_per_kg" required>
                     </div>
                     <div class="form-group">
@@ -936,6 +982,14 @@
                         <input type="text" id="edit-name" name="name" required>
                     </div>
                     <div class="form-group">
+                        <label for="edit-product_type">Product Category</label>
+                        <select id="edit-product_type" name="product_type" required>
+                            <option value="fresh">Fresh Mushrooms</option>
+                            <option value="cooked">Cooked / Ready-to-Eat</option>
+                            <option value="fruit_bags">Fruit Bags</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
                         <label for="edit-batch_id">Batch ID</label>
                         <input type="text" id="edit-batch_id" name="batch_id" required>
                     </div>
@@ -944,7 +998,16 @@
                         <input type="number" step="0.1" id="edit-stock_kg" name="stock_kg" required>
                     </div>
                     <div class="form-group">
-                        <label for="edit-price_per_kg">Price per kg (₱)</label>
+                        <label for="edit-unit">Pricing Unit</label>
+                        <select id="edit-unit" name="unit" required>
+                            <option value="kg">per kg</option>
+                            <option value="pack">per pack</option>
+                            <option value="bag">per bag</option>
+                            <option value="piece">per piece</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-price_per_kg">Price per unit (₱)</label>
                         <input type="number" step="0.01" id="edit-price_per_kg" name="price_per_kg" required>
                     </div>
                     <div class="form-group">
@@ -1014,7 +1077,7 @@
                             </select>
                     </div>
                     <div class="form-group">
-                        <label for="sale-quantity">Quantity (kg)</label>
+                        <label for="sale-quantity">Quantity</label>
                         <input type="number" step="0.1" id="sale-quantity" name="quantity_kg" required>
                     </div>
                     <div class="form-group">
@@ -1230,8 +1293,18 @@
                 // Populate Table
                 itemsToShow.forEach(product => {
                     const nameRow = document.createElement('div');
-                    nameRow.className = 'table-row';
-                    nameRow.textContent = product.name;
+                    nameRow.className = 'table-row inventory-product-cell';
+                    if (product.image_url) {
+                        nameRow.innerHTML = `
+                            <img src="${product.image_url}" alt="${product.name}" class="inventory-product-thumb">
+                            <span>${product.name}</span>
+                        `;
+                    } else {
+                        nameRow.innerHTML = `
+                            <span class="inventory-product-fallback"><i class="fa-solid fa-image"></i></span>
+                            <span>${product.name}</span>
+                        `;
+                    }
                     inventoryTableGrid.appendChild(nameRow);
 
                     const batchRow = document.createElement('div');
@@ -1380,7 +1453,7 @@
                     
                     const qtyRow = document.createElement('div');
                     qtyRow.className = 'table-row';
-                    qtyRow.textContent = `${sale.quantity_kg} kg`;
+                    qtyRow.textContent = `${sale.quantity_kg} ${sale.unit || 'kg'}`;
                     salesTableGrid.appendChild(qtyRow);
                     
                     const totalRow = document.createElement('div');
@@ -1457,7 +1530,7 @@
                     if (parseFloat(product.stock_kg) > 0) {
                         const option = document.createElement('option');
                         option.value = product.id;
-                        option.textContent = `${product.name} (Stock: ${product.stock_kg}kg)`;
+                        option.textContent = `${product.name} (Stock: ${product.stock_kg} ${product.unit || 'kg'})`;
                         productSelect.appendChild(option);
                     }
                 });
@@ -1527,6 +1600,8 @@
                         document.getElementById('edit-name').value = product.name;
                         document.getElementById('edit-batch_id').value = product.batch_id;
                         document.getElementById('edit-stock_kg').value = product.stock_kg;
+                        document.getElementById('edit-product_type').value = product.product_type || 'fresh';
+                        document.getElementById('edit-unit').value = product.unit || 'kg';
                         document.getElementById('edit-price_per_kg').value = product.price_per_kg || 0;
                         document.getElementById('edit-description').value = product.description || '';
                         editStockForm.dataset.id = product.id; // Store the id on the form
@@ -1633,8 +1708,8 @@
                             </div>
                             <hr style="border: 1px dashed #333;">
                             <div style="margin: 15px 0;">
-                                <p><strong>Quantity:</strong> ${saleData.quantity_kg} kg</p>
-                                <p><strong>Price per kg:</strong> ₱${(parseFloat(saleData.total_price) / parseFloat(saleData.quantity_kg)).toFixed(2)}</p>
+                                <p><strong>Quantity:</strong> ${saleData.quantity_kg} ${saleData.unit || 'kg'}</p>
+                                <p><strong>Price per unit:</strong> ₱${(parseFloat(saleData.total_price) / parseFloat(saleData.quantity_kg)).toFixed(2)}</p>
                                 <p><strong>Source:</strong> ${saleData.sale_type || 'POS'}</p>
                             </div>
                             <hr style="border: 1px solid #333;">

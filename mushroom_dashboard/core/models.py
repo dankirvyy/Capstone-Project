@@ -68,12 +68,21 @@ class Product(models.Model):
     PRODUCT_TYPE_CHOICES = [
         ('fresh', 'Fresh Mushrooms'),
         ('cooked', 'Cooked / Ready-to-Eat'),
+        ('fruit_bags', 'Fruit Bags'),
+    ]
+
+    UNIT_CHOICES = [
+        ('kg', 'per kg'),
+        ('pack', 'per pack'),
+        ('bag', 'per bag'),
+        ('piece', 'per piece'),
     ]
     
     name = models.CharField(max_length=100)
     batch_id = models.CharField(max_length=50, blank=True, default='')
     stock_kg = models.DecimalField(max_digits=5, decimal_places=1)
-    price_per_kg = models.DecimalField(max_digits=6, decimal_places=2, default=0.00, help_text="Price per kilogram (or per unit for cooked products)")
+    price_per_kg = models.DecimalField(max_digits=6, decimal_places=2, default=0.00, help_text="Unit price based on the selected unit")
+    unit = models.CharField(max_length=10, choices=UNIT_CHOICES, default='kg', help_text="Unit of measurement for pricing and quantity")
     description = models.TextField(blank=True, help_text="Product description for e-commerce")
     is_active = models.BooleanField(default=True, help_text="Published - visible for sale in e-commerce")
     product_type = models.CharField(max_length=20, choices=PRODUCT_TYPE_CHOICES, default='fresh', help_text="Type of product")
@@ -124,9 +133,9 @@ class Product(models.Model):
         if self.stock_kg <= 0:
             return "Out of Stock"
         elif self.stock_kg <= 5:
-            return f"Only {self.stock_kg} kg left!"
+            return f"Only {self.stock_kg} {self.unit} left!"
         elif self.stock_kg <= 10:
-            return f"Low stock: {self.stock_kg} kg remaining"
+            return f"Low stock: {self.stock_kg} {self.unit} remaining"
         return None
 
 # This is the table for your sensor simulator and DHT22 + MQ-135 sensor data!
@@ -202,7 +211,7 @@ class Sale(models.Model):
     sale_date = models.DateTimeField(default=timezone.now)
 
     def __str__(self):
-        return f"Sale of {self.quantity_kg}kg of {self.product.name}"
+        return f"Sale of {self.quantity_kg} {self.product.unit} of {self.product.name}"
 
 # --- UPDATED MODEL ---
 class ProductionBatch(models.Model):
@@ -674,10 +683,11 @@ class OrderItem(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     quantity_kg = models.DecimalField(max_digits=5, decimal_places=1)
     price_per_kg = models.DecimalField(max_digits=6, decimal_places=2)
+    unit = models.CharField(max_length=10, choices=Product.UNIT_CHOICES, default='kg')
     subtotal = models.DecimalField(max_digits=10, decimal_places=2)
     
     def __str__(self):
-        return f"{self.quantity_kg}kg of {self.product.name}"
+        return f"{self.quantity_kg} {self.unit} of {self.product.name}"
     
     def save(self, *args, **kwargs):
         # Auto-calculate subtotal
@@ -718,7 +728,7 @@ class CartItem(models.Model):
         unique_together = ('cart', 'product')
     
     def __str__(self):
-        return f"{self.quantity_kg}kg of {self.product.name}"
+        return f"{self.quantity_kg} {self.product.unit} of {self.product.name}"
     
     @property
     def subtotal(self):

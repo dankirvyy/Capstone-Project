@@ -45,7 +45,7 @@ def shop(request):
     
     # Get product type filter from query params (optional server-side filter)
     product_type_filter = request.GET.get('type')
-    if product_type_filter and product_type_filter in ['fresh', 'cooked']:
+    if product_type_filter and product_type_filter in ['fresh', 'cooked', 'fruit_bags']:
         products = products.filter(product_type=product_type_filter)
     
     # Get cart count - check both user and session carts
@@ -84,7 +84,7 @@ def add_to_cart(request, product_id):
             return redirect('shop')
         
         if quantity_kg > product.stock_kg:
-            messages.error(request, f'Only {product.stock_kg}kg available in stock')
+            messages.error(request, f'Only {product.stock_kg}{" kg" if product.unit == "kg" else ""} available in stock')
             return redirect('shop')
         
         # Get or create cart based on user authentication
@@ -114,12 +114,12 @@ def add_to_cart(request, product_id):
             # Update existing cart item
             new_quantity = cart_item.quantity_kg + quantity_kg
             if new_quantity > product.stock_kg:
-                messages.error(request, f'Only {product.stock_kg}kg available in stock')
+                messages.error(request, f'Only {product.stock_kg}{" kg" if product.unit == "kg" else ""} available in stock')
                 return redirect('shop')
             cart_item.quantity_kg = new_quantity
             cart_item.save()
         
-        messages.success(request, f'Added {quantity_kg}kg of {product.name} to cart')
+        messages.success(request, f'Added {quantity_kg} {product.unit} of {product.name} to cart')
         return redirect('shop')
     
     return redirect('shop')
@@ -144,7 +144,7 @@ def add_to_cart_api(request):
             if quantity > product.stock_kg:
                 return JsonResponse({
                     'success': False, 
-                    'message': f'Only {product.stock_kg}kg available in stock'
+                    'message': f'Only {product.stock_kg}{" kg" if product.unit == "kg" else ""} available in stock'
                 }, status=400)
             
             # Get or create cart based on user authentication
@@ -173,7 +173,7 @@ def add_to_cart_api(request):
                 if new_quantity > product.stock_kg:
                     return JsonResponse({
                         'success': False,
-                        'message': f'Only {product.stock_kg}kg available in stock'
+                        'message': f'Only {product.stock_kg}{" kg" if product.unit == "kg" else ""} available in stock'
                     }, status=400)
                 cart_item.quantity_kg = new_quantity
                 cart_item.save()
@@ -183,7 +183,7 @@ def add_to_cart_api(request):
             
             return JsonResponse({
                 'success': True,
-                'message': f'Added {quantity}kg of {product.name} to cart',
+                'message': f'Added {quantity} {product.unit} of {product.name} to cart',
                 'cart_count': cart_count
             })
             
@@ -253,7 +253,7 @@ def update_cart_item(request, item_id):
             cart_item.delete()
             messages.success(request, 'Item removed from cart')
         elif quantity_kg > cart_item.product.stock_kg:
-            messages.error(request, f'Only {cart_item.product.stock_kg}kg available')
+            messages.error(request, f'Only {cart_item.product.stock_kg}{" kg" if cart_item.product.unit == "kg" else ""} available')
         else:
             cart_item.quantity_kg = quantity_kg
             cart_item.save()
@@ -381,7 +381,7 @@ def process_checkout(request, cart, cart_items, total):
         product = Product.objects.select_for_update().get(id=cart_item.product.id)
         
         if cart_item.quantity_kg > product.stock_kg:
-            messages.error(request, f'Sorry, only {product.stock_kg}kg of {product.name} available')
+            messages.error(request, f'Sorry, only {product.stock_kg}{" kg" if product.unit == "kg" else ""} of {product.name} available')
             return redirect('view_cart')
         
         # Atomic stock deduction using F() expression
@@ -419,6 +419,7 @@ def process_checkout(request, cart, cart_items, total):
             product=cart_item.product,
             quantity_kg=cart_item.quantity_kg,
             price_per_kg=cart_item.product.price_per_kg,
+            unit=cart_item.product.unit,
             subtotal=cart_item.subtotal
         )
         
@@ -436,7 +437,7 @@ def process_checkout(request, cart, cart_items, total):
         if product.is_low_stock:
             Notification.objects.create(
                 title=f'Low Stock Alert: {product.name}',
-                description=f'{product.name} stock is now {product.stock_kg}kg (below 10kg threshold)',
+                description=f'{product.name} stock is now {product.stock_kg} {product.unit} (below 10 unit threshold)',
                 category='production',
                 level='warning'
             )
@@ -551,7 +552,7 @@ def pos_complete_sale(request):
                     return redirect('pos_system')
 
                 if quantity_kg > product.stock_kg:
-                    messages.error(request, f'Only {product.stock_kg}kg available for {product.name}')
+                    messages.error(request, f'Only {product.stock_kg}{" kg" if product.unit == "kg" else ""} available for {product.name}')
                     return redirect('pos_system')
 
                 total_price = quantity_kg * product.price_per_kg
@@ -573,7 +574,7 @@ def pos_complete_sale(request):
                     Notification.objects.create(
                         user=request.user,
                         title=f'Low Stock Alert: {product.name}',
-                        description=f'{product.name} stock is now {product.stock_kg}kg (below 10kg threshold)',
+                        description=f'{product.name} stock is now {product.stock_kg} {product.unit} (below 10 unit threshold)',
                         category='production',
                         level='warning'
                     )
@@ -594,7 +595,7 @@ def pos_complete_sale(request):
         
         # Check stock
         if quantity_kg > product.stock_kg:
-            messages.error(request, f'Only {product.stock_kg}kg available in stock')
+            messages.error(request, f'Only {product.stock_kg}{" kg" if product.unit == "kg" else ""} available in stock')
             return redirect('pos_system')
         
         # Atomic stock deduction using F() expression
@@ -625,12 +626,12 @@ def pos_complete_sale(request):
             Notification.objects.create(
                 user=request.user,
                 title=f'Low Stock Alert: {product.name}',
-                description=f'{product.name} stock is now {product.stock_kg}kg (below 10kg threshold)',
+                description=f'{product.name} stock is now {product.stock_kg} {product.unit} (below 10 unit threshold)',
                 category='production',
                 level='warning'
             )
         
-        messages.success(request, f'Sale completed: {quantity_kg}kg of {product.name} for ₱{total_price}')
+        messages.success(request, f'Sale completed: {quantity_kg} {product.unit} of {product.name} for ₱{total_price}')
         return redirect('pos_system')
     
     return redirect('pos_system')
@@ -643,7 +644,9 @@ def pos_get_product_price(request, product_id):
     return JsonResponse({
         'price_per_kg': float(product.price_per_kg),
         'stock_kg': float(product.stock_kg),
-        'name': product.name
+        'name': product.name,
+        'unit': product.unit,
+        'unit_label': product.get_unit_display(),
     })
 
 
@@ -736,6 +739,8 @@ def order_detail(request, order_id):
         'product_name': item.product.name,
         'quantity_kg': str(item.quantity_kg),
         'price_per_kg': str(item.price_per_kg),
+        'unit': item.unit,
+        'unit_label': item.get_unit_display(),
         'subtotal': str(item.subtotal),
     } for item in items]
     
@@ -1389,7 +1394,7 @@ CANCELLED ITEMS
     
     # Add order items
     for item in order.items.all():
-        message += f"• {item.product.name} - {item.quantity_kg}kg × ₱{item.price_per_kg} = ₱{item.subtotal}\n"
+        message += f"• {item.product.name} - {item.quantity_kg} {item.unit} × ₱{item.price_per_kg} = ₱{item.subtotal}\n"
     
     message += f"""
 If you have any questions about your cancellation, please contact us.
