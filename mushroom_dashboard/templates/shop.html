@@ -33,7 +33,8 @@
         /* --- Modern Navbar --- */
         .navbar {
             background: var(--glass);
-            backdrop-filter: blur(10px);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
             padding: 1rem 5%;
             position: sticky;
             top: 0;
@@ -41,7 +42,9 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 1px solid rgba(0,0,0,0.05);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 4px 30px rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
         }
 
         .logo-section { display: flex; align-items: center; gap: 12px; }
@@ -69,11 +72,18 @@
         .nav-links a:hover { color: var(--primary); }
 
         .cart-btn {
-            background: var(--primary);
+            background: linear-gradient(135deg, var(--primary), #1a5e45);
             color: white !important;
-            padding: 0.6rem 1.2rem;
+            padding: 0.7rem 1.4rem;
             border-radius: 50px;
             display: flex; align-items: center; gap: 8px;
+            box-shadow: 0 4px 15px rgba(12, 75, 51, 0.3);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .cart-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(12, 75, 51, 0.4);
         }
 
         /* --- Hero Header --- */
@@ -102,27 +112,78 @@
         }
 
         .product-card {
-            background: white;
-            border-radius: 24px;
-            padding: 15px;
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            border: 1px solid rgba(0,0,0,0.03);
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(10px);
+            border-radius: 28px;
+            padding: 18px;
+            transition: all 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+            border: 1px solid rgba(255,255,255,0.4);
             position: relative;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04);
+            overflow: hidden;
         }
 
         .product-card:hover {
-            transform: translateY(-10px);
-            box-shadow: var(--card-shadow);
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 20px 40px rgba(12, 75, 51, 0.12);
+            background: rgba(255, 255, 255, 0.95);
         }
 
         .product-image-container {
             position: relative;
             width: 100%;
-            height: 240px;
-            background: #f8faf9;
-            border-radius: 18px;
+            height: 250px;
+            background: linear-gradient(135deg, #f8faf9 0%, #e6efe9 100%);
+            border-radius: 20px;
             overflow: hidden;
             display: flex; align-items: center; justify-content: center;
+        }
+
+        /* --- Quick Action Overlays --- */
+        .quick-action-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(12, 75, 51, 0.4);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+            z-index: 10;
+        }
+
+        .product-card:hover .quick-action-overlay {
+            opacity: 1;
+        }
+
+        .quick-view-btn {
+            background: white;
+            color: var(--primary);
+            border: none;
+            padding: 8px 20px;
+            border-radius: 50px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transform: translateY(20px);
+            transition: all 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .quick-action-overlay .quick-view-btn:hover {
+            background: var(--accent);
+            transform: scale(1.05);
+        }
+
+        .product-card:hover .quick-view-btn {
+            transform: translateY(0);
         }
 
         .product-emoji { font-size: 5rem; transition: 0.3s; }
@@ -282,6 +343,53 @@
             box-shadow: 0 0 0 3px rgba(22, 101, 52, 0.1);
         }
 
+        /* --- Category Pills --- */
+        .category-pills {
+            display: flex;
+            gap: 12px;
+            overflow-x: auto;
+            padding-bottom: 10px;
+            margin-top: 1.5rem;
+            margin-bottom: 1.5rem;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+        }
+        
+        .category-pills::-webkit-scrollbar {
+            display: none;
+        }
+
+        .pill-btn {
+            background: white;
+            border: 2px solid #e5e7eb;
+            padding: 8px 20px;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: #555;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.3s;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .pill-btn:hover {
+            border-color: var(--accent);
+            color: var(--primary);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+
+        .pill-btn.active {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+            box-shadow: 0 4px 15px rgba(12, 75, 51, 0.3);
+        }
+
         .filter-group {
             display: flex;
             gap: 1rem;
@@ -393,6 +501,122 @@
             background: #dc2626;
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+        }
+
+        /* --- Skeletons --- */
+        .skeleton-card {
+            background: white;
+            border-radius: 28px;
+            padding: 18px;
+            border: 1px solid rgba(0,0,0,0.03);
+            display: none; /* hidden by default, shown by JS */
+        }
+        
+        .skeleton-pulse {
+            animation: pulse-bg 1.5s infinite ease-in-out;
+            background: linear-gradient(90deg, #f0f4f2 0%, #e6efe9 50%, #f0f4f2 100%);
+            background-size: 200% 100%;
+        }
+        
+        @keyframes pulse-bg {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        
+        .skeleton-img {
+            width: 100%;
+            height: 250px;
+            border-radius: 20px;
+            margin-bottom: 15px;
+        }
+        
+        .skeleton-text {
+            height: 24px;
+            border-radius: 6px;
+            margin-bottom: 12px;
+            width: 80%;
+        }
+        .skeleton-text.short { width: 50%; }
+
+        /* --- Empty States --- */
+        .beautiful-empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 5rem 2rem;
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            border-radius: 30px;
+            text-align: center;
+            border: 1px dashed rgba(255,255,255,0.8);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.02);
+            grid-column: 1 / -1;
+            margin-bottom: 2rem;
+        }
+
+        .empty-illustration {
+            width: 150px;
+            height: 150px;
+            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 4.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 15px 30px rgba(22, 101, 52, 0.1);
+            animation: float 4s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-10px) rotate(3deg); }
+            100% { transform: translateY(0px) rotate(0deg); }
+        }
+
+        .beautiful-empty-state h3 {
+            color: var(--primary);
+            font-size: 2rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+        }
+
+        .beautiful-empty-state p {
+            color: #666;
+            margin-bottom: 2rem;
+            font-size: 1.1rem;
+            max-width: 400px;
+        }
+
+        /* --- Load More --- */
+        .load-more-container {
+            text-align: center;
+            margin: 3rem 0 1rem;
+            display: flex;
+            justify-content: center;
+        }
+        
+        .load-more-btn {
+            background: white;
+            color: var(--primary);
+            border: 2px solid var(--primary);
+            padding: 1rem 3rem;
+            border-radius: 50px;
+            font-weight: 800;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .load-more-btn:hover {
+            background: var(--primary);
+            color: white;
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(12, 75, 51, 0.2);
         }
 
         .no-results {
@@ -945,6 +1169,23 @@
 
     <!-- Search & Filter Section -->
     <div class="container">
+        
+        <!-- Interactive Category Pills -->
+        <div class="category-pills">
+            <button class="pill-btn active" data-category="">
+                <i class="fa-solid fa-layer-group"></i> All
+            </button>
+            <button class="pill-btn" data-category="fresh">
+                <i class="fa-solid fa-leaf"></i> Fresh
+            </button>
+            <button class="pill-btn" data-category="cooked">
+                <i class="fa-solid fa-fire-burner"></i> Ready-to-Eat
+            </button>
+            <button class="pill-btn" data-category="fruit_bags">
+                <i class="fa-solid fa-cube"></i> Growing Kits
+            </button>
+        </div>
+
         <div class="search-filter-section">
             <div class="search-bar">
                 <i class="fa-solid fa-search"></i>
@@ -993,8 +1234,20 @@
     </div>
 
     <div class="container">
+        <!-- Skeleton Loading Grid (Shown momentarily via JS) -->
+        <div class="products-grid" id="skeletonGrid" style="display: none;">
+            {% for i in "1234567890" %}
+            <div class="skeleton-card">
+                <div class="skeleton-img skeleton-pulse"></div>
+                <div class="skeleton-text skeleton-pulse"></div>
+                <div class="skeleton-text skeleton-pulse short"></div>
+                <div class="skeleton-text skeleton-pulse short" style="margin-top:20px; height: 35px; width: 100%;"></div>
+            </div>
+            {% endfor %}
+        </div>
+
         {% if products %}
-        <div class="products-grid">
+        <div class="products-grid" id="mainProductGrid">
             {% for product in products %}
             <div class="product-card" data-product-id="{{ product.id }}" data-product-type="{{ product.product_type }}" style="cursor: pointer;">
                 <div class="product-image-container">
@@ -1026,6 +1279,13 @@
                     {% else %}
                     <div class="product-emoji">🍄</div>
                     {% endif %}
+                    
+                    <!-- Quick Action Overlay -->
+                    <div class="quick-action-overlay" onclick="window.location.href='{% url 'product_detail' product.id %}'">
+                        <button class="quick-view-btn" onclick="event.stopPropagation(); window.location.href='{% url 'product_detail' product.id %}'">
+                            <i class="fa-solid fa-eye"></i> Quick View
+                        </button>
+                    </div>
                 </div>
                 
                 <div class="product-info">
@@ -1075,11 +1335,22 @@
             </div>
             {% endfor %}
         </div>
+        
+        <div class="load-more-container" id="loadMoreContainer">
+            <button class="load-more-btn" id="loadMoreBtn">
+                <i class="fa-solid fa-spinner"></i> Load More Mushrooms
+            </button>
+        </div>
         {% else %}
-        <div style="text-align: center; padding: 5rem; background: white; border-radius: 30px;">
-            <i class="fa-solid fa-seedling" style="font-size: 4rem; color: var(--primary); margin-bottom: 20px;"></i>
-            <h2>Growing New Batches...</h2>
-            <p>Our mushrooms are currently growing. Subscribe to notifications to know when they are ready!</p>
+        <div class="beautiful-empty-state">
+            <div class="empty-illustration">
+                🍄
+            </div>
+            <h3>Oyster Out of Stock!</h3>
+            <p>Our mushrooms are currently growing or your search didn't match any earthly fungi. Subscribe to notifications or check back soon!</p>
+            <button class="clear-btn" style="background-color: var(--primary);" onclick="window.location.href='{% url 'shop' %}'">
+                <i class="fa-solid fa-arrow-left"></i> Back to All Items
+            </button>
         </div>
         {% endif %}
     </div>
@@ -1269,7 +1540,7 @@
         
         // Search, Filter, and Sort Functionality
         document.addEventListener('DOMContentLoaded', function() {
-            const productsGrid = document.querySelector('.products-grid');
+            const productsGrid = document.getElementById('mainProductGrid') || document.querySelector('.products-grid');
             
             // === FIX: Handle Add to Cart form submissions with AJAX to prevent errors ===
             document.querySelectorAll('.add-to-cart-form').forEach(form => {
@@ -1635,5 +1906,77 @@
         });
     </script>
     {% endif %}
+
+    <script>
+        // --- UX Enhancements Interactions ---
+        document.addEventListener("DOMContentLoaded", () => {
+            const skeletonGrid = document.getElementById("skeletonGrid");
+            const mainGrid = document.getElementById("mainProductGrid");
+            
+            // Simulate network fetching for a snappier, modern perceived UX via skeleton loading
+            if(skeletonGrid && mainGrid) {
+                mainGrid.style.display = "none";
+                skeletonGrid.style.display = "grid";
+                // Show skeletons for all placeholders
+                document.querySelectorAll('.skeleton-card').forEach(s => s.style.display = "block");
+                
+                setTimeout(() => {
+                    skeletonGrid.style.display = "none";
+                    mainGrid.style.display = "grid";
+                }, 600); // 600ms skeleton flash to feel like an SPA
+            }
+            
+            // Category Pills Logic
+            const pills = document.querySelectorAll(".pill-btn");
+            const categoryDropdown = document.getElementById("categoryFilter");
+            const productTypeDropdown = document.getElementById("productTypeFilter");
+
+            pills.forEach(pill => {
+                pill.addEventListener('click', function() {
+                    // Update active styling
+                    pills.forEach(p => p.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    const cat = this.dataset.category;
+                    
+                    if (cat === "cooked" || cat === "fresh" || cat === "fruit_bags") {
+                        if (productTypeDropdown) {
+                            productTypeDropdown.value = cat;
+                            if(categoryDropdown) categoryDropdown.value = ""; 
+                            productTypeDropdown.dispatchEvent(new Event('change'));
+                        }
+                    } else if (cat) {
+                        if (categoryDropdown) {
+                            categoryDropdown.value = cat;
+                            if(productTypeDropdown) productTypeDropdown.value = "";
+                            categoryDropdown.dispatchEvent(new Event('change'));
+                        }
+                    } else {
+                        // Reset both
+                        if (categoryDropdown) categoryDropdown.value = "";
+                        if (productTypeDropdown) productTypeDropdown.value = "";
+                        if (categoryDropdown) categoryDropdown.dispatchEvent(new Event('change'));
+                    }
+                });
+            });
+            
+            // Load More button simulation 
+            const loadMoreBtn = document.getElementById('loadMoreBtn');
+            if(loadMoreBtn) {
+                loadMoreBtn.addEventListener('click', function() {
+                    const originalContent = this.innerHTML;
+                    this.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Loading...`;
+                    
+                    // Simulate fetching
+                    setTimeout(() => {
+                        this.innerHTML = `<i class="fa-solid fa-check"></i> All Caught Up!`;
+                        this.style.backgroundColor = "var(--primary)";
+                        this.style.color = "white";
+                        this.disabled = true;
+                    }, 1000);
+                });
+            }
+        });
+    </script>
 </body>
 </html>

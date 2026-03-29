@@ -52,16 +52,29 @@
 
         .login-wrapper {
             width: 100%;
-            max-width: 400px;
+            max-width: 440px;
             padding: 40px;
+            animation: slideUpFade 0.7s ease-out forwards;
+        }
+
+        @keyframes slideUpFade {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         .header-text {
             margin-bottom: 40px;
+            text-align: center;
         }
 
         .header-text h1 {
-            font-size: 2.2em;
+            font-size: 2.4em;
             font-weight: 700;
             color: var(--dark-text);
             margin: 0 0 10px 0;
@@ -102,13 +115,13 @@
 
         .form-group input {
             width: 100%;
-            padding: 15px 15px 15px 45px; /* Left padding for icon */
+            padding: 15px 15px 15px 48px; /* Left padding for icon */
             border: 2px solid #e2e8f0;
-            border-radius: 12px;
+            border-radius: 14px;
             font-size: 1em;
             color: var(--dark-text);
             background-color: #f8fafc;
-            transition: all 0.3s ease;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             font-family: 'Poppins', sans-serif;
         }
         
@@ -120,9 +133,10 @@
 
         /* Input Focus Effects */
         .form-group input:focus {
-            border-color: var(--light-green);
+            border-color: var(--primary-green);
             background-color: #fff;
-            box-shadow: 0 0 0 4px rgba(76, 175, 80, 0.1);
+            box-shadow: 0 4px 12px rgba(46, 125, 50, 0.15), 0 0 0 4px rgba(46, 125, 50, 0.1);
+            transform: translateY(-2px);
         }
 
         .form-group input:focus + i {
@@ -156,33 +170,54 @@
         
         .login-btn {
             width: 100%;
-            padding: 16px;
+            padding: 18px;
             border: none;
-            border-radius: 12px;
+            border-radius: 14px;
             background: linear-gradient(135deg, var(--light-green), var(--primary-green));
             color: white;
             font-weight: 600;
-            font-size: 1em;
+            font-size: 1.05em;
             cursor: pointer;
             margin-top: 15px;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-            box-shadow: 0 4px 6px rgba(46, 125, 50, 0.2);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 6px 16px rgba(46, 125, 50, 0.25);
             letter-spacing: 0.5px;
         }
         
         .login-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 15px rgba(46, 125, 50, 0.3);
+            transform: translateY(-3px);
+            box-shadow: 0 12px 20px rgba(46, 125, 50, 0.35);
+            background: linear-gradient(135deg, #43a047, #1b5e20);
         }
 
         .login-btn:active {
             transform: translateY(0);
+            box-shadow: 0 4px 10px rgba(46, 125, 50, 0.2);
         }
 
         /* --- Google Sign-In Button --- */
+        .google-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            width: 100%;
+            padding: 16px 20px;
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 14px;
+            color: #1e293b;
+            font-size: 1rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+        }
+
         .google-btn:hover {
             border-color: #4285F4;
-            box-shadow: 0 4px 12px rgba(66, 133, 244, 0.2);
+            background-color: #f8fafc;
+            box-shadow: 0 6px 16px rgba(66, 133, 244, 0.15);
             transform: translateY(-2px);
         }
         
@@ -196,7 +231,7 @@
             height: 100%;
             position: relative;
             overflow: hidden;
-            background-color: var(--primary-green);
+            background: linear-gradient(135deg, #1b5e20 0%, var(--primary-green) 50%, var(--light-green) 100%);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -206,23 +241,24 @@
         .split-right::before {
             content: '';
             position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: 
-                radial-gradient(circle at 10% 20%, rgba(255, 255, 255, 0.1) 0%, transparent 20%),
-                radial-gradient(circle at 90% 80%, rgba(255, 255, 255, 0.1) 0%, transparent 25%);
+            top: -20%;
+            left: -10%;
+            width: 70%;
+            height: 70%;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.15) 0%, transparent 60%);
+            border-radius: 50%;
             z-index: 1;
         }
 
         .split-right::after {
             content: '';
             position: absolute;
-            width: 150%;
-            height: 100%;
-            background: linear-gradient(120deg, transparent 0%, rgba(255,255,255,0.05) 40%, transparent 100%);
-            transform: rotate(-15deg);
+            bottom: -20%;
+            right: -10%;
+            width: 80%;
+            height: 80%;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 60%);
+            border-radius: 50%;
             z-index: 1;
         }
 
@@ -231,28 +267,59 @@
             z-index: 2;
             color: white;
             position: relative;
+            animation: fadeInScale 1s ease-out forwards;
+        }
+
+        @keyframes fadeInScale {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
         }
 
         /* Glassmorphism Effect for Logo Circle */
         .logo-circle {
-            width: 220px;
-            height: 220px;
+            width: 240px;
+            height: 240px;
             border-radius: 50%;
             background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             margin: 0 auto;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.3), inset 0 0 20px rgba(255, 255, 255, 0.2);
+            position: relative;
+        }
+        
+        .logo-circle::after {
+            content: '';
+            position: absolute;
+            top: -10px; left: -10px; right: -10px; bottom: -10px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, rgba(255,255,255,0.4), rgba(255,255,255,0));
+            z-index: -1;
+            filter: blur(20px);
         }
         
         .logo-circle .icon {
             font-size: 80px;
             color: var(--accent-orange);
             filter: drop-shadow(0 4px 6px rgba(0,0,0,0.2));
+            margin-bottom: 10px;
+        }
+
+        @keyframes float {
+            0% { transform: translateY(0px) rotate(0deg); filter: drop-shadow(0 15px 15px rgba(0,0,0,0.2)); }
+            50% { transform: translateY(-12px) rotate(2deg); filter: drop-shadow(0 25px 20px rgba(0,0,0,0.15)); }
+            100% { transform: translateY(0px) rotate(0deg); filter: drop-shadow(0 15px 15px rgba(0,0,0,0.2)); }
+        }
+
+        .icon-3d {
+            width: 140px;
+            height: 140px;
+            animation: float 4s ease-in-out infinite;
             margin-bottom: 10px;
         }
         
@@ -316,7 +383,8 @@
                 height: 100px;
             }
             .logo-circle .icon,
-            .logo-circle img {
+            .logo-circle img,
+            .logo-circle .icon-3d {
                 font-size: 50px;
                 width: 50px;
                 height: 50px;
@@ -341,7 +409,8 @@
                 height: 80px;
             }
             .logo-circle .icon,
-            .logo-circle img {
+            .logo-circle img,
+            .logo-circle .icon-3d {
                 font-size: 40px;
                 width: 40px;
                 height: 40px;
@@ -413,7 +482,7 @@
             </div>
             
             <!-- Google Sign-In Button -->
-            <a href="/accounts/google/login/?process=login" class="google-btn" style="display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%; padding: 14px 20px; background: white; border: 2px solid #e2e8f0; border-radius: 12px; color: #1e293b; font-size: 1rem; font-weight: 600; text-decoration: none; transition: all 0.3s ease; cursor: pointer;">
+            <a href="/accounts/google/login/?process=login" class="google-btn">
                 <svg width="20" height="20" viewBox="0 0 24 24">
                     <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                     <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -423,8 +492,8 @@
                 Sign in with Google
             </a>
             
-            <div class="login-link" style="text-align: center; margin-top: 20px; color: var(--light-text); font-size: 0.9em;">
-                Don't have an account? <a href="{% url 'register' %}" style="color: var(--primary-green); text-decoration: none; font-weight: 600;">Register here</a>
+            <div class="login-link" style="text-align: center; margin-top: 25px; color: var(--light-text); font-size: 0.95em;">
+                Don't have an account? <a href="{% url 'register' %}" style="color: var(--primary-green); text-decoration: none; font-weight: 600; transition: color 0.3s ease;">Register here</a>
             </div>
             
         </div>
@@ -433,7 +502,44 @@
     <div class="split-right">
         <div class="logo-container">
             <div class="logo-circle">
-                <img src="{% static 'images/Screenshot_2025-11-01_124726-removebg-preview.png' %}" alt="Mushroom Logo" class="icon">
+                <svg class="icon-3d" viewBox="0 0 200 200" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <radialGradient id="cap-light" cx="30%" cy="30%" r="60%">
+                            <stop offset="0%" stop-color="#ff8a65" />
+                            <stop offset="50%" stop-color="#f4511e" />
+                            <stop offset="100%" stop-color="#bf360c" />
+                        </radialGradient>
+                        <linearGradient id="cap-bottom" x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" stop-color="#872204" />
+                            <stop offset="100%" stop-color="#3e1002" />
+                        </linearGradient>
+                        <linearGradient id="stem-shade" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" stop-color="#fdfbfb" />
+                            <stop offset="25%" stop-color="#f1f2f6" />
+                            <stop offset="80%" stop-color="#dcdde1" />
+                            <stop offset="100%" stop-color="#7f8fa6" />
+                        </linearGradient>
+                        <linearGradient id="stem-drop" x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" stop-color="rgba(0,0,0,0.6)" />
+                            <stop offset="100%" stop-color="transparent" />
+                        </linearGradient>
+                        <radialGradient id="cast-shadow" cx="50%" cy="50%" r="50%">
+                            <stop offset="0%" stop-color="rgba(0,0,0,0.4)" />
+                            <stop offset="100%" stop-color="transparent" />
+                        </radialGradient>
+                    </defs>
+                    <ellipse cx="100" cy="180" rx="60" ry="12" fill="url(#cast-shadow)" />
+                    <path d="M85,100 C80,140 75,170 85,175 C95,180 110,180 115,175 C125,170 120,140 115,100 Z" fill="url(#stem-shade)" />
+                    <path d="M85,100 C95,110 110,110 115,100 C115,115 85,115 85,100 Z" fill="url(#stem-drop)" />
+                    <ellipse cx="100" cy="100" rx="75" ry="25" fill="url(#cap-bottom)" />
+                    <path d="M25,100 C25,30 65,15 100,15 C135,15 175,30 175,100 C175,115 135,125 100,125 C65,125 25,115 25,100 Z" fill="url(#cap-light)" />
+                    <ellipse cx="65" cy="55" rx="14" ry="9" fill="#fff" opacity="0.9" transform="rotate(-15 65 55)" />
+                    <ellipse cx="130" cy="65" rx="16" ry="10" fill="#fff" opacity="0.85" transform="rotate(20 130 65)" />
+                    <ellipse cx="95" cy="35" rx="9" ry="6" fill="#fff" opacity="0.9" />
+                    <ellipse cx="45" cy="85" rx="8" ry="14" fill="#fff" opacity="0.75" transform="rotate(-25 45 85)" />
+                    <ellipse cx="155" cy="95" rx="7" ry="12" fill="#fff" opacity="0.8" transform="rotate(25 155 95)" />
+                    <path d="M50,65 C60,40 90,25 110,25 C90,30 65,45 55,70 Z" fill="#fff" opacity="0.3" />
+                </svg>
             </div>
             <span class="logo-text">KABUTOMATE</span>
             <span class="tagline">Smart Farming Solutions</span>
