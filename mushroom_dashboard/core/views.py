@@ -1582,7 +1582,54 @@ def analytics_api(request):
     total_batches = ProductionBatch.objects.count()
     harvested_batches = ProductionBatch.objects.filter(status='HARVESTED').count()
     success_rate = (harvested_batches / total_batches * 100) if total_batches > 0 else 0
-    env_stability = 98.7 # This remains simulated
+
+    # Compute environmental stability from recent sensor readings and configured thresholds.
+    env_settings = EnvironmentSettings.load()
+    recent_readings = list(SensorReading.objects.order_by('-timestamp')[:20])
+
+    def bounded_score(value, low, high):
+        value = float(value)
+        low = float(low)
+        high = float(high)
+        if low > high:
+            low, high = high, low
+        if low <= value <= high:
+            return 100.0
+        span = max(high - low, 1.0)
+        distance = (low - value) if value < low else (value - high)
+        return max(0.0, 100.0 - (distance / span) * 100.0)
+
+    def upper_threshold_score(value, threshold):
+        value = float(value)
+        threshold = max(float(threshold), 1.0)
+        if value <= threshold:
+            return 100.0
+        return max(0.0, 100.0 - ((value - threshold) / threshold) * 100.0)
+
+    if recent_readings:
+        per_reading_scores = []
+        for reading in recent_readings:
+            temp_score = bounded_score(
+                reading.temperature,
+                env_settings.heater_low_threshold,
+                env_settings.heater_high_threshold,
+            )
+            humidity_score = bounded_score(
+                reading.humidity,
+                env_settings.humidifier_low_threshold,
+                env_settings.humidifier_high_threshold,
+            )
+            air_quality_value = reading.air_quality_ppm if reading.air_quality_ppm is not None else reading.co2_ppm
+            if air_quality_value is not None:
+                air_quality_score = upper_threshold_score(air_quality_value, env_settings.fan_air_quality_threshold)
+            else:
+                air_quality_score = 100.0
+
+            per_reading_scores.append((temp_score + humidity_score + air_quality_score) / 3.0)
+
+        env_stability = sum(per_reading_scores) / len(per_reading_scores)
+    else:
+        env_stability = 0.0
 
     # --- 2. DYNAMIC CHART DATA ---
     today = timezone.now()

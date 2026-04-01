@@ -648,7 +648,7 @@
         </div>
         
         <div class="card" id="environmental-summary-wrapper" style="display: none;">
-            <div class="stability-report-title">Environmental Stability Report (Simulated)</div>
+            <div class="stability-report-title">Environmental Stability Report</div>
             <div class="stability-list">
                 <div class="stability-item">
                     <div class="stability-item-header">
@@ -768,7 +768,7 @@
             },
             options: {
                 responsive: true, maintainAspectRatio: false,
-                scales: { y: { min: 95, max: 100 } },
+                scales: { y: { min: 0, max: 100 } },
                 plugins: {
                      title: { display: true, text: 'Environmental Stability (Simulated)', align: 'start', font: { size: 16 } },
                      legend: { display: false }
@@ -1002,31 +1002,35 @@
                             const labels = sensorData.labels;
                             const temps = sensorData.temp;
                             const humidity = sensorData.humidity;
-                            const co2 = sensorData.co2;
+                            const airQuality = sensorData.air_quality && sensorData.air_quality.length
+                                ? sensorData.air_quality
+                                : sensorData.co2;
                             
                             // Calculate stability percentages (how close to optimal)
                             const tempStability = temps.map(t => {
                                 const optimal = 23;
                                 const diff = Math.abs(parseFloat(t) - optimal);
-                                return Math.max(95, 100 - (diff * 2)); // Max 5% deviation
+                                return Math.max(0, 100 - (diff * 5));
                             });
                             
                             const humidityStability = humidity.map(h => {
                                 const optimal = 85;
                                 const diff = Math.abs(parseFloat(h) - optimal);
-                                return Math.max(95, 100 - (diff * 0.5)); // Max 5% deviation
+                                return Math.max(0, 100 - (diff * 2));
                             });
                             
-                            const co2Stability = co2.map(c => {
-                                const optimal = 900;
+                            const co2Stability = airQuality.map(c => {
+                                const optimal = 600;
                                 const diff = Math.abs(parseFloat(c) - optimal);
-                                return Math.max(95, 100 - (diff * 0.02)); // Max 5% deviation
+                                return Math.max(0, 100 - (diff * 0.12));
                             });
+
+                            const average = values => values.length ? (values.reduce((a, b) => a + b, 0) / values.length) : 0;
                             
                             // Calculate average stability
-                            const avgTempStability = tempStability.reduce((a, b) => a + b, 0) / tempStability.length;
-                            const avgHumidityStability = humidityStability.reduce((a, b) => a + b, 0) / humidityStability.length;
-                            const avgCO2Stability = co2Stability.reduce((a, b) => a + b, 0) / co2Stability.length;
+                            const avgTempStability = average(tempStability);
+                            const avgHumidityStability = average(humidityStability);
+                            const avgCO2Stability = average(co2Stability);
                             
                             // Update stability report
                             const stabilityItems = envSummary.querySelectorAll('.stability-item');
@@ -1078,7 +1082,7 @@
                                     maintainAspectRatio: false,
                                     scales: { 
                                         y: { 
-                                            min: 95, 
+                                            min: 0, 
                                             max: 100,
                                             title: { display: true, text: 'Stability (%)' }
                                         } 
@@ -1191,31 +1195,35 @@
                     const labels = sensorData.labels;
                     const temps = sensorData.temp;
                     const humidity = sensorData.humidity;
-                    const co2 = sensorData.co2;
+                    const airQuality = sensorData.air_quality && sensorData.air_quality.length
+                        ? sensorData.air_quality
+                        : sensorData.co2;
                     
                     // Calculate stability percentages
                     const tempStability = temps.map(t => {
                         const optimal = 23;
                         const diff = Math.abs(parseFloat(t) - optimal);
-                        return Math.max(95, 100 - (diff * 2));
+                        return Math.max(0, 100 - (diff * 5));
                     });
                     
                     const humidityStability = humidity.map(h => {
                         const optimal = 85;
                         const diff = Math.abs(parseFloat(h) - optimal);
-                        return Math.max(95, 100 - (diff * 0.5));
+                        return Math.max(0, 100 - (diff * 2));
                     });
                     
-                    const co2Stability = co2.map(c => {
-                        const optimal = 900;
+                    const co2Stability = airQuality.map(c => {
+                        const optimal = 600;
                         const diff = Math.abs(parseFloat(c) - optimal);
-                        return Math.max(95, 100 - (diff * 0.02));
+                        return Math.max(0, 100 - (diff * 0.12));
                     });
+
+                    const average = values => values.length ? (values.reduce((a, b) => a + b, 0) / values.length) : 0;
                     
                     // Calculate averages
-                    const avgTempStability = tempStability.reduce((a, b) => a + b, 0) / tempStability.length;
-                    const avgHumidityStability = humidityStability.reduce((a, b) => a + b, 0) / humidityStability.length;
-                    const avgCO2Stability = co2Stability.reduce((a, b) => a + b, 0) / co2Stability.length;
+                    const avgTempStability = average(tempStability);
+                    const avgHumidityStability = average(humidityStability);
+                    const avgCO2Stability = average(co2Stability);
                     
                     // Update stability report
                     const stabilityItems = envSummary.querySelectorAll('.stability-item');
