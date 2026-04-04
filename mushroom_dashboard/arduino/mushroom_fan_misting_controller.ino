@@ -1,12 +1,15 @@
 /*
- * ESP32 DHT22 + MQ-135 + Fan + Misting + HEATER Control for Mushroom Farming Dashboard
+ * ESP32 DHT22 + MQ-135 + BH1750 + Fan + Misting + HEATER + GROW LIGHT Control
+ * for Mushroom Farming Dashboard
  * 
- * This sketch reads temperature, humidity from DHT22 and air quality from MQ-135,
- * sends the data to your Django server, and controls fan, misting system, and HEATER
+ * This sketch reads temperature/humidity from DHT22, air quality from MQ-135,
+ * and light intensity (lux) from BH1750,
+ * sends the data to your Django server, and controls fan, misting system, heater,
+ * and grow lights
  * via relays based on dashboard settings with AUTOMATIC and MANUAL mode support.
  * 
  * =============================================================================
- * AUTOMATION MODES (applies to Fan, Misting, and Heater):
+ * AUTOMATION MODES (applies to Fan, Misting, Heater, and Grow Lights):
  * =============================================================================
  * - AUTOMATIC MODE: Actuators turn ON/OFF based on sensor readings vs thresholds
  *   - Fan: ON when temperature > threshold OR humidity > threshold OR air quality > threshold
@@ -20,7 +23,8 @@
  * - ESP32 Development Board
  * - DHT22 Temperature & Humidity Sensor
  * - MQ-135 Air Quality Sensor
- * - 3-Channel Relay Module (or three 1-channel modules)
+ * - BH1750 Light Sensor (I2C)
+ * - 4-Channel Relay Module (or four 1-channel modules)
  * - 5V USB Fan (connected via Relay 1)
  * - 24V DC Misting Actuator (connected via Relay 2)
  * - Heater (connected via Relay 3) - See HEATER_INTEGRATION_GUIDE.md
@@ -50,7 +54,17 @@
  * │ AOUT        │ GPIO 34        │
  * └─────────────┴────────────────┘
  * 
- * RELAY MODULE (3-Channel):
+ * BH1750 LIGHT SENSOR (I2C):
+ * ┌─────────────┬────────────────┐
+ * │ BH1750 Pin  │ ESP32 Pin      │
+ * ├─────────────┼────────────────┤
+ * │ VCC         │ 3.3V           │
+ * │ GND         │ GND            │
+ * │ SDA         │ GPIO 21        │
+ * │ SCL         │ GPIO 22        │
+ * └─────────────┴────────────────┘
+ * 
+ * RELAY MODULE (4-Channel):
  * ┌─────────────┬────────────────┐
  * │ Relay Pin   │ ESP32 Pin      │
  * ├─────────────┼────────────────┤
@@ -59,6 +73,7 @@
  * │ IN1 (Fan)   │ GPIO 26        │
  * │ IN2 (Mist)  │ GPIO 27        │
  * │ IN3 (Heat)  │ GPIO 25        │
+ * │ IN4 (Light) │ GPIO 33        │
  * └─────────────┴────────────────┘
  * 
  * =============================================================================
@@ -139,6 +154,8 @@
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include <DHT.h>
+#include <Wire.h>
+#include <BH1750.h>
 #include <ArduinoJson.h>  // Install via Library Manager: "ArduinoJson" by Benoit Blanchon
 
 // =============================================================================
@@ -152,6 +169,7 @@ const char* password = "kir111104";          // Replace with your WiFi password
 // Server settings
 const char* serverUrl = "http://10.109.27.56:8000/api/sensor-data/receive/";
 const char* automationDecisionUrl = "http://10.109.27.56:8000/api/automation-decision/";
+const char* relayCommandUrl = "http://10.109.27.56:8000/api/relay-command/";
 const char* apiKey = "YOUR_API_KEY";  // Optional: Add API key for authentication
 const char* deviceId = "ESP32_FARM_001";
 
@@ -166,10 +184,15 @@ const char* deviceId = "ESP32_FARM_001";
 // MQ-135 Air Quality Sensor
 #define MQ135PIN 34       // GPIO pin connected to MQ-135 analog output (ADC1)
 
+// BH1750 Light Sensor (I2C)
+#define BH1750_SDA_PIN 21 // GPIO pin connected to BH1750 SDA
+#define BH1750_SCL_PIN 22 // GPIO pin connected to BH1750 SCL
+
 // Relay Control Pins
 #define FAN_RELAY_PIN 26      // GPIO pin for Fan Relay (Relay 1)
 #define MIST_RELAY_PIN 27     // GPIO pin for Misting Relay (Relay 2)
 #define HEATER_RELAY_PIN 25   // GPIO pin for Heater Relay (Relay 3)
+#define LIGHT_RELAY_PIN 33    // GPIO pin for Grow Light Relay (Relay 4)
 
 // Relay behavior: Most relay modules are ACTIVE LOW (LOW = relay ON, HIGH = relay OFF)
 // Set to true if your relay module activates on LOW signal
@@ -189,6 +212,7 @@ const char* deviceId = "ESP32_FARM_001";
 // =============================================================================
 
 DHT dht(DHTPIN, DHTTYPE);
+BH1750 lightMeter;
 
 // Timing intervals (milliseconds)
 const unsigned long sensorReadInterval = 5000;    // Read/send sensor data every 5 seconds
@@ -212,10 +236,16 @@ bool heaterAutoMode = true;
 bool heaterManualTestMode = false;    // For hardware testing via Serial
 unsigned long manualTestModeStart = 0; // When manual test mode was enabled
 
+// Control states - Grow Light
+bool lightsOn = false;
+bool lightsAutoMode = true;
+
 // Current sensor readings (stored for automation polling)
 float currentTemperature = 0;
 float currentHumidity = 0;
 float currentAirQualityPPM = 0;
+float currentLightLux = 0;
+bool bh1750Initialized = false;
 
 // =============================================================================
 // SETUP
@@ -226,7 +256,7 @@ void setup() {
   delay(1000);
   
   Serial.println("\n=============================================");
-  Serial.println("ESP32 DHT22 + MQ-135 + Fan + Mist + HEATER");
+  Serial.println("ESP32 DHT22 + MQ-135 + Fan + Mist + HEATER + LIGHT");
   Serial.println("Mushroom Farming Dashboard v2.0");
   Serial.println("WITH HEATER AUTOMATION SUPPORT");
   Serial.println("=============================================\n");
@@ -238,14 +268,25 @@ void setup() {
   // Initialize MQ-135 sensor
   pinMode(MQ135PIN, INPUT);
   Serial.println("✓ MQ-135 air quality sensor initialized");
+
+  // Initialize BH1750 light sensor on custom I2C pins
+  Wire.begin(BH1750_SDA_PIN, BH1750_SCL_PIN);
+  bh1750Initialized = lightMeter.begin();
+  if (bh1750Initialized) {
+    Serial.println("✓ BH1750 light sensor initialized (SDA=21, SCL=22)");
+  } else {
+    Serial.println("⚠️  BH1750 light sensor not detected - check wiring");
+  }
   
   // Initialize relay pins
   pinMode(FAN_RELAY_PIN, OUTPUT);
   pinMode(MIST_RELAY_PIN, OUTPUT);
   pinMode(HEATER_RELAY_PIN, OUTPUT);
+  pinMode(LIGHT_RELAY_PIN, OUTPUT);
   Serial.println("✓ Fan relay pin (GPIO 26) initialized");
   Serial.println("✓ Misting relay pin (GPIO 27) initialized");
   Serial.println("✓ Heater relay pin (GPIO 25) initialized");
+  Serial.println("✓ Grow light relay pin (GPIO 33) initialized");
   
   // ===== RELAY HARDWARE TEST =====
   Serial.println("\n>>> TESTING ALL RELAYS - Listen for clicks! <<<");
@@ -273,6 +314,14 @@ void setup() {
   Serial.println("Test: Heater Relay OFF");
   setRelay(HEATER_RELAY_PIN, false);
   delay(500);
+
+  Serial.println("Test: Light Relay ON");
+  setRelay(LIGHT_RELAY_PIN, true);
+  delay(1000);
+
+  Serial.println("Test: Light Relay OFF");
+  setRelay(LIGHT_RELAY_PIN, false);
+  delay(500);
   
   Serial.println(">>> RELAY TEST COMPLETE <<<\n");
   // ===== END TEST =====
@@ -281,6 +330,7 @@ void setup() {
   setRelay(FAN_RELAY_PIN, false);
   setRelay(MIST_RELAY_PIN, false);
   setRelay(HEATER_RELAY_PIN, false);
+  setRelay(LIGHT_RELAY_PIN, false);
   Serial.println("✓ All relays set to OFF");
   
   // Connect to WiFi
@@ -323,6 +373,20 @@ void loop() {
     float humidity = dht.readHumidity();
     float temperature = dht.readTemperature();  // Celsius by default
     int airQualityRaw = analogRead(MQ135PIN);   // Read MQ-135 analog value (0-4095)
+    float lightLux = currentLightLux;
+
+    if (bh1750Initialized) {
+      float luxReading = lightMeter.readLightLevel();
+      if (!isnan(luxReading) && luxReading >= 0) {
+        lightLux = luxReading;
+      } else {
+        static unsigned long lastBh1750Warning = 0;
+        if (millis() - lastBh1750Warning > 30000) {
+          lastBh1750Warning = millis();
+          Serial.println("⚠️  BH1750 read failed, keeping last valid lux value");
+        }
+      }
+    }
     
     // Convert air quality reading to PPM (simplified conversion)
     float airQualityPPM = map(airQualityRaw, 0, 4095, 0, 1000);
@@ -335,9 +399,10 @@ void loop() {
       currentTemperature = temperature;
       currentHumidity = humidity;
       currentAirQualityPPM = airQualityPPM;
+      currentLightLux = lightLux;
       
       // Display readings
-      printSensorReadings(temperature, humidity, airQualityRaw, airQualityPPM);
+      printSensorReadings(temperature, humidity, airQualityRaw, airQualityPPM, lightLux);
       
       // Check mushroom growing conditions
       checkGrowingConditions(temperature, humidity, airQualityPPM);
@@ -358,7 +423,7 @@ void loop() {
       
       // Send data to server
       if (WiFi.status() == WL_CONNECTED) {
-        sendSensorData(temperature, humidity, airQualityPPM);
+        sendSensorData(temperature, humidity, airQualityPPM, lightLux);
       } else {
         Serial.println("❌ WiFi disconnected! Attempting to reconnect...");
         connectWiFi();
@@ -370,6 +435,7 @@ void loop() {
   if (currentTime - lastAutomationPollTime >= automationPollInterval) {
     lastAutomationPollTime = currentTime;
     pollAutomationDecision();
+    pollRelayCommandLights();
   }
   
   // Task 3: Watchdog - turn off heater if no server response (safety feature)
@@ -589,10 +655,11 @@ void pollAutomationDecision() {
   http.addHeader("X-API-Key", apiKey);
   
   // Build JSON payload with current sensor readings
-  StaticJsonDocument<256> requestDoc;
+  StaticJsonDocument<384> requestDoc;
   requestDoc["temperature"] = currentTemperature;
   requestDoc["humidity"] = currentHumidity;
   requestDoc["air_quality_ppm"] = (int)currentAirQualityPPM;
+  requestDoc["light_lux"] = currentLightLux;
   requestDoc["device_id"] = deviceId;
   requestDoc["save_reading"] = false;  // Don't save again, we already sent via sendSensorData
   
@@ -741,10 +808,58 @@ void pollAutomationDecision() {
 }
 
 // =============================================================================
+// RELAY COMMAND POLLING (GROW LIGHT)
+// =============================================================================
+// Uses /api/relay-command/ to fetch light relay state because current
+// automation-decision response does not include a dedicated lights block.
+void pollRelayCommandLights() {
+  if (WiFi.status() != WL_CONNECTED) {
+    return;
+  }
+
+  HTTPClient http;
+  http.begin(relayCommandUrl);
+  http.addHeader("X-API-Key", apiKey);
+
+  int httpCode = http.GET();
+
+  if (httpCode == 200) {
+    String response = http.getString();
+
+    StaticJsonDocument<512> relayDoc;
+    DeserializationError error = deserializeJson(relayDoc, response);
+
+    if (!error && relayDoc.containsKey("relays") && relayDoc["relays"].containsKey("lights")) {
+      bool shouldBeOn = relayDoc["relays"]["lights"];
+
+      if (relayDoc.containsKey("auto_modes") && relayDoc["auto_modes"].containsKey("lights_auto")) {
+        lightsAutoMode = relayDoc["auto_modes"]["lights_auto"];
+      }
+
+      if (lightsOn != shouldBeOn) {
+        lightsOn = shouldBeOn;
+        setRelay(LIGHT_RELAY_PIN, lightsOn);
+
+        Serial.println("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        Serial.print("💡 GROW LIGHT ");
+        Serial.print(lightsOn ? "ON" : "OFF");
+        Serial.print(" (");
+        Serial.print(lightsAutoMode ? "AUTO" : "MANUAL");
+        Serial.println(" mode)");
+        Serial.println("📝 Source: /api/relay-command/");
+        Serial.println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+      }
+    }
+  }
+
+  http.end();
+}
+
+// =============================================================================
 // DISPLAY FUNCTIONS
 // =============================================================================
 
-void printSensorReadings(float temperature, float humidity, int airQualityRaw, float airQualityPPM) {
+void printSensorReadings(float temperature, float humidity, int airQualityRaw, float airQualityPPM, float lightLux) {
   Serial.println("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
   Serial.println("📊 Sensor Readings");
   Serial.println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
@@ -759,6 +874,9 @@ void printSensorReadings(float temperature, float humidity, int airQualityRaw, f
   Serial.print(" (raw) | ~");
   Serial.print(airQualityPPM, 0);
   Serial.println(" PPM");
+  Serial.print("💡 Light Intensity: ");
+  Serial.print(lightLux, 1);
+  Serial.println(" lux");
   
   // Actuator status
   Serial.println("───────────────────────────────────");
@@ -778,6 +896,12 @@ void printSensorReadings(float temperature, float humidity, int airQualityRaw, f
   Serial.print(heaterOn ? "ON" : "OFF");
   Serial.print(" (");
   Serial.print(heaterAutoMode ? "AUTO" : "MANUAL");
+  Serial.println(")");
+
+  Serial.print("💡 Grow Light: ");
+  Serial.print(lightsOn ? "ON" : "OFF");
+  Serial.print(" (");
+  Serial.print(lightsAutoMode ? "AUTO" : "MANUAL");
   Serial.println(")");
 }
 
@@ -814,7 +938,7 @@ void connectWiFi() {
 // SEND SENSOR DATA
 // =============================================================================
 
-void sendSensorData(float temperature, float humidity, float airQuality) {
+void sendSensorData(float temperature, float humidity, float airQuality, float lightLux) {
   HTTPClient http;
   
   Serial.println("\n📡 Sending data to server...");
@@ -827,7 +951,8 @@ void sendSensorData(float temperature, float humidity, float airQuality) {
   String jsonPayload = "{";
   jsonPayload += "\"temperature\":" + String(temperature, 1) + ",";
   jsonPayload += "\"humidity\":" + String(humidity, 1) + ",";
-  jsonPayload += "\"air_quality_ppm\":" + String(airQuality, 0);
+  jsonPayload += "\"air_quality_ppm\":" + String(airQuality, 0) + ",";
+  jsonPayload += "\"light_lux\":" + String(lightLux, 1);
   jsonPayload += "}";
   
   int httpResponseCode = http.POST(jsonPayload);
