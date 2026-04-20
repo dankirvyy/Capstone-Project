@@ -786,6 +786,10 @@
                         <input type="date" id="start_date" name="start_date" required>
                     </div>
                     <div class="form-group">
+                        <label for="growth_days_display">Growth Days</label>
+                        <input type="text" id="growth_days_display" readonly value="-">
+                    </div>
+                    <div class="form-group">
                         <label for="predicted_yield_display">Predicted (kg)</label>
                         <input type="text" id="predicted_yield_display" readonly value="Calculating...">
                     </div>
@@ -868,10 +872,11 @@
         
         <div class="table-card">
             <div class="table-scroll-wrapper">
-            <div id="production-table-grid" class="table-grid" style="grid-template-columns: 1.3fr 1.3fr 0.9fr 0.9fr 0.9fr 1fr 0.9fr 0.9fr;">
+            <div id="production-table-grid" class="table-grid" style="grid-template-columns: 1.2fr 1.2fr 0.9fr 0.8fr 0.9fr 0.8fr 1fr 0.9fr 0.9fr;">
                 <div class="table-header">Batch Number</div>
                 <div class="table-header">Product</div>
                 <div class="table-header">Start Date</div>
+                <div class="table-header">Growth Days</div>
                 <div class="table-header">Harvest Date</div>
                 <div class="table-header">Yield (kg)</div>
                 <div class="table-header">Predicted (kg)</div>
@@ -879,6 +884,7 @@
                 <div class="table-header">Actions</div>
 
                 <div class="table-row">Loading...</div>
+                <div class="table-row"></div>
                 <div class="table-row"></div>
                 <div class="table-row"></div>
                 <div class="table-row"></div>
@@ -939,6 +945,7 @@
         const addProductInput = document.getElementById('product');
         const addBatchNumberInput = document.getElementById('batch_number');
         const addStartDateInput = document.getElementById('start_date');
+        const growthDaysDisplay = document.getElementById('growth_days_display');
         const predictedYieldDisplay = document.getElementById('predicted_yield_display');
         
         const editModal = document.getElementById('editRecordModal');
@@ -990,8 +997,8 @@
         }
         
         function renderProductionPage() {
-            // Clear Table (keep 8 headers)
-            while (tableGrid.children.length > 8) {
+            // Clear Table (keep 9 headers)
+            while (tableGrid.children.length > 9) {
                 tableGrid.removeChild(tableGrid.lastChild);
             }
             
@@ -1006,6 +1013,7 @@
                 tableGrid.appendChild(createRow(batch.batch_number));
                 tableGrid.appendChild(createRow(batch.product_name));
                 tableGrid.appendChild(createRow(batch.start_date));
+                tableGrid.appendChild(createRow(batch.growth_days));
                 tableGrid.appendChild(createRow(batch.harvest_date));
                 tableGrid.appendChild(createRow(batch.yield_kg));
                 
@@ -1097,6 +1105,7 @@
 
         async function refreshPredictedYield() {
             predictedYieldDisplay.value = 'Calculating...';
+            growthDaysDisplay.value = '-';
             const payload = {
                 start_date: addStartDateInput.value || null
             };
@@ -1109,9 +1118,11 @@
                 });
                 const result = await response.json();
                 predictedYieldDisplay.value = result.success ? formatPredicted(result.predicted_yield) : '-';
+                growthDaysDisplay.value = result.success && result.growth_days ? result.growth_days : '-';
             } catch (error) {
                 console.error('Failed to update predicted yield:', error);
                 predictedYieldDisplay.value = '-';
+                growthDaysDisplay.value = '-';
             }
         }
 

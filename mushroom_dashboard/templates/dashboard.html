@@ -381,12 +381,22 @@
             function renderAdminConversations(conversations) {
                 if (!adminChatConversations) return;
 
-                if (!conversations || conversations.length === 0) {
+                const seenCustomerIds = new Set();
+                const uniqueConversations = (conversations || []).filter(conv => {
+                    const customerId = Number(conv.customer_id);
+                    if (!customerId || seenCustomerIds.has(customerId)) {
+                        return false;
+                    }
+                    seenCustomerIds.add(customerId);
+                    return true;
+                });
+
+                if (uniqueConversations.length === 0) {
                     adminChatConversations.innerHTML = '<div style="padding: 12px; color: #64748b;">No customer messages yet.</div>';
                     return;
                 }
 
-                adminChatConversations.innerHTML = conversations.map(conv => `
+                adminChatConversations.innerHTML = uniqueConversations.map(conv => `
                     <div class="admin-conversation-item ${selectedCustomerId === conv.customer_id ? 'active' : ''}" data-customer-id="${conv.customer_id}">
                         <div class="admin-convo-top">
                             <span>${conv.customer_name}</span>

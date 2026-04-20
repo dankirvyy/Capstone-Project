@@ -172,6 +172,20 @@ def calculate_predicted_yield(start_date=None):
     return round(float(predicted), 2)
 
 
+def calculate_growth_days(start_date=None):
+    """Return elapsed growth days based on start date (minimum of 1 day)."""
+    parsed_start_date = None
+    if isinstance(start_date, str) and start_date:
+        parsed_start_date = date.fromisoformat(start_date)
+    elif isinstance(start_date, date):
+        parsed_start_date = start_date
+
+    if not parsed_start_date:
+        return None
+
+    return max((timezone.now().date() - parsed_start_date).days + 1, 1)
+
+
 # --- NEW: Predictive Maintenance Function ---
 def predict_preventive_action():
     """
@@ -694,27 +708,35 @@ def admin_chat_api(request):
             'messages': messages_list,
         })
 
-    # Conversation list grouped by customer
-    customer_ids = CustomerAdminMessage.objects.values_list('customer_id', flat=True).distinct()
+    # Conversation list grouped by customer (one row per customer).
+    unread_counts = {
+        row['customer_id']: row['total']
+        for row in CustomerAdminMessage.objects.filter(
+            sender_id=F('customer_id'),
+            is_read=False
+        ).values('customer_id').annotate(total=Count('id'))
+    }
+
     conversations = []
-    for cid in customer_ids:
-        customer = User.objects.filter(id=cid).first()
-        if not customer:
+    seen_customer_ids = set()
+    latest_messages = CustomerAdminMessage.objects.select_related('customer').order_by('-created_at', '-id')
+
+    for msg in latest_messages:
+        cid = msg.customer_id
+        if cid in seen_customer_ids:
             continue
 
-        latest = CustomerAdminMessage.objects.filter(customer_id=cid).order_by('-created_at').first()
-        unread_count = CustomerAdminMessage.objects.filter(customer_id=cid, sender=customer, is_read=False).count()
-
+        seen_customer_ids.add(cid)
+        customer = msg.customer
         conversations.append({
             'customer_id': cid,
             'customer_name': customer.get_full_name() or customer.username,
             'customer_email': customer.email,
-            'last_message': latest.message if latest else '',
-            'last_time': latest.created_at.strftime('%Y-%m-%d %H:%M') if latest else '',
-            'unread_count': unread_count,
+            'last_message': msg.message,
+            'last_time': msg.created_at.strftime('%Y-%m-%d %H:%M'),
+            'unread_count': unread_counts.get(cid, 0),
         })
 
-    conversations.sort(key=lambda c: c['last_time'], reverse=True)
     return JsonResponse({'conversations': conversations})
 
 # --- Login / Logout Views ---
@@ -1410,6 +1432,7 @@ def production_api(request):
             'batch_number': batch.batch_number,
             'product_name': batch.product.name if batch.product else 'N/A',
             'start_date': batch.start_date.strftime('%Y-%m-%d'),
+            'growth_days': calculate_growth_days(batch.start_date) or '-',
             'harvest_date': batch.harvest_date.strftime('%Y-%m-%d') if batch.harvest_date else '-',
             'yield_kg': batch.yield_kg if batch.yield_kg is not None else '-',
             'predicted_yield_kg': batch.predicted_yield_kg if batch.predicted_yield_kg is not None else '-',
@@ -1431,10 +1454,11 @@ def production_api(request):
 def production_predict_api(request):
     try:
         data = json.loads(request.body)
+        growth_days = calculate_growth_days(data.get('start_date'))
         predicted = calculate_predicted_yield(
             start_date=data.get('start_date')
         )
-        return JsonResponse({'success': True, 'predicted_yield': predicted})
+        return JsonResponse({'success': True, 'predicted_yield': predicted, 'growth_days': growth_days})
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
@@ -1463,6 +1487,7 @@ def production_api_detail(request, pk):
             'product_id': batch.product_id,
             'batch_number': batch.batch_number,
             'start_date': batch.start_date,
+            'growth_days': calculate_growth_days(batch.start_date),
             'harvest_date': batch.harvest_date,
             'yield_kg': batch.yield_kg,
             'predicted_yield_kg': batch.predicted_yield_kg,
