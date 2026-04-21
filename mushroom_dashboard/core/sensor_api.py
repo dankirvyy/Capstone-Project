@@ -370,12 +370,14 @@ def get_automation_decision(request):
                 "reason": "explanation"
             },
             "humidifier": {...},
-            "heater": {...}
+            "heater": {...},
+            "lights": {...}
         },
         "sensor_readings": {
             "temperature": 28.5,
             "humidity": 85.2,
-            "air_quality_ppm": 450
+            "air_quality_ppm": 450,
+            "light_lux": 320.5
         },
         "thresholds": {
             "fan_temp": 30.0,
@@ -396,6 +398,11 @@ def get_automation_decision(request):
             temperature = float(data.get('temperature', 0))
             humidity = float(data.get('humidity', 0))
             air_quality_ppm = data.get('air_quality_ppm', None)
+            light_lux_raw = data.get('light_lux', None)
+            try:
+                light_lux = float(light_lux_raw) if light_lux_raw is not None else None
+            except (TypeError, ValueError):
+                light_lux = None
             device_id = data.get('device_id', 'ESP32_001')
             
             # Optionally save the reading to database
@@ -413,6 +420,8 @@ def get_automation_decision(request):
                 temperature = float(latest_reading.temperature)
                 humidity = float(latest_reading.humidity)
                 air_quality_ppm = latest_reading.air_quality_ppm
+                # SensorReading model currently does not store light lux.
+                light_lux = None
             else:
                 # No sensor data available
                 return JsonResponse({
@@ -522,6 +531,42 @@ def get_automation_decision(request):
                 'mode': 'manual',
                 'reason': 'Manual control - dashboard switch state'
             }
+
+        # --- Grow Light Control (Lux-based) ---
+        if settings.lights_auto:
+            # Map UI value (0-100%) to an ambient lux target (100-1000 lux).
+            target_lux = 100.0 + (max(0.0, min(float(settings.lights_value), 100.0)) / 100.0) * 900.0
+            lux_hysteresis = 50.0
+            lights_should_be_on = settings.lights_on
+
+            if light_lux is None:
+                lights_reason = 'Automatic mode enabled, waiting for BH1750 lux data'
+            elif light_lux < (target_lux - lux_hysteresis):
+                lights_should_be_on = True
+                lights_reason = f'Light level {light_lux:.1f} lux is below target {target_lux:.0f} lux'
+            elif light_lux > (target_lux + lux_hysteresis):
+                lights_should_be_on = False
+                lights_reason = f'Light level {light_lux:.1f} lux is above target {target_lux:.0f} lux'
+            else:
+                lights_reason = f'Light level {light_lux:.1f} lux is within hysteresis around target {target_lux:.0f} lux'
+
+            if lights_should_be_on != settings.lights_on:
+                settings.lights_on = lights_should_be_on
+                state_changed = True
+
+            controls_response['lights'] = {
+                'should_be_on': lights_should_be_on,
+                'current_state': settings.lights_on,
+                'mode': 'automatic',
+                'reason': lights_reason
+            }
+        else:
+            controls_response['lights'] = {
+                'should_be_on': settings.lights_on,
+                'current_state': settings.lights_on,
+                'mode': 'manual',
+                'reason': 'Manual control - dashboard switch state'
+            }
         
         # Save settings if any state changed
         if state_changed:
@@ -533,7 +578,8 @@ def get_automation_decision(request):
             'sensor_readings': {
                 'temperature': temperature,
                 'humidity': humidity,
-                'air_quality_ppm': air_quality_ppm
+                'air_quality_ppm': air_quality_ppm,
+                'light_lux': light_lux
             },
             'thresholds': {
                 'fan_temp_threshold': float(settings.fan_temp_threshold),
@@ -549,7 +595,8 @@ def get_automation_decision(request):
                 'target_humidity': settings.humidifier_value,
                 'target_temperature': settings.heater_value,
                 'target_co2': settings.co2_value,
-                'light_intensity': settings.lights_value
+                'light_intensity': settings.lights_value,
+                'light_target_lux': 100.0 + (max(0.0, min(float(settings.lights_value), 100.0)) / 100.0) * 900.0
             }),
             'automation_reasons': decisions['reasons']
         })

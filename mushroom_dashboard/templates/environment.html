@@ -776,33 +776,6 @@
             <div class="card control-card">
                 <div class="control-header">
                     <div class="icon-title">
-                        <div class="icon-bg"><i class="fa-solid fa-smog"></i></div>
-                        <span class="control-title">CO₂ Control</span>
-                    </div>
-                    <label class="toggle-switch">
-                        <input type="checkbox" id="co2-on-toggle">
-                        <span class="toggle-slider"></span>
-                    </label>
-                </div>
-                <div class="control-section">
-                    <label for="co2-slider">Target CO₂ (PPM)</label>
-                    <div class="slider-container">
-                        <input type="range" id="co2-slider" min="400" max="2000" value="900">
-                        <span id="co2-slider-value" class="slider-value">900</span>
-                    </div>
-                </div>
-                <div class="automation-section">
-                    <span>Automation</span>
-                    <label class="toggle-switch">
-                        <input type="checkbox" id="co2-auto-toggle">
-                        <span class="toggle-slider"></span>
-                    </label>
-                </div>
-            </div>
-
-            <div class="card control-card">
-                <div class="control-header">
-                    <div class="icon-title">
                         <div class="icon-bg"><i class="fa-solid fa-lightbulb"></i></div>
                         <span class="control-title">Grow Lights</span>
                     </div>
@@ -869,7 +842,6 @@
                         <li>Ventilation Fan</li>
                         <li>Humidifier</li>
                         <li>Heater</li>
-                        <li>CO₂ System</li>
                         <li>Lights</li>
                     </ul>
                     <p style="color: #dc2626; font-weight: 600;">Are you sure you want to proceed?</p>
@@ -929,11 +901,6 @@
             heater_value: document.getElementById('heater-slider'),
             heater_value_display: document.getElementById('heater-slider-value'),
             
-            co2_on: document.getElementById('co2-on-toggle'),
-            co2_auto: document.getElementById('co2-auto-toggle'),
-            co2_value: document.getElementById('co2-slider'),
-            co2_value_display: document.getElementById('co2-slider-value'),
-            
             lights_on: document.getElementById('lights-on-toggle'),
             lights_auto: document.getElementById('lights-auto-toggle'),
             lights_value: document.getElementById('lights-slider'),
@@ -971,11 +938,6 @@
                 controls.heater_auto.checked = settings.heater_auto;
                 controls.heater_value.value = settings.heater_value;
                 controls.heater_value_display.textContent = `${settings.heater_value}°C`;
-                
-                controls.co2_on.checked = settings.co2_on;
-                controls.co2_auto.checked = settings.co2_auto;
-                controls.co2_value.value = settings.co2_value;
-                controls.co2_value_display.textContent = `${settings.co2_value} ppm`;
                 
                 controls.lights_on.checked = settings.lights_on;
                 controls.lights_auto.checked = settings.lights_auto;
@@ -1092,9 +1054,6 @@
                 heater_on: controls.heater_on.checked,
                 heater_auto: controls.heater_auto.checked,
                 heater_value: parseInt(controls.heater_value.value, 10),
-                co2_on: controls.co2_on.checked,
-                co2_auto: controls.co2_auto.checked,
-                co2_value: parseInt(controls.co2_value.value, 10),
                 lights_on: controls.lights_on.checked,
                 lights_auto: controls.lights_auto.checked,
                 lights_value: parseInt(controls.lights_value.value, 10),
@@ -1127,7 +1086,6 @@
         linkSlider(controls.fan_value, controls.fan_value_display, '°C');
         linkSlider(controls.humidifier_value, controls.humidifier_value_display, '%');
         linkSlider(controls.heater_value, controls.heater_value_display, '°C');
-        linkSlider(controls.co2_value, controls.co2_value_display, ' ppm');
         linkSlider(controls.lights_value, controls.lights_value_display, '%');
 
         // --- 4. Add Event Listeners to all Toggles ---
@@ -1158,12 +1116,10 @@
                     fan_auto: controls.fan_auto.checked,
                     humidifier_auto: controls.humidifier_auto.checked,
                     heater_auto: controls.heater_auto.checked,
-                    co2_auto: controls.co2_auto.checked,
                     lights_auto: controls.lights_auto.checked,
                     fan_value: controls.fan_value.value,
                     humidifier_value: controls.humidifier_value.value,
                     heater_value: controls.heater_value.value,
-                    co2_value: controls.co2_value.value,
                     lights_value: controls.lights_value.value
                 };
                 
