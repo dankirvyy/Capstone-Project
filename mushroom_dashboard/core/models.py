@@ -1,9 +1,12 @@
 from django.db import models
 from django.utils import timezone
 from django.contrib.auth.models import User
+from django.core.validators import FileExtensionValidator
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from datetime import date
+import os
+import uuid
 
 
 # User Profile for role-based access control
@@ -592,10 +595,24 @@ class CustomerAdminMessage(models.Model):
     def __str__(self):
         return f"Chat from {self.sender.username} to {self.customer.username}"
 
+
+def payment_proof_upload_path(instance, filename):
+    """Store customer payment proofs in per-order folders with randomized names."""
+    extension = os.path.splitext(filename)[1].lower() or '.jpg'
+    order_token = (instance.order_number or f"order_{instance.pk or 'new'}").replace('/', '_')
+    return os.path.join('payment_proofs', order_token, f"{uuid.uuid4().hex}{extension}")
+
+
+def gcash_qr_upload_path(instance, filename):
+    """Store the admin-managed GCash QR image with a randomized filename."""
+    extension = os.path.splitext(filename)[1].lower() or '.png'
+    return os.path.join('gcash_qr_codes', f"gcash_qr_{uuid.uuid4().hex}{extension}")
+
 class Order(models.Model):
     """E-commerce orders from customers"""
     STATUS_CHOICES = [
         ('PENDING', 'Pending'),
+        ('PENDING_VERIFICATION', 'Pending Verification'),
         ('PROCESSING', 'Processing'),
         ('SHIPPED', 'Shipped'),
         ('DELIVERED', 'Delivered'),
@@ -631,7 +648,7 @@ class Order(models.Model):
     # Payment information
     PAYMENT_METHOD_CHOICES = [
         ('COD', 'Cash on Delivery'),
-        ('GCASH', 'GCash'),
+        ('GCASH', 'GCash (Manual)'),
     ]
     PAYMENT_STATUS_CHOICES = [
         ('UNPAID', 'Unpaid'),
@@ -647,6 +664,13 @@ class Order(models.Model):
     # GCash transaction details
     transaction_id = models.CharField(max_length=100, blank=True, null=True, help_text="Payment gateway transaction ID")
     payment_reference = models.CharField(max_length=100, blank=True, null=True, help_text="Payment reference number")
+    payment_proof_image = models.ImageField(
+        upload_to=payment_proof_upload_path,
+        blank=True,
+        null=True,
+        validators=[FileExtensionValidator(allowed_extensions=['jpg', 'jpeg', 'png', 'webp', 'gif'])],
+        help_text="Customer-uploaded screenshot proof for manual GCash payment"
+    )
     paid_at = models.DateTimeField(null=True, blank=True, help_text="When payment was confirmed")
     
     # Notes
@@ -935,6 +959,15 @@ class StoreSettings(models.Model):
     minimum_order_amount = models.DecimalField(
         max_digits=8, decimal_places=2, default=300.00,
         help_text="Minimum order amount required to place an order"
+    )
+
+    # Manual GCash checkout settings
+    gcash_qr_code = models.ImageField(
+        upload_to=gcash_qr_upload_path,
+        blank=True,
+        null=True,
+        validators=[FileExtensionValidator(allowed_extensions=['jpg', 'jpeg', 'png', 'webp'])],
+        help_text="Admin-uploaded GCash QR code used for manual checkout payments"
     )
     
     # Timestamps

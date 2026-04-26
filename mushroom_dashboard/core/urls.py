@@ -37,12 +37,6 @@ urlpatterns = [
     path('checkout/', ecommerce_views.checkout, name='checkout'),
     path('order/<str:order_number>/', ecommerce_views.order_confirmation, name='order_confirmation'),
     
-    # GCash Payment URLs
-    path('payment/gcash/<str:order_number>/', ecommerce_views.gcash_payment, name='gcash_payment'),
-    path('payment/gcash/callback/<str:order_number>/<str:action>/', ecommerce_views.gcash_callback, name='gcash_callback'),
-    path('payment/gcash/webhook/', ecommerce_views.gcash_webhook, name='gcash_webhook'),
-    path('payment/retry/<str:order_number>/', ecommerce_views.retry_payment, name='retry_payment'),
-    
     # Order Cancellation
     path('order/<str:order_number>/cancel/', ecommerce_views.cancel_order, name='cancel_order'),
     
@@ -55,6 +49,7 @@ urlpatterns = [
     path('orders/', ecommerce_views.manage_orders, name='manage_orders'),
     path('order-detail/<int:order_id>/', ecommerce_views.order_detail, name='order_detail'),
     path('update-order-status/<int:order_id>/', ecommerce_views.update_order_status, name='update_order_status'),
+    path('orders/<int:order_id>/verify-payment/', ecommerce_views.verify_manual_gcash_payment, name='verify_manual_gcash_payment'),
     
     # Wishlist URLs
     path('toggle-wishlist/<int:product_id>/', ecommerce_views.toggle_wishlist, name='toggle_wishlist'),

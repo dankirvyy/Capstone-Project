@@ -13,6 +13,7 @@ from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
 from decimal import Decimal, InvalidOperation
+import os
 import logging
 from .models import Product, Sale, Order, OrderItem, Cart, CartItem, Notification
 from .views import admin_required  # Import the admin_required decorator
@@ -344,7 +345,7 @@ def checkout(request):
 @transaction.atomic
 def process_checkout(request, cart, cart_items, total):
     """Process checkout with atomic inventory deduction"""
-    from .gcash_service import create_gcash_payment
+    from .models import StoreSettings
     
     # Get customer info
     customer_name = request.POST.get('customer_name')
@@ -355,6 +356,25 @@ def process_checkout(request, cart, cart_items, total):
     shipping_postal_code = request.POST.get('shipping_postal_code')
     customer_notes = request.POST.get('customer_notes', '')
     payment_method = request.POST.get('payment_method', 'COD')
+    payment_proof_image = request.FILES.get('payment_proof_image')
+
+    def validate_uploaded_payment_image(uploaded_file):
+        if not uploaded_file:
+            return False, 'Please upload your payment confirmation screenshot for GCash orders.'
+
+        extension = os.path.splitext(uploaded_file.name)[1].lower().lstrip('.')
+        allowed_extensions = {'jpg', 'jpeg', 'png', 'webp', 'gif'}
+        if extension not in allowed_extensions:
+            return False, 'Payment proof must be an image file (JPG, PNG, WEBP, or GIF).'
+
+        content_type = (uploaded_file.content_type or '').lower()
+        if not content_type.startswith('image/'):
+            return False, 'Payment proof must be an image file.'
+
+        if uploaded_file.size > 5 * 1024 * 1024:
+            return False, 'Payment proof image must be 5MB or smaller.'
+
+        return True, None
     
     # Get customer GPS coordinates from map picker
     customer_latitude = request.POST.get('customer_latitude')
@@ -375,6 +395,18 @@ def process_checkout(request, cart, cart_items, total):
     if not all([customer_name, customer_email, customer_phone, shipping_address, shipping_city]):
         messages.error(request, 'Please fill in all required fields')
         return redirect('checkout')
+
+    if payment_method == 'GCASH':
+        store_settings = StoreSettings.load()
+
+        if not store_settings.gcash_qr_code:
+            messages.error(request, 'GCash payment is temporarily unavailable. Please choose another payment method.')
+            return redirect('checkout')
+
+        is_valid_image, image_error = validate_uploaded_payment_image(payment_proof_image)
+        if not is_valid_image:
+            messages.error(request, image_error)
+            return redirect('checkout')
     
     # Check stock availability and deduct atomically
     for cart_item in cart_items:
@@ -408,7 +440,8 @@ def process_checkout(request, cart, cart_items, total):
         customer_notes=customer_notes,
         payment_method=payment_method,
         payment_status='UNPAID' if payment_method == 'COD' else 'PENDING',
-        status='PENDING'
+        payment_proof_image=payment_proof_image if payment_method == 'GCASH' else None,
+        status='PENDING_VERIFICATION' if payment_method == 'GCASH' else 'PENDING'
     )
     
     # Create OrderItems and Sales
@@ -444,31 +477,22 @@ def process_checkout(request, cart, cart_items, total):
     
     # Clear cart
     cart.delete()
-    
-    # Handle payment method
-    if payment_method == 'GCASH':
-        # Create GCash payment and redirect to payment page
-        result = create_gcash_payment(order, request)
-        
-        if result['success']:
-            # Redirect to GCash payment page
-            return redirect('gcash_payment', order_number=order.order_number)
-        else:
-            # Payment creation failed - mark order and notify
-            order.payment_status = 'FAILED'
-            order.save()
-            messages.error(request, f'Failed to initialize GCash payment: {result.get("error", "Unknown error")}')
-            return redirect('order_confirmation', order_number=order.order_number)
-    
-    # Cash on Delivery - proceed normally
-    # Send email notifications asynchronously (don't slow down the checkout)
+
+    # Send email notifications asynchronously (don't slow down checkout)
     # 1. Send order confirmation to customer
     send_email_async(send_order_confirmation_email, order)
-    
+
     # 2. Send new order notification to admin
     send_email_async(send_new_order_admin_notification, order)
-    
-    messages.success(request, f'Order placed successfully! Order number: {order.order_number}')
+
+    if payment_method == 'GCASH':
+        messages.success(
+            request,
+            f'Order placed successfully! Your payment proof is pending verification. Order number: {order.order_number}'
+        )
+    else:
+        messages.success(request, f'Order placed successfully! Order number: {order.order_number}')
+
     return redirect('order_confirmation', order_number=order.order_number)
 
 
@@ -683,7 +707,7 @@ def manage_orders(request):
     
     # Calculate statistics
     total_orders = Order.objects.count()
-    pending_orders = Order.objects.filter(status='PENDING').count()
+    pending_orders = Order.objects.filter(status__in=['PENDING', 'PENDING_VERIFICATION']).count()
     processing_orders = Order.objects.filter(status='PROCESSING').count()
     total_revenue = Order.objects.filter(
         is_paid=True
@@ -726,6 +750,9 @@ def order_detail(request, order_id):
         'customer_longitude': float(order.customer_longitude) if order.customer_longitude else None,
         'total_amount': str(order.total_amount),
         'status': order.status,
+        'payment_method': order.payment_method,
+        'payment_status': order.payment_status,
+        'payment_proof_url': order.payment_proof_image.url if order.payment_proof_image else None,
         'is_paid': order.is_paid,
         'created_at': order.created_at.strftime('%Y-%m-%d %H:%M:%S'),
         'current_location_status': order.current_location_status or '',
@@ -820,6 +847,69 @@ def update_order_status(request, order_id):
         
         messages.success(request, f'Order {order.order_number} updated successfully')
         
+    return redirect('manage_orders')
+
+
+@admin_required
+@transaction.atomic
+def verify_manual_gcash_payment(request, order_id):
+    """Approve or reject customer-uploaded GCash payment proof."""
+    if request.method != 'POST':
+        messages.error(request, 'Invalid request method')
+        return redirect('manage_orders')
+
+    order = get_object_or_404(Order, id=order_id)
+
+    if order.payment_method != 'GCASH':
+        messages.error(request, 'This order is not using manual GCash payment')
+        return redirect('manage_orders')
+
+    if not order.payment_proof_image:
+        messages.error(request, f'No payment proof uploaded for order {order.order_number}')
+        return redirect('manage_orders')
+
+    if order.status in ['CANCELLED', 'DELIVERED']:
+        messages.error(request, f'Cannot verify payment for order {order.order_number} in status {order.get_status_display()}')
+        return redirect('manage_orders')
+
+    action = (request.POST.get('action') or '').strip().lower()
+    admin_note = (request.POST.get('admin_note') or '').strip()
+    old_status = order.status
+
+    if action == 'approve':
+        order.status = 'PROCESSING'
+        order.payment_status = 'PAID'
+        order.is_paid = True
+        order.paid_at = timezone.now()
+        note_prefix = 'PAYMENT APPROVED'
+        success_message = f'Payment approved. Order {order.order_number} moved to Processing.'
+    elif action == 'reject':
+        # Restore stock and remove sales record when payment is rejected.
+        for item in order.items.select_related('product').all():
+            Product.objects.filter(id=item.product.id).update(stock_kg=F('stock_kg') + item.quantity_kg)
+
+        Sale.objects.filter(order=order).delete()
+
+        order.status = 'CANCELLED'
+        order.payment_status = 'FAILED'
+        order.is_paid = False
+        order.paid_at = None
+        note_prefix = 'PAYMENT REJECTED'
+        success_message = f'Payment rejected. Order {order.order_number} has been cancelled.'
+    else:
+        messages.error(request, 'Unknown verification action')
+        return redirect('manage_orders')
+
+    note_text = f"\n[{note_prefix}] {timezone.now().strftime('%Y-%m-%d %H:%M')}"
+    if admin_note:
+        note_text += f" - {admin_note}"
+    order.admin_notes = (order.admin_notes or '') + note_text
+    order.save()
+
+    if old_status != order.status:
+        send_email_async(send_order_status_email, order, old_status)
+
+    messages.success(request, success_message)
     return redirect('manage_orders')
 
 
@@ -1301,28 +1391,26 @@ def cancel_order(request, order_number):
     Allow customer to cancel their order.
     
     Rules:
-    - Only orders with status 'PENDING' can be cancelled
-    - If order was paid via GCash, process refund
+    - Only orders with status 'PENDING' or 'PENDING_VERIFICATION' can be cancelled
+    - If order was paid via GCash, mark refund as manual follow-up
     - Restore stock to inventory
     - Send cancellation confirmation email
     """
-    from .gcash_service import process_gcash_refund
-    
     order = get_object_or_404(Order, order_number=order_number)
     
     # Check if order can be cancelled
-    if order.status != 'PENDING':
+    if order.status not in ['PENDING', 'PENDING_VERIFICATION']:
         messages.error(request, f'Cannot cancel order. Order status is already "{order.get_status_display()}".')
         return redirect('order_confirmation', order_number=order_number)
     
-    # Process refund if paid via GCash
+    # Manual refund marker for already-paid GCash orders.
     refund_result = None
     if order.payment_method == 'GCASH' and order.payment_status == 'PAID':
-        refund_result = process_gcash_refund(order)
-        
-        if not refund_result['success']:
-            messages.error(request, f'Refund failed: {refund_result.get("error", "Unknown error")}')
-            return redirect('order_confirmation', order_number=order_number)
+        refund_result = {
+            'success': True,
+            'refund_amount': order.total_amount,
+            'refund_id': f"MANUAL-{timezone.now().strftime('%Y%m%d%H%M%S')}"
+        }
     
     # Restore stock for each item in the order
     order_items = order.items.select_related('product').all()
@@ -1334,9 +1422,13 @@ def cancel_order(request, order_number):
     # Update order status to cancelled
     order.status = 'CANCELLED'
     
-    # If not a GCash refund (COD unpaid), just mark as cancelled
+    # Keep payment status aligned with cancellation outcome.
     if order.payment_method == 'COD':
         order.payment_status = 'UNPAID'
+    elif refund_result and refund_result.get('success'):
+        order.payment_status = 'REFUNDED'
+    elif order.payment_status == 'PENDING':
+        order.payment_status = 'FAILED'
     
     order.admin_notes = (order.admin_notes or '') + f"\n[CANCELLED] {timezone.now().strftime('%Y-%m-%d %H:%M')} - Order cancelled by customer"
     order.save()

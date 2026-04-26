@@ -12,7 +12,7 @@ from django.views.decorators.csrf import csrf_exempt
 from .models import SensorReading, Product, Sale, ProductionBatch, Notification, EnvironmentSettings, UserProfile, Cart, CartItem, CustomerAdminMessage
 from .email_service import send_verification_email, send_email_async, resend_verification_email
 import json
-from decimal import Decimal 
+from decimal import Decimal, InvalidOperation
 from django.utils import timezone
 from datetime import timedelta, date
 import time 
@@ -989,20 +989,72 @@ def store_settings_api(request):
             'free_shipping_threshold': float(store_settings.free_shipping_threshold),
             'max_delivery_distance_km': float(store_settings.max_delivery_distance_km),
             'minimum_order_amount': float(store_settings.minimum_order_amount),
+            'gcash_qr_code_url': store_settings.gcash_qr_code.url if store_settings.gcash_qr_code else None,
         })
     
     elif request.method in ['POST', 'PUT']:
         try:
-            data = json.loads(request.body)
+            def validate_image_upload(uploaded_file, field_name, allowed_extensions, max_size_mb=5):
+                if not uploaded_file:
+                    return
+
+                extension = os.path.splitext(uploaded_file.name)[1].lower().lstrip('.')
+                if extension not in allowed_extensions:
+                    raise ValueError(
+                        f"{field_name} must be an image file ({', '.join(sorted(allowed_extensions))})."
+                    )
+
+                content_type = (uploaded_file.content_type or '').lower()
+                if not content_type.startswith('image/'):
+                    raise ValueError(f"{field_name} must be an image file.")
+
+                if uploaded_file.size > max_size_mb * 1024 * 1024:
+                    raise ValueError(f"{field_name} must be {max_size_mb}MB or smaller.")
+
+            is_multipart = (request.content_type or '').startswith('multipart/form-data')
+
+            if is_multipart:
+                data = request.POST
+                uploaded_qr = request.FILES.get('gcash_qr_code')
+                remove_gcash_qr = str(request.POST.get('remove_gcash_qr', '')).lower() in ('1', 'true', 'yes', 'on')
+            else:
+                data = json.loads(request.body or '{}')
+                uploaded_qr = None
+                remove_gcash_qr = bool(data.get('remove_gcash_qr'))
             
             if 'store_name' in data:
                 store_settings.store_name = data['store_name']
             if 'store_address' in data:
                 store_settings.store_address = data['store_address']
-            if 'store_latitude' in data and data['store_latitude'] is not None:
-                store_settings.store_latitude = Decimal(str(data['store_latitude']))
-            if 'store_longitude' in data and data['store_longitude'] is not None:
-                store_settings.store_longitude = Decimal(str(data['store_longitude']))
+            if 'store_latitude' in data:
+                latitude = data.get('store_latitude')
+                if latitude in (None, ''):
+                    store_settings.store_latitude = None
+                else:
+                    try:
+                        latitude_decimal = Decimal(str(latitude))
+                    except InvalidOperation:
+                        raise ValueError('Latitude must be a valid number.')
+
+                    if latitude_decimal < Decimal('-90') or latitude_decimal > Decimal('90'):
+                        raise ValueError('Latitude must be between -90 and 90.')
+
+                    store_settings.store_latitude = latitude_decimal
+
+            if 'store_longitude' in data:
+                longitude = data.get('store_longitude')
+                if longitude in (None, ''):
+                    store_settings.store_longitude = None
+                else:
+                    try:
+                        longitude_decimal = Decimal(str(longitude))
+                    except InvalidOperation:
+                        raise ValueError('Longitude must be a valid number.')
+
+                    if longitude_decimal < Decimal('-180') or longitude_decimal > Decimal('180'):
+                        raise ValueError('Longitude must be between -180 and 180.')
+
+                    store_settings.store_longitude = longitude_decimal
             if 'minimum_base_fee' in data:
                 store_settings.minimum_base_fee = Decimal(str(data['minimum_base_fee']))
             if 'minimum_base_distance_km' in data:
@@ -1015,6 +1067,20 @@ def store_settings_api(request):
                 store_settings.max_delivery_distance_km = Decimal(str(data['max_delivery_distance_km']))
             if 'minimum_order_amount' in data:
                 store_settings.minimum_order_amount = Decimal(str(data['minimum_order_amount']))
+
+            if remove_gcash_qr and store_settings.gcash_qr_code:
+                store_settings.gcash_qr_code.delete(save=False)
+                store_settings.gcash_qr_code = None
+
+            if uploaded_qr:
+                validate_image_upload(
+                    uploaded_qr,
+                    'GCash QR code',
+                    allowed_extensions={'jpg', 'jpeg', 'png', 'webp'},
+                )
+                if store_settings.gcash_qr_code:
+                    store_settings.gcash_qr_code.delete(save=False)
+                store_settings.gcash_qr_code = uploaded_qr
             
             store_settings.save()
             

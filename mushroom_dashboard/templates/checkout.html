@@ -320,15 +320,73 @@
             color: var(--text-muted);
             margin-top: 2px;
         }
-        
-        .sandbox-badge {
-            background: #fef3c7;
-            color: #92400e;
+
+        .manual-badge {
+            background: #dbeafe;
+            color: #1d4ed8;
             font-size: 0.65rem;
             padding: 2px 6px;
             border-radius: 4px;
             font-weight: 600;
             margin-left: 8px;
+        }
+
+        .gcash-manual-panel {
+            margin-top: 1rem;
+            padding: 1rem;
+            border-radius: 14px;
+            border: 1px solid #dbeafe;
+            background: #f8fbff;
+        }
+
+        .gcash-qr-wrapper {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 1rem;
+        }
+
+        .gcash-qr-image {
+            width: 220px;
+            max-width: 100%;
+            border-radius: 12px;
+            border: 1px solid #bfdbfe;
+            background: white;
+            padding: 8px;
+            object-fit: contain;
+        }
+
+        .gcash-steps {
+            margin: 0.8rem 0 1rem;
+            padding-left: 1.1rem;
+            color: #1e3a8a;
+            font-size: 0.85rem;
+        }
+
+        .gcash-steps li {
+            margin-bottom: 0.35rem;
+        }
+
+        .payment-proof-group label {
+            margin-bottom: 6px;
+        }
+
+        .payment-proof-input {
+            background: white;
+        }
+
+        .payment-proof-help {
+            margin-top: 6px;
+            font-size: 0.75rem;
+            color: #475569;
+        }
+
+        .gcash-unavailable {
+            border-radius: 10px;
+            background: #fef2f2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+            padding: 0.9rem;
+            font-size: 0.85rem;
         }
 
         @media (max-width: 850px) {
@@ -541,7 +599,7 @@
             <h1>Complete Your Order</h1>
         </div>
 
-        <form method="POST" action="{% url 'checkout' %}" id="checkout-form">
+        <form method="POST" action="{% url 'checkout' %}" id="checkout-form" enctype="multipart/form-data">
             {% csrf_token %}
         <div class="checkout-grid">
             <div class="checkout-card">
@@ -678,11 +736,42 @@
                         <div class="payment-details">
                             <div class="payment-name">
                                 GCash
-                                <span class="sandbox-badge">SANDBOX</span>
+                                <span class="manual-badge">MANUAL</span>
                             </div>
-                            <div class="payment-description">Pay instantly via GCash e-wallet</div>
+                            <div class="payment-description">Scan QR, pay in GCash app, then upload proof</div>
                         </div>
                     </label>
+
+                    <div id="gcash-manual-panel" class="gcash-manual-panel" style="display:none;">
+                        {% if store_settings.gcash_qr_code %}
+                        <div class="gcash-qr-wrapper">
+                            <img src="{{ store_settings.gcash_qr_code.url }}" alt="GCash QR Code" class="gcash-qr-image">
+                        </div>
+                        <ol class="gcash-steps">
+                            <li>Scan this QR code using your GCash app.</li>
+                            <li>Complete your payment for the exact order amount.</li>
+                            <li>Upload a screenshot of your payment confirmation below.</li>
+                        </ol>
+
+                        <div class="form-group payment-proof-group" style="margin-bottom: 0;">
+                            <label for="payment_proof_image">Upload Payment Confirmation</label>
+                            <input
+                                type="file"
+                                id="payment_proof_image"
+                                name="payment_proof_image"
+                                class="payment-proof-input"
+                                accept="image/png,image/jpeg,image/jpg,image/webp,image/gif"
+                            >
+                            <div class="payment-proof-help">
+                                Image files only (max 5MB). Works on both mobile and desktop.
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="gcash-unavailable">
+                            GCash manual payment is currently unavailable because the admin QR code is not configured yet.
+                        </div>
+                        {% endif %}
+                    </div>
                 </div>
 
                 <button type="submit" class="place-order-btn" id="confirm-order-btn">
@@ -707,6 +796,7 @@
         let customerLat = {{ customer_lat|default:"null" }};
         let customerLng = {{ customer_lng|default:"null" }};
         const subtotal = {{ total }};
+        const gcashQrAvailable = {{ store_settings.gcash_qr_code|yesno:"true,false" }};
         
         // Default to Philippines center if no coordinates
         const defaultLat = customerLat || storeLat || 14.5995;
@@ -1014,12 +1104,61 @@
             
             // Update button text based on payment method
             const btnText = document.getElementById('btn-text');
+            const gcashPanel = document.getElementById('gcash-manual-panel');
+            const paymentProofInput = document.getElementById('payment_proof_image');
             if (method === 'GCASH') {
-                btnText.textContent = 'Pay with GCash';
+                btnText.textContent = 'Submit for Verification';
+                if (gcashPanel) {
+                    gcashPanel.style.display = 'block';
+                }
+                if (paymentProofInput) {
+                    paymentProofInput.required = true;
+                }
             } else {
                 btnText.textContent = 'Confirm Order';
+                if (gcashPanel) {
+                    gcashPanel.style.display = 'none';
+                }
+                if (paymentProofInput) {
+                    paymentProofInput.required = false;
+                    paymentProofInput.value = '';
+                }
             }
         }
+
+        document.getElementById('checkout-form').addEventListener('submit', function(e) {
+            const selectedPayment = document.querySelector('input[name="payment_method"]:checked')?.value;
+            if (selectedPayment !== 'GCASH') {
+                return;
+            }
+
+            if (!gcashQrAvailable) {
+                e.preventDefault();
+                alert('GCash manual payment is not available right now. Please choose another payment method.');
+                return;
+            }
+
+            const paymentProofInput = document.getElementById('payment_proof_image');
+            const paymentProofFile = paymentProofInput && paymentProofInput.files ? paymentProofInput.files[0] : null;
+            if (!paymentProofFile) {
+                e.preventDefault();
+                alert('Please upload your payment confirmation screenshot for GCash checkout.');
+                return;
+            }
+
+            if (!paymentProofFile.type.startsWith('image/')) {
+                e.preventDefault();
+                alert('Payment proof must be an image file.');
+                paymentProofInput.value = '';
+                return;
+            }
+
+            if (paymentProofFile.size > 5 * 1024 * 1024) {
+                e.preventDefault();
+                alert('Payment proof image must be 5MB or smaller.');
+                paymentProofInput.value = '';
+            }
+        });
     </script>
 </body>
 </html>

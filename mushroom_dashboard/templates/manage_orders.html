@@ -175,6 +175,7 @@
             padding: 6px 14px; border-radius: 50px; font-size: 0.75rem; font-weight: 800;
         }
         .status-pending { background: #fffbeb; color: #b45309; }
+        .status-pending_verification { background: #ecfeff; color: #0f766e; }
         .status-processing { background: #eff6ff; color: #1d4ed8; }
         .status-delivered { background: #f0fdf4; color: #15803d; }
         .status-cancelled { background: #fef2f2; color: #dc2626; }
@@ -220,6 +221,73 @@
 
         .update-status-form {
             margin-top: 2rem; padding: 1.5rem; background: #f1f5f9; border-radius: 20px;
+        }
+
+        .manual-payment-box {
+            margin-top: 1.5rem;
+            padding: 1.2rem;
+            border-radius: 14px;
+            border: 1px solid #bae6fd;
+            background: #f0f9ff;
+        }
+
+        .manual-payment-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 800;
+            color: #075985;
+            margin-bottom: 0.8rem;
+        }
+
+        .payment-proof-image {
+            width: 220px;
+            max-width: 100%;
+            border-radius: 10px;
+            border: 1px solid #bae6fd;
+            display: block;
+            margin-bottom: 1rem;
+        }
+
+        .verification-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.8rem;
+            margin-top: 0.8rem;
+        }
+
+        .verification-actions form {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 0.75rem;
+        }
+
+        .verification-note-input {
+            width: 100%;
+            margin-bottom: 0.55rem;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            padding: 0.55rem 0.65rem;
+            font-size: 0.82rem;
+        }
+
+        .verify-btn {
+            width: 100%;
+            border: none;
+            border-radius: 8px;
+            padding: 0.6rem 0.7rem;
+            font-weight: 700;
+            cursor: pointer;
+            color: #ffffff;
+        }
+
+        .verify-btn.approve {
+            background: #16a34a;
+        }
+
+        .verify-btn.reject {
+            background: #dc2626;
         }
 
         .submit-btn {
@@ -414,6 +482,10 @@
                 position: relative;
                 z-index: 10000;
                 touch-action: manipulation;
+            }
+
+            .verification-actions {
+                grid-template-columns: 1fr;
             }
         }
         
@@ -689,6 +761,7 @@
                         <select name="status" class="filter-select">
                             <option value="">All Statuses</option>
                             <option value="PENDING" {% if request.GET.status == 'PENDING' %}selected{% endif %}>Pending</option>
+                            <option value="PENDING_VERIFICATION" {% if request.GET.status == 'PENDING_VERIFICATION' %}selected{% endif %}>Pending Verification</option>
                             <option value="PROCESSING" {% if request.GET.status == 'PROCESSING' %}selected{% endif %}>Processing</option>
                             <option value="SHIPPED" {% if request.GET.status == 'SHIPPED' %}selected{% endif %}>Shipped</option>
                             <option value="DELIVERED" {% if request.GET.status == 'DELIVERED' %}selected{% endif %}>Delivered</option>
@@ -736,7 +809,7 @@
                                 <div style="display: flex; flex-direction: column; gap: 4px;">
                                     <span style="font-size: 0.75rem; color: #64748b;">
                                         {% if order.payment_method == 'GCASH' %}
-                                        <i class="fa-solid fa-wallet" style="color: #007bff;"></i> GCash
+                                        <i class="fa-solid fa-wallet" style="color: #007bff;"></i> GCash (Manual)
                                         {% else %}
                                         <i class="fa-solid fa-money-bill" style="color: #10b981;"></i> COD
                                         {% endif %}
@@ -1089,6 +1162,42 @@
                             </div>
                         `;
                     });
+
+                    const canVerifyManualPayment = order.payment_method === 'GCASH' && order.status === 'PENDING_VERIFICATION';
+                    const paymentProofSection = order.payment_method === 'GCASH' ? `
+                        <div class="manual-payment-box">
+                            <div class="manual-payment-header">
+                                <i class="fa-solid fa-wallet"></i>
+                                Manual GCash Payment (${order.payment_status})
+                            </div>
+                            ${order.payment_proof_url ? `
+                                <a href="${order.payment_proof_url}" target="_blank" rel="noopener noreferrer">
+                                    <img src="${order.payment_proof_url}" alt="Payment proof" class="payment-proof-image">
+                                </a>
+                                <small style="color:#075985; font-weight:600;">Click image to view full size</small>
+                            ` : `
+                                <div class="map-error" style="margin:0;">
+                                    <i class="fa-solid fa-circle-exclamation"></i> No payment proof was uploaded for this order.
+                                </div>
+                            `}
+                            ${canVerifyManualPayment ? `
+                                <div class="verification-actions">
+                                    <form method="POST" action="/orders/${orderId}/verify-payment/">
+                                        <input type="hidden" name="csrfmiddlewaretoken" value="${getCookie('csrftoken')}">
+                                        <input type="hidden" name="action" value="approve">
+                                        <input type="text" name="admin_note" maxlength="200" class="verification-note-input" placeholder="Optional approval note">
+                                        <button type="submit" class="verify-btn approve"><i class="fa-solid fa-check"></i> Approve Payment</button>
+                                    </form>
+                                    <form method="POST" action="/orders/${orderId}/verify-payment/">
+                                        <input type="hidden" name="csrfmiddlewaretoken" value="${getCookie('csrftoken')}">
+                                        <input type="hidden" name="action" value="reject">
+                                        <input type="text" name="admin_note" maxlength="200" class="verification-note-input" placeholder="Optional rejection reason">
+                                        <button type="submit" class="verify-btn reject"><i class="fa-solid fa-xmark"></i> Reject Payment</button>
+                                    </form>
+                                </div>
+                            ` : ''}
+                        </div>
+                    ` : '';
                     
                     const html = `
                         <h2 style="color: var(--primary); margin-bottom: 2rem; font-weight:900;">Order #${order.order_number}</h2>
@@ -1114,6 +1223,8 @@
                             <span style="font-weight:800; text-transform:uppercase; font-size:0.8rem;">Grand Total</span>
                             <span style="font-weight:900; font-size:1.4rem; color:var(--accent);">₱${order.total_amount}</span>
                         </div>
+
+                        ${paymentProofSection}
                         
                         <div class="update-status-form">
                             <h4 style="font-weight:800; color:var(--primary); margin-bottom:1.5rem;">Fulfillment Control</h4>
@@ -1124,6 +1235,7 @@
                                         <label style="display:block; font-size:0.7rem; font-weight:800; margin-bottom:5px;">Order Status</label>
                                         <select name="status" class="filter-select">
                                             <option value="PENDING" ${order.status === 'PENDING' ? 'selected' : ''}>Pending</option>
+                                            <option value="PENDING_VERIFICATION" ${order.status === 'PENDING_VERIFICATION' ? 'selected' : ''}>Pending Verification</option>
                                             <option value="PROCESSING" ${order.status === 'PROCESSING' ? 'selected' : ''}>Processing</option>
                                             <option value="SHIPPED" ${order.status === 'SHIPPED' ? 'selected' : ''}>Shipped</option>
                                             <option value="DELIVERED" ${order.status === 'DELIVERED' ? 'selected' : ''}>Delivered</option>

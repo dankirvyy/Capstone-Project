@@ -1461,7 +1461,7 @@
                             <a href="{% url 'order_confirmation' order.order_number %}" class="btn-view-order">
                                 <i class="fa-solid fa-eye"></i> View Details
                             </a>
-                            {% if order.status == 'PENDING' %}
+                            {% if order.status == 'PENDING' or order.status == 'PENDING_VERIFICATION' %}
                             <button type="button" class="btn-cancel-order" onclick="showCancelModal('{{ order.order_number }}', '{{ order.total_amount }}', '{{ order.payment_method }}', '{{ order.payment_status }}')">
                                 <i class="fa-solid fa-times-circle"></i> Cancel Order
                             </button>
@@ -1482,24 +1482,6 @@
                 <a href="{% url 'shop' %}" class="btn">Start Shopping</a>
             </div>
             {% endif %}
-        </div>
-
-        <div class="card">
-            <div class="card-title">
-                <i class="fa-solid fa-comments"></i>
-                Chat with Admin
-            </div>
-            <div class="chat-panel">
-                <div class="chat-messages" id="customerChatMessages">
-                    <div style="text-align:center; color:#64748b;">Loading messages...</div>
-                </div>
-                <form class="chat-input-wrap" id="customerChatForm">
-                    <input type="text" id="customerChatInput" placeholder="Type your inquiry here..." maxlength="1000" required>
-                    <button type="submit" class="chat-send-btn">
-                        <i class="fa-solid fa-paper-plane"></i> Send
-                    </button>
-                </form>
-            </div>
         </div>
 
         <div style="text-align: center; margin-top: 2rem;">
@@ -2543,7 +2525,7 @@
         function matchesOrderTab(card, tab) {
             const status = card.dataset.orderStatus;
             const hasPendingReview = card.dataset.hasPendingReview === 'true' || !!card.querySelector('.btn-review');
-            if (tab === 'to-pay') return status === 'PENDING';
+            if (tab === 'to-pay') return status === 'PENDING' || status === 'PENDING_VERIFICATION';
             if (tab === 'to-ship') return status === 'PROCESSING' || status === 'SHIPPED';
             if (tab === 'completed') return status === 'DELIVERED';
             if (tab === 'to-review') return status === 'DELIVERED' && hasPendingReview;
@@ -2739,79 +2721,6 @@
         refreshOrderTracking();
         setInterval(refreshOrderTracking, 15000);
 
-        // Customer-admin chat
-        const customerChatMessages = document.getElementById('customerChatMessages');
-        const customerChatForm = document.getElementById('customerChatForm');
-        const customerChatInput = document.getElementById('customerChatInput');
-
-        function getCsrfToken() {
-            return document.cookie
-                .split('; ')
-                .find(row => row.startsWith('csrftoken='))
-                ?.split('=')[1] || '';
-        }
-
-        function renderCustomerMessages(messages) {
-            if (!customerChatMessages) return;
-
-            if (!messages || messages.length === 0) {
-                customerChatMessages.innerHTML = '<div style="text-align:center; color:#64748b;">No messages yet. Start a conversation with admin.</div>';
-                return;
-            }
-
-            customerChatMessages.innerHTML = messages.map(msg => `
-                <div class="chat-message ${msg.is_mine ? 'mine' : 'other'}">
-                    <div>${msg.message}</div>
-                    <div class="chat-message-meta">${msg.sender_name} • ${msg.created_at}</div>
-                </div>
-            `).join('');
-
-            customerChatMessages.scrollTop = customerChatMessages.scrollHeight;
-        }
-
-        async function loadCustomerChat() {
-            if (!customerChatMessages) return;
-            try {
-                const response = await fetch('/api/chat/customer/');
-                const data = await response.json();
-                renderCustomerMessages(data.messages || []);
-            } catch (error) {
-                customerChatMessages.innerHTML = '<div style="text-align:center; color:#dc2626;">Failed to load chat messages.</div>';
-            }
-        }
-
-        if (customerChatForm && customerChatInput) {
-            customerChatForm.addEventListener('submit', async function(e) {
-                e.preventDefault();
-                const message = customerChatInput.value.trim();
-                if (!message) return;
-
-                try {
-                    const response = await fetch('/api/chat/customer/', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRFToken': getCsrfToken()
-                        },
-                        body: JSON.stringify({ message })
-                    });
-
-                    const result = await response.json();
-                    if (!response.ok || !result.success) {
-                        throw new Error(result.error || 'Failed to send message');
-                    }
-
-                    customerChatInput.value = '';
-                    loadCustomerChat();
-                } catch (error) {
-                    alert(error.message || 'Failed to send message');
-                }
-            });
-
-            loadCustomerChat();
-            setInterval(loadCustomerChat, 10000);
-        }
-        
         // Cancel Order Modal
         function showCancelModal(orderNumber, totalAmount, paymentMethod, paymentStatus) {
             const modal = document.getElementById('cancelOrderModal');

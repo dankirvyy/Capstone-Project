@@ -213,6 +213,7 @@
         }
         
         .status-pending { background: #fef3c7; color: #92400e; }
+        .status-pending_verification { background: #ecfeff; color: #0f766e; }
         .status-processing { background: #dbeafe; color: #1e40af; }
         .status-shipped { background: #e0e7ff; color: #4338ca; }
         .status-delivered { background: #d1fae5; color: #065f46; }
@@ -317,13 +318,18 @@
                 <i class="fa-solid fa-check"></i>
             </div>
             <h1>Order Received!</h1>
+            {% if order.status == 'PENDING_VERIFICATION' %}
+            <p class="subtitle">Your payment proof was received and is now pending admin verification.</p>
+            {% else %}
             <p class="subtitle">Your farm-fresh mushrooms are being prepared for delivery.</p>
+            {% endif %}
             {% endif %}
             
             <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-bottom: 1rem;">
                 <div class="order-badge">Order ID: #{{ order.order_number }}</div>
                 <span class="status-badge status-{{ order.status|lower }}">
                     {% if order.status == 'PENDING' %}<i class="fa-solid fa-clock"></i>
+                    {% elif order.status == 'PENDING_VERIFICATION' %}<i class="fa-solid fa-receipt"></i>
                     {% elif order.status == 'PROCESSING' %}<i class="fa-solid fa-cog fa-spin"></i>
                     {% elif order.status == 'SHIPPED' %}<i class="fa-solid fa-truck"></i>
                     {% elif order.status == 'DELIVERED' %}<i class="fa-solid fa-check-circle"></i>
@@ -398,18 +404,13 @@
                     {% elif order.payment_status == 'PENDING' %}
                     <p style="font-size: 0.85rem; color: #92400e; margin: 0;">
                         <i class="fa-solid fa-clock"></i> 
-                        Your payment is being processed. We'll update you once confirmed.
+                        Your payment proof is under review. We will update your order once verified.
                     </p>
                     {% elif order.payment_status == 'FAILED' %}
-                    <p style="font-size: 0.85rem; color: #991b1b; margin-bottom: 10px;">
+                    <p style="font-size: 0.85rem; color: #991b1b; margin: 0;">
                         <i class="fa-solid fa-exclamation-circle"></i> 
-                        Payment failed. Please try again.
+                        Payment was rejected during verification. Please contact support.
                     </p>
-                    <a href="{% url 'retry_payment' order.order_number %}" 
-                       style="display: inline-block; background: #007bff; color: white; padding: 10px 20px; 
-                              border-radius: 8px; text-decoration: none; font-weight: 700; font-size: 0.85rem;">
-                        <i class="fa-solid fa-redo"></i> Retry Payment
-                    </a>
                     {% endif %}
                 </div>
                 {% endif %}
@@ -438,7 +439,7 @@
                 {% elif order.payment_method == 'GCASH' and order.payment_status == 'PENDING' %}
                 <div class="step">
                     <i class="fa-solid fa-hourglass-half"></i>
-                    <span>Awaiting payment confirmation from GCash.</span>
+                    <span>Awaiting admin verification of your uploaded payment proof.</span>
                 </div>
                 {% endif %}
             </div>
@@ -448,7 +449,7 @@
                     <i class="fa-solid fa-basket-shopping" style="margin-right: 10px;"></i>
                     Return to Shop
                 </a>
-                {% if order.status == 'PENDING' %}
+                {% if order.status == 'PENDING' or order.status == 'PENDING_VERIFICATION' %}
                 <button type="button" class="btn btn-outline" onclick="showCancelModal()">
                     <i class="fa-solid fa-times-circle" style="margin-right: 10px;"></i>
                     Cancel Order
@@ -473,7 +474,7 @@
         </div>
     </div>
     
-    {% if order.status == 'PENDING' %}
+    {% if order.status == 'PENDING' or order.status == 'PENDING_VERIFICATION' %}
     <!-- Cancel Order Modal -->
     <div class="cancel-modal" id="cancelModal">
         <div class="cancel-modal-content">

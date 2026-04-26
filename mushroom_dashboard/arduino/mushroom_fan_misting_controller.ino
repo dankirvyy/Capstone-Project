@@ -808,10 +808,11 @@ void pollAutomationDecision() {
 }
 
 // =============================================================================
-// RELAY COMMAND POLLING (GROW LIGHT)
+// RELAY COMMAND POLLING (GROW LIGHT + HUMIDIFIER FALLBACK)
 // =============================================================================
-// Uses /api/relay-command/ to fetch light relay state because current
-// automation-decision response does not include a dedicated lights block.
+// Uses /api/relay-command/ to fetch relay states that should always be honored.
+// This keeps manual dashboard control working even when sensor readings are
+// unavailable and automation-decision polling is skipped.
 void pollRelayCommandLights() {
   if (WiFi.status() != WL_CONNECTED) {
     return;
@@ -829,25 +830,53 @@ void pollRelayCommandLights() {
     StaticJsonDocument<512> relayDoc;
     DeserializationError error = deserializeJson(relayDoc, response);
 
-    if (!error && relayDoc.containsKey("relays") && relayDoc["relays"].containsKey("lights")) {
-      bool shouldBeOn = relayDoc["relays"]["lights"];
+    if (!error && relayDoc.containsKey("relays")) {
+      JsonObject relays = relayDoc["relays"];
 
-      if (relayDoc.containsKey("auto_modes") && relayDoc["auto_modes"].containsKey("lights_auto")) {
-        lightsAutoMode = relayDoc["auto_modes"]["lights_auto"];
+      // Keep grow light behavior driven by relay-command payload.
+      if (relays.containsKey("lights")) {
+        bool shouldBeOn = relays["lights"];
+
+        if (relayDoc.containsKey("auto_modes") && relayDoc["auto_modes"].containsKey("lights_auto")) {
+          lightsAutoMode = relayDoc["auto_modes"]["lights_auto"];
+        }
+
+        if (lightsOn != shouldBeOn) {
+          lightsOn = shouldBeOn;
+          setRelay(LIGHT_RELAY_PIN, lightsOn);
+
+          Serial.println("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+          Serial.print("💡 GROW LIGHT ");
+          Serial.print(lightsOn ? "ON" : "OFF");
+          Serial.print(" (");
+          Serial.print(lightsAutoMode ? "AUTO" : "MANUAL");
+          Serial.println(" mode)");
+          Serial.println("📝 Source: /api/relay-command/");
+          Serial.println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        }
       }
 
-      if (lightsOn != shouldBeOn) {
-        lightsOn = shouldBeOn;
-        setRelay(LIGHT_RELAY_PIN, lightsOn);
+      // Fallback path for humidifier so manual mode still works without DHT22 updates.
+      if (relays.containsKey("humidifier")) {
+        bool shouldMistBeOn = relays["humidifier"];
 
-        Serial.println("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-        Serial.print("💡 GROW LIGHT ");
-        Serial.print(lightsOn ? "ON" : "OFF");
-        Serial.print(" (");
-        Serial.print(lightsAutoMode ? "AUTO" : "MANUAL");
-        Serial.println(" mode)");
-        Serial.println("📝 Source: /api/relay-command/");
-        Serial.println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        if (relayDoc.containsKey("auto_modes") && relayDoc["auto_modes"].containsKey("humidifier_auto")) {
+          mistAutoMode = relayDoc["auto_modes"]["humidifier_auto"];
+        }
+
+        if (mistOn != shouldMistBeOn) {
+          mistOn = shouldMistBeOn;
+          setRelay(MIST_RELAY_PIN, mistOn);
+
+          Serial.println("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+          Serial.print("💧 MISTING ");
+          Serial.print(mistOn ? "ON" : "OFF");
+          Serial.print(" (");
+          Serial.print(mistAutoMode ? "AUTO" : "MANUAL");
+          Serial.println(" mode)");
+          Serial.println("📝 Source: /api/relay-command/ (fallback)");
+          Serial.println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        }
       }
     }
   }
@@ -1000,7 +1029,7 @@ void checkGrowingConditions(float temperature, float humidity, float airQuality)
     Serial.println("🌫️  ✓ Air Quality is GOOD");
   } else if (airQuality < 800) {
     Serial.println("🌫️  ⚠️  Air Quality is ACCEPTABLE - consider ventilation");
-  } else {
+  } else { 
     Serial.println("🌫️  ⚠️  Air Quality is POOR - increase ventilation!");
   }
   

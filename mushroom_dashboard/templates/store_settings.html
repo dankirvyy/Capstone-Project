@@ -220,6 +220,64 @@
             font-weight: 700;
             color: var(--dark-green);
         }
+
+        .coord-input {
+            width: 100%;
+            padding: 10px 12px;
+            font-size: 1em;
+            font-weight: 600;
+            color: var(--dark-green);
+        }
+
+        .qr-preview-box {
+            border: 1px dashed #cbd5e1;
+            border-radius: 10px;
+            padding: 14px;
+            min-height: 220px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            background: #f8fafc;
+            text-align: center;
+        }
+
+        .qr-preview-box img {
+            width: 220px;
+            max-width: 100%;
+            border-radius: 10px;
+            border: 1px solid #e2e8f0;
+            background: white;
+            object-fit: contain;
+        }
+
+        .qr-preview-empty {
+            color: #64748b;
+            font-size: 0.9em;
+        }
+
+        .checkbox-inline {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            color: #334155;
+            font-size: 0.9em;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .checkbox-inline input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            accent-color: #dc2626;
+        }
+
+        .form-hint {
+            margin-top: 8px;
+            color: #64748b;
+            font-size: 0.82em;
+        }
         
         .btn {
             padding: 12px 24px;
@@ -588,24 +646,41 @@
                 
                 <div class="map-instructions">
                     <i class="fa-solid fa-info-circle"></i>
-                    <span>Click on the map to set your store location, or drag the marker to adjust</span>
+                    <span>Click on the map to set your store location, drag the marker, or type coordinates below</span>
                 </div>
                 
                 <div id="map"></div>
                 
                 <div class="coordinates-display">
                     <div class="coord-box">
-                        <div class="coord-label">Latitude</div>
-                        <div class="coord-value" id="display-lat">{{ store_settings.store_latitude|default:"Not set" }}</div>
+                        <label for="store_latitude" class="coord-label">Latitude</label>
+                        <input
+                            type="number"
+                            id="store_latitude"
+                            name="store_latitude"
+                            class="form-input coord-input"
+                            step="0.000001"
+                            min="-90"
+                            max="90"
+                            value="{{ store_settings.store_latitude|default:'' }}"
+                            placeholder="e.g. 14.599500"
+                        >
                     </div>
                     <div class="coord-box">
-                        <div class="coord-label">Longitude</div>
-                        <div class="coord-value" id="display-lng">{{ store_settings.store_longitude|default:"Not set" }}</div>
+                        <label for="store_longitude" class="coord-label">Longitude</label>
+                        <input
+                            type="number"
+                            id="store_longitude"
+                            name="store_longitude"
+                            class="form-input coord-input"
+                            step="0.000001"
+                            min="-180"
+                            max="180"
+                            value="{{ store_settings.store_longitude|default:'' }}"
+                            placeholder="e.g. 120.984200"
+                        >
                     </div>
                 </div>
-                
-                <input type="hidden" id="store_latitude" name="store_latitude" value="{{ store_settings.store_latitude|default:'' }}">
-                <input type="hidden" id="store_longitude" name="store_longitude" value="{{ store_settings.store_longitude|default:'' }}">
                 
                 <div class="form-grid" style="margin-top: 25px;">
                     <div class="form-group full-width">
@@ -663,6 +738,48 @@
                     </div>
                 </div>
             </div>
+
+            <div class="card">
+                <div class="card-title"><i class="fa-solid fa-qrcode"></i> GCash Manual Payment</div>
+                <div class="card-subtitle">Upload the GCash QR code customers scan during checkout</div>
+
+                <div class="form-grid">
+                    <div class="form-group full-width">
+                        <label class="form-label">Current QR Code</label>
+                        <div class="qr-preview-box">
+                            <img
+                                id="gcash-qr-preview"
+                                src="{% if store_settings.gcash_qr_code %}{{ store_settings.gcash_qr_code.url }}{% endif %}"
+                                alt="GCash QR Code"
+                                {% if not store_settings.gcash_qr_code %}style="display:none;"{% endif %}
+                            >
+                            <p id="gcash-qr-empty" class="qr-preview-empty" {% if store_settings.gcash_qr_code %}style="display:none;"{% endif %}>
+                                No GCash QR code uploaded yet.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="gcash_qr_code" class="form-label">Upload New QR Code</label>
+                        <input
+                            type="file"
+                            id="gcash_qr_code"
+                            name="gcash_qr_code"
+                            class="form-input"
+                            accept="image/png,image/jpeg,image/jpg,image/webp"
+                        >
+                        <small class="form-hint">Accepted formats: JPG, PNG, WEBP. Maximum size: 5MB.</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">QR Options</label>
+                        <label class="checkbox-inline">
+                            <input type="checkbox" id="remove_gcash_qr" name="remove_gcash_qr">
+                            Remove current QR code when saving
+                        </label>
+                    </div>
+                </div>
+            </div>
             
             <div class="save-section">
                 <button type="submit" class="btn btn-primary">
@@ -682,13 +799,19 @@
             "hasCoords": {{ store_settings.store_latitude|yesno:"true,false" }}
         }
     </script>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
         // Initialize map
         const storeConfig = JSON.parse(document.getElementById('store-config').textContent);
         const initialLat = storeConfig.latitude;
         const initialLng = storeConfig.longitude;
         const hasInitialCoords = storeConfig.hasCoords;
+        const latitudeInput = document.getElementById('store_latitude');
+        const longitudeInput = document.getElementById('store_longitude');
+        const gcashQrInput = document.getElementById('gcash_qr_code');
+        const removeGcashQrInput = document.getElementById('remove_gcash_qr');
+        const gcashQrPreview = document.getElementById('gcash-qr-preview');
+        const gcashQrEmpty = document.getElementById('gcash-qr-empty');
         
         const map = L.map('map').setView([initialLat, initialLng], hasInitialCoords ? 15 : 10);
         
@@ -710,6 +833,7 @@
         if (hasInitialCoords) {
             marker = L.marker([initialLat, initialLng], {icon: storeIcon, draggable: true}).addTo(map);
             marker.on('dragend', updateCoordinates);
+            updateCoordinateDisplay(initialLat, initialLng);
         }
         
         // Click to add/move marker
@@ -734,28 +858,111 @@
         }
         
         function updateCoordinateDisplay(lat, lng) {
-            document.getElementById('store_latitude').value = lat.toFixed(6);
-            document.getElementById('store_longitude').value = lng.toFixed(6);
-            document.getElementById('display-lat').textContent = lat.toFixed(6);
-            document.getElementById('display-lng').textContent = lng.toFixed(6);
+            latitudeInput.value = lat.toFixed(6);
+            longitudeInput.value = lng.toFixed(6);
+        }
+
+        function syncMarkerFromInputs() {
+            const lat = parseFloat(latitudeInput.value);
+            const lng = parseFloat(longitudeInput.value);
+
+            if (Number.isNaN(lat) || Number.isNaN(lng)) {
+                return;
+            }
+
+            if (lat < -90 || lat > 90) {
+                showAlert('error', 'Latitude must be between -90 and 90.');
+                return;
+            }
+
+            if (lng < -180 || lng > 180) {
+                showAlert('error', 'Longitude must be between -180 and 180.');
+                return;
+            }
+
+            const newLatLng = [lat, lng];
+
+            if (marker) {
+                marker.setLatLng(newLatLng);
+            } else {
+                marker = L.marker(newLatLng, {icon: storeIcon, draggable: true}).addTo(map);
+                marker.on('dragend', updateCoordinates);
+            }
+
+            map.setView(newLatLng, 15);
+            updateCoordinateDisplay(lat, lng);
+        }
+
+        latitudeInput.addEventListener('change', syncMarkerFromInputs);
+        longitudeInput.addEventListener('change', syncMarkerFromInputs);
+
+        if (gcashQrInput) {
+            gcashQrInput.addEventListener('change', function() {
+                const selectedFile = this.files && this.files[0] ? this.files[0] : null;
+                if (!selectedFile) {
+                    return;
+                }
+
+                if (!selectedFile.type.startsWith('image/')) {
+                    showAlert('error', 'Please upload an image file for the GCash QR code.');
+                    this.value = '';
+                    return;
+                }
+
+                if (selectedFile.size > 5 * 1024 * 1024) {
+                    showAlert('error', 'GCash QR image must be 5MB or smaller.');
+                    this.value = '';
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    gcashQrPreview.src = event.target.result;
+                    gcashQrPreview.style.display = 'block';
+                    gcashQrEmpty.style.display = 'none';
+                    removeGcashQrInput.checked = false;
+                };
+                reader.readAsDataURL(selectedFile);
+            });
+        }
+
+        if (removeGcashQrInput) {
+            removeGcashQrInput.addEventListener('change', function() {
+                if (this.checked) {
+                    if (gcashQrInput) {
+                        gcashQrInput.value = '';
+                    }
+                    gcashQrPreview.src = '';
+                    gcashQrPreview.style.display = 'none';
+                    gcashQrEmpty.style.display = 'block';
+                }
+            });
         }
         
         // Form submission
         document.getElementById('settings-form').addEventListener('submit', async function(e) {
             e.preventDefault();
-            
-            const data = {
-                store_name: document.getElementById('store_name').value,
-                store_address: document.getElementById('store_address').value,
-                store_latitude: document.getElementById('store_latitude').value || null,
-                store_longitude: document.getElementById('store_longitude').value || null,
-                minimum_base_fee: parseFloat(document.getElementById('minimum_base_fee').value) || 0,
-                minimum_base_distance_km: parseFloat(document.getElementById('minimum_base_distance_km').value) || 0,
-                fee_per_km: parseFloat(document.getElementById('fee_per_km').value) || 0,
-                free_shipping_threshold: parseFloat(document.getElementById('free_shipping_threshold').value) || 0,
-                max_delivery_distance_km: parseFloat(document.getElementById('max_delivery_distance_km').value) || 0,
-                minimum_order_amount: parseFloat(document.getElementById('minimum_order_amount').value) || 0
-            };
+
+            const formData = new FormData();
+            formData.append('store_name', document.getElementById('store_name').value);
+            formData.append('store_address', document.getElementById('store_address').value);
+            formData.append('store_latitude', document.getElementById('store_latitude').value || '');
+            formData.append('store_longitude', document.getElementById('store_longitude').value || '');
+            formData.append('minimum_base_fee', parseFloat(document.getElementById('minimum_base_fee').value) || 0);
+            formData.append('minimum_base_distance_km', parseFloat(document.getElementById('minimum_base_distance_km').value) || 0);
+            formData.append('fee_per_km', parseFloat(document.getElementById('fee_per_km').value) || 0);
+            formData.append('free_shipping_threshold', parseFloat(document.getElementById('free_shipping_threshold').value) || 0);
+            formData.append('max_delivery_distance_km', parseFloat(document.getElementById('max_delivery_distance_km').value) || 0);
+            formData.append('minimum_order_amount', parseFloat(document.getElementById('minimum_order_amount').value) || 0);
+
+            const qrFile = gcashQrInput && gcashQrInput.files ? gcashQrInput.files[0] : null;
+            if (qrFile) {
+                formData.append('gcash_qr_code', qrFile);
+            }
+
+            if (removeGcashQrInput && removeGcashQrInput.checked) {
+                formData.append('remove_gcash_qr', 'true');
+            }
             
             // Get CSRF token
             const csrfToken = document.cookie
@@ -767,10 +974,9 @@
                 const response = await fetch('/api/store-settings/', {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
                         'X-CSRFToken': csrfToken
                     },
-                    body: JSON.stringify(data)
+                    body: formData
                 });
                 
                 const result = await response.json();

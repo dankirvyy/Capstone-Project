@@ -86,6 +86,171 @@
             box-shadow: 0 6px 20px rgba(12, 75, 51, 0.4);
         }
 
+        .customer-service-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            padding: 0;
+            border-radius: 10px;
+            border: 2px solid #111827;
+            background: #ffffff;
+            color: #111827;
+            text-decoration: none;
+            transition: all 0.25s ease;
+            cursor: pointer;
+            box-shadow: 0 6px 14px rgba(15, 23, 42, 0.14);
+        }
+
+        .customer-service-btn i {
+            font-size: 1.08rem;
+        }
+
+        .customer-service-btn:hover {
+            background: #111827;
+            color: #ffffff;
+            transform: translateY(-1px);
+        }
+
+        .customer-chat-modal {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            background: rgba(2, 6, 23, 0.45);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            z-index: 1200;
+        }
+
+        .customer-chat-modal.show {
+            display: flex;
+        }
+
+        .customer-chat-panel {
+            width: min(560px, 100%);
+            max-height: 85vh;
+            background: white;
+            border-radius: 18px;
+            overflow: hidden;
+            box-shadow: 0 25px 60px rgba(15, 23, 42, 0.28);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .customer-chat-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            padding: 1rem 1.1rem;
+            border-bottom: 1px solid #e2e8f0;
+            background: linear-gradient(135deg, #0c4b33, #1a5e45);
+            color: white;
+        }
+
+        .customer-chat-header h3 {
+            font-size: 1rem;
+            margin: 0;
+            font-weight: 700;
+        }
+
+        .customer-chat-close {
+            border: none;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            width: 34px;
+            height: 34px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .customer-chat-close:hover {
+            background: rgba(255, 255, 255, 0.32);
+        }
+
+        .customer-chat-messages {
+            padding: 1rem;
+            background: #f8fafc;
+            display: flex;
+            flex-direction: column;
+            gap: 0.7rem;
+            overflow-y: auto;
+            min-height: 260px;
+            max-height: 52vh;
+        }
+
+        .customer-chat-message {
+            max-width: 78%;
+            padding: 0.75rem 0.95rem;
+            border-radius: 14px;
+            line-height: 1.45;
+            font-size: 0.92rem;
+            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+        }
+
+        .customer-chat-message.mine {
+            align-self: flex-end;
+            background: linear-gradient(135deg, #0c4b33, #1a5e45);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .customer-chat-message.other {
+            align-self: flex-start;
+            background: white;
+            color: #1f2937;
+            border: 1px solid #e2e8f0;
+            border-bottom-left-radius: 4px;
+        }
+
+        .customer-chat-message-meta {
+            margin-top: 0.35rem;
+            font-size: 0.73rem;
+            opacity: 0.78;
+        }
+
+        .customer-chat-input-wrap {
+            display: flex;
+            gap: 0.65rem;
+            padding: 0.9rem;
+            border-top: 1px solid #e2e8f0;
+            background: white;
+        }
+
+        .customer-chat-input-wrap input {
+            flex: 1;
+            border: 1.5px solid #d1d5db;
+            border-radius: 10px;
+            padding: 0.72rem 0.9rem;
+            font-size: 0.92rem;
+            outline: none;
+        }
+
+        .customer-chat-input-wrap input:focus {
+            border-color: #0c4b33;
+            box-shadow: 0 0 0 3px rgba(12, 75, 51, 0.12);
+        }
+
+        .customer-chat-send-btn {
+            border: none;
+            border-radius: 10px;
+            background: #0c4b33;
+            color: white;
+            padding: 0 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .customer-chat-send-btn:hover {
+            background: #1a5e45;
+        }
+
         /* --- Hero Header --- */
         .page-header {
             padding: 4rem 2rem 2rem;
@@ -895,6 +1060,11 @@
             .nav-toggle {
                 display: block;
             }
+
+            .customer-service-btn {
+                width: 38px;
+                height: 38px;
+            }
             
             .nav-links {
                 display: none;
@@ -938,11 +1108,27 @@
                 min-width: auto;
                 width: 100%;
             }
+
+            .customer-chat-panel {
+                max-height: 90vh;
+            }
         }
         
         @media (max-width: 480px) {
             .navbar {
                 padding: 0.75rem 4%;
+            }
+
+            .logo-section {
+                gap: 8px;
+            }
+
+            .customer-service-btn {
+                width: 36px;
+                height: 36px;
+                border-radius: 10px;
+                padding: 0;
+                justify-content: center;
             }
             
             .brand-name {
@@ -977,6 +1163,19 @@
             .clear-btn {
                 padding: 0.75rem 1rem;
                 font-size: 0.85rem;
+            }
+
+            .customer-chat-messages {
+                max-height: 56vh;
+                min-height: 240px;
+            }
+
+            .customer-chat-message {
+                max-width: 86%;
+            }
+
+            .customer-chat-input-wrap {
+                padding: 0.75rem;
             }
             
             .messages {
@@ -1125,12 +1324,39 @@
         </div>
     </div>
 
+    {% if user.is_authenticated and not user.profile.is_admin %}
+    <div class="customer-chat-modal" id="customerServiceModal" aria-hidden="true">
+        <div class="customer-chat-panel" role="dialog" aria-modal="true" aria-labelledby="customerServiceTitle">
+            <div class="customer-chat-header">
+                <h3 id="customerServiceTitle"><i class="fa-solid fa-headset"></i> Chat with Admin</h3>
+                <button type="button" class="customer-chat-close" id="customerServiceClose" aria-label="Close chat">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="customer-chat-messages" id="customerServiceMessages">
+                <div style="text-align:center; color:#64748b;">Loading messages...</div>
+            </div>
+            <form class="customer-chat-input-wrap" id="customerServiceForm">
+                <input type="text" id="customerServiceInput" placeholder="Type your inquiry here..." maxlength="1000" required>
+                <button type="submit" class="customer-chat-send-btn">
+                    <i class="fa-solid fa-paper-plane"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+
     <nav class="navbar">
         <div class="logo-section">
             <div class="logo-circle">
                 <img src="{% static 'images/Screenshot_2025-11-01_124726-removebg-preview.png' %}" style="width: 30px;" alt="Logo">
             </div>
             <span class="brand-name">KABUTOMATE</span>
+            {% if user.is_authenticated and not user.profile.is_admin %}
+            <button type="button" class="customer-service-btn" id="customerServiceTrigger" aria-label="Open customer service chat">
+                <i class="fa-solid fa-headset"></i>
+            </button>
+            {% endif %}
         </div>
         <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation">
             <i class="fa-solid fa-bars" id="navIcon"></i>
@@ -1904,6 +2130,125 @@
                 logoutModal.classList.remove('show');
             }
         });
+    </script>
+    {% endif %}
+
+    {% if user.is_authenticated and not user.profile.is_admin %}
+    <script>
+        const customerServiceTrigger = document.getElementById('customerServiceTrigger');
+        const customerServiceModal = document.getElementById('customerServiceModal');
+        const customerServiceClose = document.getElementById('customerServiceClose');
+        const customerServiceMessages = document.getElementById('customerServiceMessages');
+        const customerServiceForm = document.getElementById('customerServiceForm');
+        const customerServiceInput = document.getElementById('customerServiceInput');
+        let customerServiceInterval = null;
+
+        function renderCustomerServiceMessages(messages) {
+            if (!customerServiceMessages) return;
+
+            if (!messages || messages.length === 0) {
+                customerServiceMessages.innerHTML = '<div style="text-align:center; color:#64748b;">No messages yet. Start a conversation with admin.</div>';
+                return;
+            }
+
+            customerServiceMessages.innerHTML = messages.map(msg => `
+                <div class="customer-chat-message ${msg.is_mine ? 'mine' : 'other'}">
+                    <div>${msg.message}</div>
+                    <div class="customer-chat-message-meta">${msg.sender_name} • ${msg.created_at}</div>
+                </div>
+            `).join('');
+
+            customerServiceMessages.scrollTop = customerServiceMessages.scrollHeight;
+        }
+
+        async function loadCustomerServiceChat() {
+            if (!customerServiceMessages) return;
+            try {
+                const response = await fetch('/api/chat/customer/');
+                const data = await response.json();
+                renderCustomerServiceMessages(data.messages || []);
+            } catch (error) {
+                customerServiceMessages.innerHTML = '<div style="text-align:center; color:#dc2626;">Failed to load chat messages.</div>';
+            }
+        }
+
+        function openCustomerServiceModal() {
+            if (!customerServiceModal) return;
+            customerServiceModal.classList.add('show');
+            customerServiceModal.setAttribute('aria-hidden', 'false');
+            loadCustomerServiceChat();
+            if (!customerServiceInterval) {
+                customerServiceInterval = setInterval(loadCustomerServiceChat, 10000);
+            }
+            if (customerServiceInput) {
+                customerServiceInput.focus();
+            }
+        }
+
+        function closeCustomerServiceModal() {
+            if (!customerServiceModal) return;
+            customerServiceModal.classList.remove('show');
+            customerServiceModal.setAttribute('aria-hidden', 'true');
+            if (customerServiceInterval) {
+                clearInterval(customerServiceInterval);
+                customerServiceInterval = null;
+            }
+        }
+
+        if (customerServiceTrigger) {
+            customerServiceTrigger.addEventListener('click', function() {
+                openCustomerServiceModal();
+            });
+        }
+
+        if (customerServiceClose) {
+            customerServiceClose.addEventListener('click', function() {
+                closeCustomerServiceModal();
+            });
+        }
+
+        if (customerServiceModal) {
+            customerServiceModal.addEventListener('click', function(e) {
+                if (e.target === customerServiceModal) {
+                    closeCustomerServiceModal();
+                }
+            });
+        }
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && customerServiceModal && customerServiceModal.classList.contains('show')) {
+                closeCustomerServiceModal();
+            }
+        });
+
+        if (customerServiceForm && customerServiceInput) {
+            customerServiceForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                const message = customerServiceInput.value.trim();
+                if (!message) return;
+
+                try {
+                    const response = await fetch('/api/chat/customer/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': getCsrfToken()
+                        },
+                        body: JSON.stringify({ message })
+                    });
+
+                    const result = await response.json();
+                    if (!response.ok || !result.success) {
+                        throw new Error(result.error || 'Failed to send message');
+                    }
+
+                    customerServiceInput.value = '';
+                    loadCustomerServiceChat();
+                } catch (error) {
+                    alert(error.message || 'Failed to send message');
+                }
+            });
+        }
     </script>
     {% endif %}
 
