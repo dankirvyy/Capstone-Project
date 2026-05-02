@@ -860,9 +860,15 @@ def register_view(request):
 
 
 def logout_view(request):
-    if request.method == 'POST':
+    if request.method in ['GET', 'POST']:
         logout(request)
-        return JsonResponse({'success': True, 'redirect_url': '/login/'})
+
+        # Keep JSON behavior for AJAX clients, but redirect for normal browser navigation.
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'success': True, 'redirect_url': '/login/'})
+
+        return redirect('login')
+
     return JsonResponse({'success': False, 'error': 'Invalid request'}, status=400)
 
 
